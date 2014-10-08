@@ -4,7 +4,7 @@ This tutorial shows how to use the AMICO framework to **fit the NODDI model**, u
 
 ## Download data for this tutorial
 
-1. Download the original DWI data from [here](http://mig.cs.ucl.ac.uk/index.php?n=Tutorial.NODDImatlab).
+1. Download the original DWI data from [here](http://www.nitrc.org/frs/download.php/5508/NODDI_example_dataset.zip).
 2. Create the folder `NoddiTutorial/Tutorial` in your data folder and extract into it the content of the downloaded archive `NODDI_example_dataset.zip`.
 3. Download the `NODDI_DWI.scheme` scheme file distributed with this tutorial.
 
