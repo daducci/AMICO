@@ -9,7 +9,7 @@ function [ KERNELS ] = AMICO_RotateAndSaveKernels_NODDI( AUX, idx_IN, idx_OUT, Y
 	KERNELS.nS      = CONFIG.scheme.nS;
 	KERNELS.nA      = numel(CONFIG.kernels.IC_VFs) * numel(CONFIG.kernels.IC_ODs) + 1; % number of atoms
 	
-	KENRELS.dPar    = CONFIG.kernels.dPar;
+	KERNELS.dPar    = CONFIG.kernels.dPar;
 
 	KERNELS.A       = zeros( [KERNELS.nS KERNELS.nA-1 181 181], 'single' );
 	KERNELS.A_kappa = zeros( 1, KERNELS.nA-1, 'single' );

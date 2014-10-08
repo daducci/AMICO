@@ -16,8 +16,26 @@ function [ scheme ] = AMICO_LoadScheme( filename, b0_thr )
 	scheme = {};
 	scheme.version = NaN;
 
-	tmp = importdata( filename );
-	scheme.camino = tmp.data;
+    try
+		n = 0; % headers lines to skip to get to the numeric data
+		fid = fopen( filename );
+		while( 1 )
+			txt = fgetl(fid);
+			if ( txt(1)~='#' ), break, end
+			n = n + 1;
+		end
+		version = textscan( txt, 'VERSION: %s' ); version = version{1}{1};
+		while( 1 )
+			n = n + 1;
+			txt = fgetl(fid);
+			if ( txt(1)~='#' ), break, end
+		end
+		fclose(fid);
+		
+		scheme.camino = dlmread( filename, '', n, 0 );		
+	catch
+        error('[AMICO_LoadScheme] Unrecognized file format');
+	end
 
 	% ensure the directions are in the spherical range [0,180]x[0,180]
 	idx = scheme.camino(:,2) < 0;
@@ -25,24 +43,15 @@ function [ scheme ] = AMICO_LoadScheme( filename, b0_thr )
 
 	scheme.nS = size(scheme.camino,1); % number of volumes
 
-	for i = 1:numel(tmp.textdata)
-		row = tmp.textdata{i};
-		if row(1) == '#'
-			continue
-		elseif strcmp( row(1:9),'VERSION: ' )
-			switch ( row(10:end) )
-				case { '0', 'BVECTOR' }
-					scheme.version = 0;
-					scheme.b = scheme.camino(:,4);
-				case { '1', 'STEJSKALTANNER' }
-					scheme.version = 1;
-					scheme.b = ( 267.513e6 * scheme.camino(:,4) .* scheme.camino(:,6) ).^2 .* (scheme.camino(:,5) - scheme.camino(:,6)/3) * 1e-6; % in mm^2/s
-				otherwise
-					error( '[LoadScheme] Unrecognized scheme type' );
-			end
-		else
-			error( '[LoadScheme] Wrong file format' );
-		end
+	switch ( version )
+		case { '0', 'BVECTOR' }
+			scheme.version = 0;
+			scheme.b = scheme.camino(:,4);
+		case { '1', 'STEJSKALTANNER' }
+			scheme.version = 1;
+			scheme.b = ( 267.513e6 * scheme.camino(:,4) .* scheme.camino(:,6) ).^2 .* (scheme.camino(:,5) - scheme.camino(:,6)/3) * 1e-6; % in mm^2/s
+		otherwise
+			error( '[AMICO_LoadScheme] Unrecognized scheme type' );
 	end
 
 	% store information about the volumes

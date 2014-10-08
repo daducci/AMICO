@@ -4,7 +4,7 @@ function AMICO_fit_NODDI()
 	global niiSIGNAL niiMASK
 	global KERNELS bMATRIX
 
-	% dataset for STIMATES PARAMETERS
+	% dataset for ESTIMATED PARAMETERS
 	niiMAP = niiMASK;
 	niiMAP.hdr.dime.dim(1) = 4;
 	niiMAP.hdr.dime.dim(5) = 3;
@@ -16,7 +16,7 @@ function AMICO_fit_NODDI()
 	niiMAP.hdr.dime.calmax = 1;
 	niiMAP.img = zeros( niiMAP.hdr.dime.dim(2:5), 'single' );
 
-	% dataset for STIMATES DIRECTIONS
+	% dataset for ESTIMATED DIRECTIONS
 	niiDIR = niiMASK;
 	niiDIR.hdr.dime.dim(1) = 4;
 	niiDIR.hdr.dime.dim(5) = 3;

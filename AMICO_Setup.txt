@@ -5,7 +5,7 @@
 %     Make a copy of it, adapt to your paths and rename it to "AMICO_Setup.m"
 %
 
-global AMICO_code_path AMICO_data_path CONFIG
+global AMICO_code_path AMICO_data_path CAMINO_path CONFIG
 global niiSIGNAL niiMASK
 global KERNELS bMATRIX
 
@@ -13,6 +13,7 @@ global KERNELS bMATRIX
 % ==========================================
 AMICO_code_path = 'absolute path to AMICO code folder';
 AMICO_data_path = 'absolute path to AMICO data folder';
+CAMINO_path     = 'absolute path to CAMINO bin folder''
 
 addpath( fullfile(AMICO_code_path,'kernels') )
 addpath( fullfile(AMICO_code_path,'optimization') )

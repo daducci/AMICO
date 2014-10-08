@@ -13,7 +13,7 @@ function AMICO_CreateHighResolutionScheme()
 	% create a high-resolution version of it (to be used with Camino)
 	n = numel( scheme.shells );
 	schemeHR = zeros( 500*n, 7 );
-	grad500 = importdata( '500_dirs.txt' );
+	grad500 = dlmread( '500_dirs.txt', '', 0, 0 );
 	for i = 1:size(grad500,1)
 		grad500(i,:) = grad500(i,:) ./ norm( grad500(i,:) );
 		if grad500(i,2) < 0
