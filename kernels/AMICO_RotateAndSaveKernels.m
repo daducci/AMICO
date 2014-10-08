@@ -52,6 +52,9 @@ function AMICO_RotateAndSaveKernels( lmax )
 		case 'NODDI'
 			KERNELS = AMICO_RotateAndSaveKernels_NODDI( AUX, idx_IN, idx_OUT, Ylm_OUT );
 
+		case 'ACTIVEAX'
+			KERNELS = AMICO_RotateAndSaveKernels_ACTIVEAX( AUX, idx_IN, idx_OUT, Ylm_OUT );
+
 		otherwise
 			error( '\t[AMICO_RotateAndSaveKernels] Model "%s" not recognized', CONFIG.kernels.model )
 	end

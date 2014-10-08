@@ -9,10 +9,13 @@ function AMICO_GenerateKernels()
 	% create folder for temporary files
 	output_path = fullfile(AMICO_data_path,CONFIG.protocol,'tmp');
 	[~,~,~] = mkdir( output_path );
+	delete( fullfile(output_path,'*') );
 
 	switch ( CONFIG.kernels.model )
 		case 'NODDI'
 			AMICO_GenerateKernels_NODDI();
+		case 'ACTIVEAX'
+			AMICO_GenerateKernels_ACTIVEAX();
 		otherwise
 			error( '\t[AMICO_GenerateKernels] Model "%s" not recognized', CONFIG.kernels.model )
 	end

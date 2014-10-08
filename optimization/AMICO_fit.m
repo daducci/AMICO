@@ -8,6 +8,9 @@ function AMICO_fit()
 		case 'NODDI'
 			AMICO_fit_NODDI();
 
+		case 'ACTIVEAX'
+			AMICO_fit_ACTIVEAX();
+
 		otherwise
 			error( '\t[AMICO_fit] Model "%s" not recognized', CONFIG.kernels.model )
 
