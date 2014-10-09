@@ -9,7 +9,7 @@ This tutorial shows how to use the AMICO framework to **fit the ActiveAx model**
 2. Create the folder `ActiveAxTutorial/Tutorial` in your data directory and merge the downloaded datasets into one:
 ```bash
 export FSLOUTPUTTYPE=NIFTI
-fslmerge -t slmerge -t DWI.nii \\
+fslmerge -t DWI.nii \\
 DRCMR_ActiveAx4CCfit_E2503_Mbrain1_B13183_3B0_ELEC_N90_Scan1_DIG.nii \\
 DRCMR_ActiveAx4CCfit_E2503_Mbrain1_B1925_3B0_ELEC_N90_Scan1_DIG.nii \\
 DRCMR_ActiveAx4CCfit_E2503_Mbrain1_B1931_3B0_ELEC_N90_Scan1_DIG.nii \\
