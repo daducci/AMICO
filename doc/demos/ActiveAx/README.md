@@ -132,7 +132,7 @@ The output will look like:
 Actually **fit** the ActiveAx model using the AMICO framework:
 
 ```matlab
-AMICO_fit()
+AMICO_Fit()
 ```
 
 The output will look something like:
