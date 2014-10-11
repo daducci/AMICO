@@ -18,4 +18,4 @@ CAMINO_path     = 'absolute path to CAMINO bin folder''
 addpath( fullfile(AMICO_code_path,'kernels') )
 addpath( fullfile(AMICO_code_path,'optimization') )
 addpath( fullfile(AMICO_code_path,'other') )
-addpath( fullfile(AMICO_code_path,'extern','NIFTI') )
+addpath( fullfile(AMICO_code_path,'vendor','NIFTI') )

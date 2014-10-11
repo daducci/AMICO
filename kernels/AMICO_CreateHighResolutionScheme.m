@@ -1,14 +1,11 @@
 %
 % Create the folder to simulate data with Camino at higher q-space resolution (500 directions per shell)
 %
-function AMICO_CreateHighResolutionScheme()
-	global CONFIG AMICO_data_path
-
-	fprintf( '\n-> Create high resolution scheme file for protocol "%s":\n', CONFIG.protocol );
+function AMICO_CreateHighResolutionScheme( filenameHR )
+	global CONFIG
 
 	% load scheme
 	scheme = AMICO_LoadScheme( CONFIG.schemeFilename );
-
 
 	% create a high-resolution version of it (to be used with Camino)
 	n = numel( scheme.shells );
@@ -30,7 +27,7 @@ function AMICO_CreateHighResolutionScheme()
 		row = row + 500;
 	end
 
-	fidCAMINO = fopen( fullfile(AMICO_data_path,CONFIG.protocol,'protocol_HR.scheme'),'w+');
+	fidCAMINO = fopen( filenameHR,'w+');
 	if scheme.version == 0
 		fprintf(fidCAMINO,'VERSION: BVECTOR\n');
 		for d = 1:size(schemeHR,1)
@@ -43,6 +40,4 @@ function AMICO_CreateHighResolutionScheme()
 		end
 	end
 	fclose(fidCAMINO);
-
-	fprintf( '   [ DONE ]\n' );
 end

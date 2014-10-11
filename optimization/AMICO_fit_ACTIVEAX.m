@@ -1,4 +1,4 @@
-function AMICO_fit_ACTIVEAX()
+function AMICO_Fit_ACTIVEAX()
 
 	global CONFIG
 	global niiSIGNAL niiMASK
@@ -45,7 +45,7 @@ function AMICO_fit_ACTIVEAX()
 		y = double( squeeze( niiSIGNAL.img(ix,iy,iz,:) ) ./ ( b0 + eps ) );
 
 		% find the MAIN DIFFUSION DIRECTION using DTI
-		[ ~, ~, V ] = AMICO_fitTensor( y, bMATRIX );
+		[ ~, ~, V ] = AMICO_FitTensor( y, bMATRIX );
 		Vt = V(:,1);
 		if ( Vt(2)<0 ), Vt = -Vt; end
 
@@ -82,7 +82,7 @@ function AMICO_fit_ACTIVEAX()
 	% save output maps
 	fprintf( '\n-> Saving output maps:\n' );
 	
-	save_untouch_nii( niiMAP, fullfile(CONFIG.DATA_path,'OUTPUT_parameters.nii') );
-	save_untouch_nii( niiDIR, fullfile(CONFIG.DATA_path,'OUTPUT_dir.nii') );
+	save_untouch_nii( niiMAP, fullfile(CONFIG.OUTPUT_path,'FIT_parameters.nii') );
+	save_untouch_nii( niiDIR, fullfile(CONFIG.OUTPUT_path,'FIT_dir.nii') );
 	
-	fprintf( '   [ OUTPUT_*.nii ]\n' )
+	fprintf( '   [ AMICO/FIT_*.nii ]\n' )

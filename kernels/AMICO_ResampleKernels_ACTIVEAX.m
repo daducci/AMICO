@@ -1,9 +1,11 @@
-function [ KERNELS ] = AMICO_RotateAndSaveKernels_ACTIVEAX( AUX, idx_IN, idx_OUT, Ylm_OUT )
+function [ KERNELS ] = AMICO_ResampleKernels_ACTIVEAX( idx_OUT, Ylm_OUT )
 
 	global CONFIG AMICO_data_path
 
-	OUTPUT_path = fullfile(AMICO_data_path,CONFIG.protocol,'tmp');
+	ATOMS_path = fullfile(AMICO_data_path,CONFIG.protocol,'common');
 
+	% Setup structure
+	% ===============
 	nIC = numel(CONFIG.kernels.IC_Rs);
 	nEC = numel(CONFIG.kernels.IC_VFs);
 	
@@ -23,48 +25,48 @@ function [ KERNELS ] = AMICO_RotateAndSaveKernels_ACTIVEAX( AUX, idx_IN, idx_OUT
 	KERNELS.Aiso     = zeros( [KERNELS.nS 1], 'single' );
 	KERNELS.Aiso_d   = NaN;
 
-	% restricted
+
+	% Restricted
+	% ==========
 	idx = 1;
 	for i = 1:nIC
 		TIME2 = tic();
-		fprintf( '\t- A_%03d.Bfloat... ', idx );
+		fprintf( '\t- A_%03d...  ', idx );
 		
-		fid = fopen( fullfile( OUTPUT_path, sprintf('A_%03d.Bfloat',idx) ), 'r', 'b' );
-		signal = fread(fid,'float');
-		fclose(fid);
+		load( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), 'lm' );
 
-		KERNELS.Aic(:,i,:,:) = AMICO_RotateKernel( signal, CONFIG.scheme, AUX, idx_IN, idx_OUT, Ylm_OUT );
+		KERNELS.Aic(:,i,:,:) = AMICO_ResampleKernel( lm, idx_OUT, Ylm_OUT, false );
 		KERNELS.Aic_R(i)     = CONFIG.kernels.IC_Rs(i);
 		idx = idx + 1;
 
 		fprintf( '[%.1f seconds]\n', toc(TIME2) );
 	end
 
-	% hindered
+
+	% Hindered
+	% ========
 	for i = 1:nEC
 		TIME2 = tic();
-		fprintf( '\t- A_%03d.Bfloat... ', idx );
+		fprintf( '\t- A_%03d...  ', idx );
 		
-		fid = fopen( fullfile( OUTPUT_path, sprintf('A_%03d.Bfloat',idx) ), 'r', 'b' );
-		signal = fread(fid,'float');
-		fclose(fid);
+		load( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), 'lm' );
 
-		KERNELS.Aec(:,i,:,:) = AMICO_RotateKernel( signal, CONFIG.scheme, AUX, idx_IN, idx_OUT, Ylm_OUT );
+		KERNELS.Aec(:,i,:,:) = AMICO_ResampleKernel( lm, idx_OUT, Ylm_OUT, false );
 		KERNELS.Aec_icvf(i)  = CONFIG.kernels.IC_VFs(i);
 		idx = idx + 1;
 
 		fprintf( '[%.1f seconds]\n', toc(TIME2) );
 	end
 
-	% isotropic
-	TIME2 = tic();
-	fprintf( '\t- A_%03d.Bfloat... ', idx );
-	
-	fid = fopen( fullfile( OUTPUT_path, sprintf('A_%03d.Bfloat',idx) ), 'r', 'b' );
-	signal = fread(fid,'float');
-	fclose(fid);
 
-	KERNELS.Aiso   = AMICO_ResampleIsoKernel( signal, CONFIG.scheme, AUX, idx_IN, idx_OUT, Ylm_OUT );
+	% Isotropic
+	% =========
+	TIME2 = tic();
+	fprintf( '\t- A_%03d...  ', idx );
+	
+	load( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), 'lm' );
+
+	KERNELS.Aiso   = AMICO_ResampleKernel( lm, idx_OUT, Ylm_OUT, true );
 	KERNELS.Aiso_d = CONFIG.kernels.dIso;
 	idx = idx + 1;
 

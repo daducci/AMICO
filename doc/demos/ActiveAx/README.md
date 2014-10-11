@@ -62,7 +62,7 @@ The output will look like:
 		- 372 measurements divided in 4 shells (12 b=0)
 	* Loading MASK...
 		- dim    = 128 x 256 x 3
-		- voxels = 426
+		- voxels = 338
    [ DONE ]
 ```
 
@@ -74,31 +74,40 @@ Generate the kernels corresponding to the different compartments of the NODDI mo
 % Setup AMICO to use the 'ActiveAx' model
 AMICO_SetModel( 'ActiveAx' );
 
-% Generate the kernels
-AMICO_CreateHighResolutionScheme();
-AMICO_GenerateKernels();
-AMICO_RotateAndSaveKernels();
+% Generate the kernels corresponding to the protocol
+AMICO_GenerateKernels( false );
+
+% Resample the kernels to match the specific subject's scheme
+AMICO_ResampleKernels();
 ```
 
 The output will look something like:
 
 ```
--> Create high resolution scheme file for protocol "ActiveAxTutorial":
+-> Generating kernels for protocol "ActiveAxTutorial":
+	* Creating high-resolution scheme:
+	  [ DONE ]
+	* Simulating "ActiveAx" kernels:
+		- A_001... [5.3 seconds]
+		- A_002... [5.1 seconds]
+
+        ...
+
+		- A_028... [5.7 seconds]
+		- A_029... [0.7 seconds]
+	  [ 149.2 seconds ]
    [ DONE ]
+   
+-> Resampling rotated kernels for subject "Tutorial":
+	- A_001...  [0.9 seconds]
+	- A_002...  [0.9 seconds]
 
--> Simulating high-resolution "ActiveAx" kernels:
-   [ 18.9 seconds ]
+    ...
 
--> Rotating kernels to 180x180 directions for subject "Tutorial":
-	- A_001.Bfloat... [5.6 seconds]
-	- A_002.Bfloat... [5.7 seconds]
-	
-	...
-	
-	- A_028.Bfloat... [5.7 seconds]
-	- A_029.Bfloat... [6.2 seconds]
-	- saving...    [5.2 seconds]
-   [ 172.3 seconds ]
+	- A_028...  [0.9 seconds]
+	- A_029...  [0.0 seconds]
+	- saving... [5.2 seconds]
+   [ 33.4 seconds ]
 ```
 
 ## Load the kernels
@@ -130,14 +139,14 @@ The output will look something like:
 
 ```
 -> Fitting ACTIVEAX model to data:
-   [ 0h 0m 1s ]
+   [ 0h 0m 0s ]
 
 -> Saving output maps:
-   [ OUTPUT_*.nii ]
+   [ AMICO/FIT_*.nii ]
 ```
 
 ![NRMSE for COMMIT](https://github.com/daducci/AMICO/blob/master/doc/demos/ActiveAx/RESULTS_Fig1.png)
 
-The results will be saved as NIFTI/ANALYZE files in `ActiveAxTutorial/Tutorial/OUTPUT_*`.
+The results will be saved as NIFTI/ANALYZE files in `ActiveAxTutorial/Tutorial/AMICO`.
 
 

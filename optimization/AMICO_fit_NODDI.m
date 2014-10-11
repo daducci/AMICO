@@ -46,7 +46,7 @@ function AMICO_fit_NODDI()
 		y = double( squeeze( niiSIGNAL.img(ix,iy,iz,:) ) ./ ( b0 + eps ) );
 
 		% find the MAIN DIFFUSION DIRECTION using DTI
-		[ ~, ~, V ] = AMICO_fitTensor( y, bMATRIX );
+		[ ~, ~, V ] = AMICO_FitTensor( y, bMATRIX );
 		Vt = V(:,1);
 		if ( Vt(2)<0 ), Vt = -Vt; end
 
@@ -78,7 +78,7 @@ function AMICO_fit_NODDI()
 		xx =  x(1:end-1);
 		xx = xx ./ ( sum(xx) + eps );
 		f1 = KERNELS.A_icvf * xx;
-		f2 = KERNELS.A_ecvf * xx;
+		f2 = (1-KERNELS.A_icvf) * xx;
 		niiMAP.img(ix,iy,iz,1) = f1 / (f1+f2+eps);
 
 		kappa = KERNELS.A_kappa * xx;
@@ -95,7 +95,7 @@ function AMICO_fit_NODDI()
 	% save output maps
 	fprintf( '\n-> Saving output maps:\n' );
 	
-	save_untouch_nii( niiMAP, fullfile(CONFIG.DATA_path,'OUTPUT_parameters.nii') );
-	save_untouch_nii( niiDIR, fullfile(CONFIG.DATA_path,'OUTPUT_dir.nii') );
+	save_untouch_nii( niiMAP, fullfile(CONFIG.OUTPUT_path,'FIT_parameters.nii') );
+	save_untouch_nii( niiDIR, fullfile(CONFIG.OUTPUT_path,'FIT_dir.nii') );
 	
-	fprintf( '   [ OUTPUT_*.nii ]\n' )
+	fprintf( '   [ AMICO/FIT_*.nii ]\n' )

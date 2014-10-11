@@ -63,31 +63,40 @@ Generate the kernels corresponding to the different compartments of the NODDI mo
 % Setup AMICO to use the 'NODDI' model
 AMICO_SetModel( 'NODDI' );
 
-% Generate the kernels
-AMICO_CreateHighResolutionScheme();
-AMICO_GenerateKernels();
-AMICO_RotateAndSaveKernels();
+% Generate the kernels corresponding to the protocol
+AMICO_GenerateKernels( false );
+
+% Resample the kernels to match the specific subject's scheme
+AMICO_ResampleKernels();
 ```
 
 The output will look something like:
 
 ```
--> Create high resolution scheme file for protocol "NoddiTutorial":
-   [ DONE ]
+-> Generating kernels for protocol "NoddiTutorial":
+	* Creating high-resolution scheme:
+	  [ DONE ] 
+	* Simulating "NODDI" kernels:
+		- A_001... [2.4 seconds]
+		- A_002... [2.4 seconds]	
 
--> Simulating high-resolution "NODDI" kernels:
-   [ 4.2 seconds ]
+        ...
 
--> Rotating kernels to 180x180 directions for subject "Tutorial":
-	- A_001.mat... [2.7 seconds]
-	- A_002.mat... [2.6 seconds]
-	
-	...
-	
-	- A_144.mat... [2.7 seconds]
-	- A_145.mat... [0.0 seconds]
-	- saving...    [4.3 seconds]
-   [ 388.9 seconds ]
+	    - A_144... [2.5 seconds]
+	    - A_145... [0.0 seconds]
+      [ 362.5 seconds ]
+   [ DONE 
+
+-> Resampling rotated kernels for subject "Tutorial":
+	- A_001...  [0.5 seconds]
+	- A_002...  [0.4 seconds]
+
+    ...
+
+	- A_144...  [0.4 seconds]
+	- A_145...  [0.0 seconds]
+	- saving... [5.2 seconds]
+   [ 67.1 seconds ]
 ```
 
 ## Load the kernels
@@ -112,21 +121,21 @@ The output will look like:
 Actually **fit** the NODDI model using the AMICO framework:
 
 ```matlab
-AMICO_fit()
+AMICO_Fit()
 ```
 
 The output will look something like:
 
 ```
 -> Fitting NODDI model to data:
-   [ 0h 0m 14s ]
+   [ 0h 0m 15s ]
 
 -> Saving output maps:
-   [ OUTPUT_*.nii ]
+   [ AMICO/FIT_*.nii ]
 ```
 
 ![NRMSE for COMMIT](https://github.com/daducci/AMICO/blob/master/doc/demos/NODDI/RESULTS_Fig1.png)
 
-The results will be saved as NIFTI/ANALYZE files in `NoddiTutorial/Tutorial/OUTPUT_*`.
+The results will be saved as NIFTI/ANALYZE files in `NoddiTutorial/Tutorial/AMICO/`.
 
 
