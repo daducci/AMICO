@@ -4,7 +4,7 @@ Implementation of the linear framework for Accelerated Microstructure Imaging vi
 
 > **Accelerated Microstructure Imaging via Convex Optimization (AMICO) from diffusion MRI data**
 >*Alessandro Daducci, Erick J. Canales-Rodriguez, Hui Zhang, Tim B. Dyrby, Daniel C. Alexander, Jean-Philippe Thiran*
->(under review in *NeuroImage*)
+>, NeuroImage, 2014 (in press)
 
 ## Installation
 
