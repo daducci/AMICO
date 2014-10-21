@@ -18,9 +18,29 @@ Implementation of the linear framework for Accelerated Microstructure Imaging vi
 
 ### Setup paths/variables in MATLAB
 
-Add the folder containing the AMICO code to your `MATLAB PATH`.
+Add the folder containing the source code of AMICO to your `MATLAB PATH`.
 
-Copy the file `AMICO_Setup.txt` and rename it to `AMICO_Setup.m`. Modify its content to set the paths to your specific needs, eg `CAMINO_path`.
+Copy the file `AMICO_Setup.txt` and rename it to `AMICO_Setup.m`. Modify its content to set the paths to your specific needs:
+
+- `AMICO_code_path` : path to the folder containing the source code of AMICO (this repository). E.g. `/home/user/AMICO/code`.
+
+- `CAMINO_path` : path to the `bin` folder containing the executables of the Camino toolkit (in case you want to use ActiveAx, not needed for NODDI). E.g. `/home/user/camino/bin`.
+
+- `AMICO_data_path` : path to the folder where you store all your datasets. E.g. `/home/user/AMICO/data`. Then, the software assumes the folder structure is the following:
+    ```
+    ├── data
+        ├── Study_01                 --> all subjects acquired with protocol "Study_01"
+            ├── Subject_01
+            ├── Subject_02
+            ├── ...
+        ├── Study_02                 --> all subjects acquired with protocol "Study_02"
+            ├── Subject_01
+            ├── Subject_02
+            ├── ...
+        ├── ...
+    ```
+  This way, the kernels need to be computed only *once per each study*, i.e. same protocol (number of shells, b-values etc), and subsequently adapted to each subject (specific gradient directions) very efficiently.
+
 
 ## Getting started
 
