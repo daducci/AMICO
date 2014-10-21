@@ -19,7 +19,7 @@ function [ KERNELS ] = AMICO_ResampleKernels_ACTIVEAX( idx_OUT, Ylm_OUT )
 	KERNELS.Aic      = zeros( [KERNELS.nS nIC 181 181], 'single' );
 	KERNELS.Aic_R    = zeros( 1, nIC, 'single' );
 	
-	KERNELS.Aec      = zeros( [KERNELS.nS nIC 181 181], 'single' );
+	KERNELS.Aec      = zeros( [KERNELS.nS nEC 181 181], 'single' );
 	KERNELS.Aec_icvf = zeros( 1, nEC, 'single' );
 	
 	KERNELS.Aiso     = zeros( [KERNELS.nS 1], 'single' );
