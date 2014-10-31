@@ -17,8 +17,8 @@ function AMICO_SetModel( model )
 	switch ( CONFIG.kernels.model )
 
 		case 'NODDI'
-			CONFIG.kernels.dPar   = 1.7;										% units of 1E-9
-			CONFIG.kernels.dIso   = 3.0;										% units of 1E-9
+			CONFIG.kernels.dPar   = 1.7;										% units of 1E-9 (m/s)
+			CONFIG.kernels.dIso   = 3.0;										% units of 1E-9 (m/s)
 			CONFIG.kernels.IC_VFs = linspace(0.1, 0.99,12);
 			CONFIG.kernels.IC_ODs = [0.03, 0.06, linspace(0.09,0.99,10)];
 
@@ -26,9 +26,9 @@ function AMICO_SetModel( model )
 			CONFIG.OPTIMIZATION.SPAMS_param.lambda2 = 1e-3;
 
 		case 'ACTIVEAX'
-			CONFIG.kernels.dPar   = 0.6;										% units of 1E-9
-			CONFIG.kernels.dIso   = 2.0;										% units of 1E-9
-			CONFIG.kernels.IC_Rs  = [ 0.01 linspace(0.5,10,20)];						% units of 1E-6 (micrometers)
+			CONFIG.kernels.dPar   = 0.6;										% units of 1E-9 (m/s)
+			CONFIG.kernels.dIso   = 2.0;										% units of 1E-9 (m/s)
+			CONFIG.kernels.IC_Rs  = [ 0.01 linspace(0.5,10,20)];				% units of 1E-6 (micrometers)
 			CONFIG.kernels.IC_VFs = [0.3:0.1:0.9];
 
 			CONFIG.OPTIMIZATION.SPAMS_param.lambda  = 0.25;

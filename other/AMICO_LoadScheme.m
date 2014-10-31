@@ -65,9 +65,9 @@ function [ scheme ] = AMICO_LoadScheme( filename, b0_thr )
 
 	% get unique parameters (ie shells)
 	if scheme.version == 0
-		[schemeUnique,ia] = unique( scheme.camino(:,4), 'rows' );
+		[schemeUnique,ia] = unique( scheme.camino(:,4), 'rows', 'stable' );
 	else
-		[schemeUnique,ia] = unique( scheme.camino(:,4:7), 'rows' );
+		[schemeUnique,ia] = unique( scheme.camino(:,4:7), 'rows', 'stable' );
 	end
 
 	% store information about each shell in a dictionary
@@ -88,7 +88,7 @@ function [ scheme ] = AMICO_LoadScheme( filename, b0_thr )
 				scheme.shells{end}.delta = schemeUnique(i,3);
 				scheme.shells{end}.TE    = schemeUnique(i,4);
 			end
-			scheme.shells{end}.b     = schemeUnique(i,end);
+			scheme.shells{end}.b     = bUnique(i);
 
 			if scheme.version == 0
 				scheme.shells{end}.idx   = find( all(bsxfun(@eq,scheme.camino(:,4),schemeUnique(i,:)),2) );
