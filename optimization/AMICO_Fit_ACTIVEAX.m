@@ -28,6 +28,16 @@ function AMICO_Fit_ACTIVEAX()
 	niiDIR.hdr.dime.calmax =  1;
 	niiDIR.img = zeros( niiMAP.hdr.dime.dim(2:5), 'single' );
 
+	% precompute norms of coupled atoms (for the l1 minimization)
+% 	if ~isempty(KERNELS.Aiso_d)
+% 		A = double( [ KERNELS.Aic(CONFIG.scheme.dwi_idx,:,1,1) KERNELS.Aec(CONFIG.scheme.dwi_idx,:,1,1) KERNELS.Aiso(CONFIG.scheme.dwi_idx) ] );
+% 	else
+% 		A = double( [ KERNELS.Aic(CONFIG.scheme.dwi_idx,:,1,1) KERNELS.Aec(CONFIG.scheme.dwi_idx,:,1,1) ] );
+% 	end
+% 	A = [ ones(1,size(A,2)) ; A ];
+% 	A_norm = repmat( 1./sqrt( sum(A.^2) ), [size(A,1),1] );
+
+	DIRS = importdata( 'dirs/dirs_100.txt' );
 
 	fprintf( '\n-> Fitting %s model to data:\n', CONFIG.kernels.model );
 	nIC = numel(CONFIG.kernels.IC_Rs);
@@ -45,21 +55,28 @@ function AMICO_Fit_ACTIVEAX()
 		y = double( squeeze( niiSIGNAL.img(ix,iy,iz,:) ) ./ ( b0 + eps ) );
 
 		% find the MAIN DIFFUSION DIRECTION using DTI
-		[ ~, ~, V ] = AMICO_FitTensor( y, bMATRIX );
-		Vt = V(:,1);
+% 		[ ~, ~, V ] = AMICO_FitTensor( y, bMATRIX );
+% 		Vt = V(:,1);
+		Vt = DIRS(iy,:);
 		if ( Vt(2)<0 ), Vt = -Vt; end
 
 		% build the DICTIONARY
 		[ i1, i2 ] = AMICO_Dir2idx( Vt );
-		A = double( [ KERNELS.Aic(CONFIG.scheme.dwi_idx,:,i1,i2) KERNELS.Aec(CONFIG.scheme.dwi_idx,:,i1,i2) KERNELS.Aiso(CONFIG.scheme.dwi_idx) ] );
+		if numel(KERNELS.Aiso_d) > 0
+			A = double( [ KERNELS.Aic(CONFIG.scheme.dwi_idx,:,i1,i2) KERNELS.Aec(CONFIG.scheme.dwi_idx,:,i1,i2) KERNELS.Aiso(CONFIG.scheme.dwi_idx) ] );
+		else
+			A = double( [ KERNELS.Aic(CONFIG.scheme.dwi_idx,:,i1,i2) KERNELS.Aec(CONFIG.scheme.dwi_idx,:,i1,i2) ] );
+		end
 	
 		% fit AMICO
 		y = y(CONFIG.scheme.dwi_idx);
 		yy = [ 1 ; y ];
 		AA = [ ones(1,size(A,2)) ; A ];
+% 		AA = AA .* A_norm;
 
 		% estimate IC and EC compartments and promote sparsity
 		x = full( mexLasso( yy, AA, CONFIG.OPTIMIZATION.SPAMS_param ) );
+% 		x = x .* A_norm(1,:)';
 
 		% STORE results	
 		niiDIR.img(ix,iy,iz,:) = Vt;

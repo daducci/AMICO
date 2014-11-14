@@ -60,7 +60,7 @@ function AMICO_ResampleKernels( lmax )
 	% ============
 	fprintf( '\t- saving... ' );
 	TIME2 = tic();
-	save( fullfile( CONFIG.OUTPUT_path, sprintf('kernels_%s.mat',CONFIG.kernels.model) ), '-v6', 'KERNELS' )
+	save( fullfile( CONFIG.OUTPUT_path, sprintf('kernels_%s.mat',CONFIG.kernels.model) ), 'KERNELS', '-v7.3' )
 	fprintf( '[%.1f seconds]\n', toc(TIME2) );
 
 
