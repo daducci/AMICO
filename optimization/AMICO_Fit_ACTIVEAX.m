@@ -28,13 +28,6 @@ function AMICO_Fit_ACTIVEAX()
 	niiDIR.hdr.dime.calmax =  1;
 	niiDIR.img = zeros( niiMAP.hdr.dime.dim(2:5), 'single' );
 
-	% precompute norms of coupled atoms (for the l1 minimization)
- 	if ~isempty(KERNELS.Aiso_d)
- 		A = double( [ KERNELS.Aic(CONFIG.scheme.dwi_idx,:,1,1) KERNELS.Aec(CONFIG.scheme.dwi_idx,:,1,1) KERNELS.Aiso(CONFIG.scheme.dwi_idx) ] );
- 	else
-		A = double( [ KERNELS.Aic(CONFIG.scheme.dwi_idx,:,1,1) KERNELS.Aec(CONFIG.scheme.dwi_idx,:,1,1) ] );
- 	end
-
 	fprintf( '\n-> Fitting %s model to data:\n', CONFIG.kernels.model );
 	nIC = numel(CONFIG.kernels.IC_Rs);
 	nEC = numel(CONFIG.kernels.IC_VFs);
