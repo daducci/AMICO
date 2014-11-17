@@ -91,6 +91,10 @@ function AMICO_GenerateKernels_ACTIVEAX( AUX, idx_IN, idx_OUT )
 	end
 	
 	% resample and save
+	fid = fopen( filenameHr, 'r', 'b' );
+	signal = fread(fid,'float');
+	fclose(fid);
+	delete( filenameHr );
 	lm = AMICO_RotateKernel( signal, AUX, idx_IN, idx_OUT, true );
 	save( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), '-v6', 'lm' )
 	
