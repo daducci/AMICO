@@ -42,6 +42,7 @@ function AMICO_Fit_ACTIVEAX()
 		b0 = mean( squeeze( niiSIGNAL.img(ix,iy,iz,CONFIG.scheme.b0_idx) ) );
 		if ( b0 < 1e-3 ), continue, end
 		y = double( squeeze( niiSIGNAL.img(ix,iy,iz,:) ) ./ ( b0 + eps ) );
+		y( y < 0 ) = 0; % [NOTE] this should not happen!
 
 		% find the MAIN DIFFUSION DIRECTION using DTI
  		[ ~, ~, V ] = AMICO_FitTensor( y, bMATRIX );
