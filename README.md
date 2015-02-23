@@ -10,23 +10,28 @@ Implementation of the linear framework for Accelerated Microstructure Imaging vi
 
 ### Download and install external software
 
-- **NODDI MATLAB toolbox**. [Download](http://mig.cs.ucl.ac.uk/index.php?n=Download.NODDI) the software and follow the instructions provided [here](http://mig.cs.ucl.ac.uk/index.php?n=Tutorial.NODDImatlab) to install it. Be sure to properly include this toolbox in your `MATLAB PATH`.
+- **NODDI MATLAB toolbox**. [Download](http://mig.cs.ucl.ac.uk/index.php?n=Download.NODDI) the software and follow the instructions provided [here](http://mig.cs.ucl.ac.uk/index.php?n=Tutorial.NODDImatlab) to install it.  
 
-- **CAMINO toolkit**. [Download](http://cmic.cs.ucl.ac.uk/camino//index.php?n=Main.Download) the software and follow the instructions provided [here](http://cmic.cs.ucl.ac.uk/camino//index.php?n=Main.Installation) to install it. NB: be sure to properly update the configuration variable `CAMINO_path` (see later).
+- **CAMINO toolkit**. [Download](http://cmic.cs.ucl.ac.uk/camino//index.php?n=Main.Download) the software and follow the instructions provided [here](http://cmic.cs.ucl.ac.uk/camino//index.php?n=Main.Installation) to install it.  
 
-- **SPArse Modeling Software**. [Download](http://spams-devel.gforge.inria.fr/downloads.html) the software and follow the instructions provided [here](http://spams-devel.gforge.inria.fr/doc/html/doc_spams003.html) to install it. Be sure to properly include this toolbox in your `MATLAB PATH`.
+- **SPArse Modeling Software (SPAMS)**. [Download](http://spams-devel.gforge.inria.fr/downloads.html) the software and follow the instructions provided [here](http://spams-devel.gforge.inria.fr/doc/html/doc_spams003.html) to install it.  
 
 ### Setup paths/variables in MATLAB
 
 Add the folder containing the source code of AMICO to your `MATLAB PATH`.
 
-Copy the file `AMICO_Setup.txt` and rename it to `AMICO_Setup.m`. Modify its content to set the paths to your specific needs:
+Copy the file `AMICO_Setup.txt` and rename it to `AMICO_Setup.m`. Modify its content to set the paths to your specific needs, as follows:
 
-- `AMICO_code_path` : path to the folder containing the source code of AMICO (this repository). E.g. `/home/user/AMICO/code`.
+- `AMICO_code_path` : path to the folder containing the *source code* of AMICO (this repository). E.g. `/home/user/AMICO/code`.
 
-- `CAMINO_path` : path to the `bin` folder containing the executables of the Camino toolkit (in case you want to use ActiveAx, not needed for NODDI). E.g. `/home/user/camino/bin`.
+- `NODDI_path` : path to the folder containing the *source code* of the NODDI toolbox (in case you want to use NODDI, not needed for ActiveAx). E.g. `/home/user/NODDI_toolbox_v0.9`.
+
+- `CAMINO_path` : path to the `bin` folder containing the *executables* of the Camino toolkit (in case you want to use ActiveAx, not needed for NODDI). E.g. `/home/user/camino/bin`.
+
+- `SPAMS_path` : path to the folder containing the *source code* of the SPAMS Library. E.g. `/home/user/spams`.
 
 - `AMICO_data_path` : path to the folder where you store all your datasets. E.g. `/home/user/AMICO/data`. Then, the software assumes the folder structure is the following:
+
     ```
     ├── data
         ├── Study_01                 --> all subjects acquired with protocol "Study_01"
