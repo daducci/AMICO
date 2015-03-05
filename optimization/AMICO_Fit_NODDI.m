@@ -26,7 +26,7 @@ function AMICO_fit_NODDI()
 	niiDIR.hdr.dime.glmax =  1;
 	niiDIR.hdr.dime.calmin = -1;
 	niiDIR.hdr.dime.calmax =  1;
-	niiDIR.img = zeros( niiMAP.hdr.dime.dim(2:5), 'single' );
+	niiDIR.img = zeros( niiDIR.hdr.dime.dim(2:5), 'single' );
 
 	% precompute norms of coupled atoms (for the l1 minimization)
 	A = double( KERNELS.A(CONFIG.scheme.dwi_idx,:,1,1) );

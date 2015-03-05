@@ -26,7 +26,7 @@ function AMICO_Fit_ACTIVEAX()
 	niiDIR.hdr.dime.glmax =  1;
 	niiDIR.hdr.dime.calmin = -1;
 	niiDIR.hdr.dime.calmax =  1;
-	niiDIR.img = zeros( niiMAP.hdr.dime.dim(2:5), 'single' );
+	niiDIR.img = zeros( niiDIR.hdr.dime.dim(2:5), 'single' );
 
 	fprintf( '\n-> Fitting %s model to data:\n', CONFIG.kernels.model );
 	nIC = numel(CONFIG.kernels.IC_Rs);
