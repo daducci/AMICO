@@ -17,7 +17,7 @@ function AMICO_GenerateKernels( doRegenerate, lmax )
 	fprintf( '\n-> Generating kernels for protocol "%s":\n', CONFIG.protocol );
 
 	% check if kernels were already generated
-	ATOMS_path = fullfile(AMICO_data_path,CONFIG.protocol,'common');
+	ATOMS_path = fullfile(AMICO_data_path,CONFIG.protocol,'kernels',CONFIG.model.id);
 	tmp = dir( fullfile(ATOMS_path,'A_*.mat') );
 	if ( numel(tmp) > 0 & doRegenerate==false )
 		fprintf( '   [ Kernels already computed. Set "doRegenerate=true" to force regeneration ]\n' )
@@ -45,6 +45,7 @@ function AMICO_GenerateKernels( doRegenerate, lmax )
 	[~,~,~] = mkdir( ATOMS_path );
 	delete( fullfile(ATOMS_path,'*') );
 	AMICO_CreateHighResolutionScheme( fullfile(ATOMS_path,'protocol_HR.scheme') );
+    schemeHR   = AMICO_LoadScheme( fullfile(ATOMS_path,'protocol_HR.scheme'), CONFIG.b0_thr );
 
 	fprintf( '\t  [ DONE ]\n' );
 
@@ -61,16 +62,17 @@ function AMICO_GenerateKernels( doRegenerate, lmax )
 		idx_OUT{end+1} = rowOUT : rowOUT+nSH-1;
 		rowIN  = rowIN+500;
 		rowOUT = rowOUT+nSH;
-	end
-
-
-	% Call the specialized function
-	% =============================
-	f = str2func( ['AMICO_GenerateKernels_' CONFIG.kernels.model] );
-	if ( exist([func2str(f) '.m'],'file') )
-		f( AUX, idx_IN, idx_OUT );
-	else
-		error( '[AMICO_GenerateKernels] Model "%s" not recognized', CONFIG.kernels.model )
+    end
+    
+	% Dispatch to the right handler for each model
+	% ============================================
+    if ~isempty(CONFIG.model)
+        TIME = tic();
+        fprintf( '\t* Simulating kernels with "%s" model:\n', CONFIG.model.name );
+        CONFIG.model.GenerateKernels( ATOMS_path, schemeHR, AUX, idx_IN, idx_OUT );
+        fprintf( '\t  [ %.1f seconds ]\n', toc(TIME) );
+    else
+		error( '[AMICO_GenerateKernels] Model not set' )
 	end
 
 

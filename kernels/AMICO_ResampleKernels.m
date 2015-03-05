@@ -14,7 +14,7 @@ function AMICO_ResampleKernels( lmax )
 	fprintf( '\n-> Resampling rotated kernels for subject "%s":\n', CONFIG.subject );
 
 	% check if original scheme exists
-	if ~exist( CONFIG.schemeFilename, 'file' )
+	if ~exist( CONFIG.schemeFilename, 'file' ) || isempty(CONFIG.scheme)
 		error( '[AMICO_ResampleKernels] File "%s" not found', CONFIG.schemeFilename )
 	end
 
@@ -42,26 +42,13 @@ function AMICO_ResampleKernels( lmax )
 	end
 	
 	
-	% Resample kernel according to subject's acquisition scheme
-	% =========================================================
-	f = str2func( ['AMICO_ResampleKernels_' CONFIG.kernels.model] );
-	if ( exist([func2str(f) '.m'],'file') )
-		[~,~,~] = mkdir( CONFIG.OUTPUT_path );
-		delete( fullfile(CONFIG.OUTPUT_path,'*') );
-		KERNELS = f( idx_OUT, Ylm_OUT );
+	% Dispatch to the right handler for each model
+	% ============================================
+    if ~isempty(CONFIG.model)
+		CONFIG.model.ResampleKernels( fullfile(AMICO_data_path,CONFIG.protocol,'kernels',CONFIG.model.id), idx_OUT, Ylm_OUT );
 	else
-		error( '[AMICO_ResampleKernels] Model "%s" not recognized', CONFIG.kernels.model )
+		error( '[AMICO_ResampleKernels] Model not set' )
 	end
-
-
-	% Save to file
-	% ============
-    if ( CONFIG.save_kernels )
-     	fprintf( '\t- saving... ' );
-     	TIME2 = tic();
-     	save( fullfile( CONFIG.OUTPUT_path, sprintf('kernels_%s.mat',CONFIG.kernels.model) ), 'KERNELS', '-v7.3' )
-     	fprintf( '[%.1f seconds]\n', toc(TIME2) );
-    end
 
 
 	fprintf( '   [ %.1f seconds ]\n', toc(TIME) );

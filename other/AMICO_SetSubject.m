@@ -23,14 +23,11 @@ function AMICO_SetSubject( protocol, subject )
 	CONFIG.maskFilename     = fullfile( CONFIG.DATA_path, 'roi_mask.nii' );
 	CONFIG.dim              = [];
 	CONFIG.pixdim           = [];
-	CONFIG.OUTPUT_path      = fullfile(CONFIG.DATA_path,'AMICO');
+	CONFIG.OUTPUT_path      = [];
 
 	CONFIG.schemeFilename	= fullfile( CONFIG.DATA_path, 'DWI.scheme' );
 	CONFIG.scheme			= [];
     CONFIG.b0_thr           = 1;
-
-	CONFIG.kernels          = [];
-    CONFIG.save_kernels     = false;
 
 	CONFIG.OPTIMIZATION     = [];
 
