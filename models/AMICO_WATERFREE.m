@@ -141,8 +141,9 @@ methods
 
         % setup the output files
         MAPs         = zeros( [CONFIG.dim(1:3) numel(obj.OUTPUT_names)], 'single' );
-        DIRs         = zeros( [CONFIG.dim(1:3) 3], 'single' );        
-
+        DIRs         = zeros( [CONFIG.dim(1:3) 3], 'single' );
+        niiY = niiSIGNAL;
+        
         n1 = numel(obj.dPer);
         n2 = numel(obj.dIso);
 
@@ -166,7 +167,7 @@ methods
 
             % build the DICTIONARY
             [ i1, i2 ] = AMICO_Dir2idx( Vt );
-            A = double( [ KERNELS.A1(CONFIG.scheme.dwi_idx,:,i1,i2) KERNELS.A2(CONFIG.scheme.dwi_idx) ] );
+            A = double( [ KERNELS.A1(CONFIG.scheme.dwi_idx,:,i1,i2) KERNELS.A2(CONFIG.scheme.dwi_idx,:) ] );
 
             % fit AMICO
             y = y(CONFIG.scheme.dwi_idx);
@@ -175,16 +176,21 @@ methods
 
             % estimate CSF partial volume and remove it
             x = full( mexLasso( yy, AA, CONFIG.OPTIMIZATION.SPAMS_param ) );
-
+            
             % STORE results	
             DIRs(ix,iy,iz,:) = Vt; % fiber direction
 
             MAPs(ix,iy,iz,1) = sum( x(1:n1) ) / ( sum(x) + eps ); % intracellular volume fraction
 
             MAPs(ix,iy,iz,2) = 1 - MAPs(ix,iy,iz,1); % isotropic volume fraction
+        
+            x(n1+1:end) = 0;
+            niiY.img(ix,iy,iz,CONFIG.scheme.dwi_idx) = AA(2:end,:)*x*b0;
+                        
         end
         end
         end
+        save_untouch_nii(niiY, 'dwi_fw_corrected.nii');
         TIME = toc(TIME);
         fprintf( '   [ %.0fh %.0fm %.0fs ]\n', floor(TIME/3600), floor(mod(TIME/60,60)), mod(TIME,60) )
 
