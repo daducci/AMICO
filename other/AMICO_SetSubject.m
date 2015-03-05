@@ -27,8 +27,10 @@ function AMICO_SetSubject( protocol, subject )
 
 	CONFIG.schemeFilename	= fullfile( CONFIG.DATA_path, 'DWI.scheme' );
 	CONFIG.scheme			= [];
+    CONFIG.b0_thr           = 1;
 
-	CONFIG.kernels = [];
+	CONFIG.kernels          = [];
+    CONFIG.save_kernels     = false;
 
-	CONFIG.OPTIMIZATION = [];
+	CONFIG.OPTIMIZATION     = [];
 

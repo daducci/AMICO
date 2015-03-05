@@ -8,7 +8,7 @@
 %
 function AMICO_ResampleKernels( lmax )
 	if nargin < 1, lmax = 12; end
-	global CONFIG AMICO_data_path
+	global CONFIG AMICO_data_path KERNELS
 
 	TIME = tic();
 	fprintf( '\n-> Resampling rotated kernels for subject "%s":\n', CONFIG.subject );
@@ -16,8 +16,6 @@ function AMICO_ResampleKernels( lmax )
 	% check if original scheme exists
 	if ~exist( CONFIG.schemeFilename, 'file' )
 		error( '[AMICO_ResampleKernels] File "%s" not found', CONFIG.schemeFilename )
-	else
-		scheme = AMICO_LoadScheme( CONFIG.schemeFilename );
 	end
 
 	% check if auxiliary matrices have been precomputed
@@ -32,13 +30,13 @@ function AMICO_ResampleKernels( lmax )
 	% Precompute aux data structures
 	% ==============================
 	nSH = (AUX.lmax+1)*(AUX.lmax+2)/2;
-	idx_OUT = zeros(scheme.dwi_count,1,'single');
-	Ylm_OUT = zeros(scheme.dwi_count,nSH*numel(CONFIG.scheme.shells),'single');
+	idx_OUT = zeros(CONFIG.scheme.dwi_count,1,'single');
+	Ylm_OUT = zeros(CONFIG.scheme.dwi_count,nSH*numel(CONFIG.scheme.shells),'single');
 	idx = 1;
-	for s = 1:numel(scheme.shells)
-		nS = numel(scheme.shells{s}.idx);
-		idx_OUT(idx:idx+nS-1) = scheme.shells{s}.idx;
-		[colatitude, longitude] = AMICO_Cart2sphere( scheme.shells{s}.grad(:,1), scheme.shells{s}.grad(:,2), scheme.shells{s}.grad(:,3) );
+	for s = 1:numel(CONFIG.scheme.shells)
+		nS = numel(CONFIG.scheme.shells{s}.idx);
+		idx_OUT(idx:idx+nS-1) = CONFIG.scheme.shells{s}.idx;
+		[colatitude, longitude] = AMICO_Cart2sphere( CONFIG.scheme.shells{s}.grad(:,1), CONFIG.scheme.shells{s}.grad(:,2), CONFIG.scheme.shells{s}.grad(:,3) );
 		Ylm_OUT(idx:idx+nS-1, [1:nSH]+(s-1)*nSH) = AMICO_CreateYlm( AUX.lmax, colatitude, longitude ); % matrix from SH to real space
 		idx = idx + nS;
 	end
@@ -58,10 +56,12 @@ function AMICO_ResampleKernels( lmax )
 
 	% Save to file
 	% ============
-	fprintf( '\t- saving... ' );
-	TIME2 = tic();
-	save( fullfile( CONFIG.OUTPUT_path, sprintf('kernels_%s.mat',CONFIG.kernels.model) ), 'KERNELS', '-v7.3' )
-	fprintf( '[%.1f seconds]\n', toc(TIME2) );
+    if ( CONFIG.save_kernels )
+     	fprintf( '\t- saving... ' );
+     	TIME2 = tic();
+     	save( fullfile( CONFIG.OUTPUT_path, sprintf('kernels_%s.mat',CONFIG.kernels.model) ), 'KERNELS', '-v7.3' )
+     	fprintf( '[%.1f seconds]\n', toc(TIME2) );
+    end
 
 
 	fprintf( '   [ %.1f seconds ]\n', toc(TIME) );

@@ -4,11 +4,13 @@
 function AMICO_CreateHighResolutionScheme( filenameHR )
 	global CONFIG
 
-	% load scheme
-	scheme = AMICO_LoadScheme( CONFIG.schemeFilename );
+	% check if original scheme exists
+	if ~exist( CONFIG.schemeFilename, 'file' ) || isempty(CONFIG.scheme)
+		error( '[AMICO_CreateHighResolutionScheme] Scheme file "%s" not found', CONFIG.schemeFilename )
+	end
 
 	% create a high-resolution version of it (to be used with Camino)
-	n = numel( scheme.shells );
+	n = numel( CONFIG.scheme.shells );
 	schemeHR = zeros( 500*n, 7 );
 	bs       = zeros( 500*n, 1 );
 	grad500 = dlmread( '500_dirs.txt', '', 0, 0 );
@@ -21,16 +23,16 @@ function AMICO_CreateHighResolutionScheme( filenameHR )
 	row = 1;
 	for i = 1:n
 		schemeHR(row:row+500-1,1:3) = grad500;
-		schemeHR(row:row+500-1,4)   = scheme.shells{i}.G;
-		schemeHR(row:row+500-1,5)   = scheme.shells{i}.Delta;
-		schemeHR(row:row+500-1,6)   = scheme.shells{i}.delta;
-		schemeHR(row:row+500-1,7)   = scheme.shells{i}.TE;
-		bs(row:row+500-1)           = scheme.shells{i}.b;
+		schemeHR(row:row+500-1,4)   = CONFIG.scheme.shells{i}.G;
+		schemeHR(row:row+500-1,5)   = CONFIG.scheme.shells{i}.Delta;
+		schemeHR(row:row+500-1,6)   = CONFIG.scheme.shells{i}.delta;
+		schemeHR(row:row+500-1,7)   = CONFIG.scheme.shells{i}.TE;
+		bs(row:row+500-1)           = CONFIG.scheme.shells{i}.b;
 		row = row + 500;
 	end
 
 	fidCAMINO = fopen( filenameHR,'w+');
-	if scheme.version == 0
+	if CONFIG.scheme.version == 0
 		fprintf(fidCAMINO,'VERSION: BVECTOR\n');
 		for d = 1:size(schemeHR,1)
 			fprintf(fidCAMINO,'%15e %15e %15e %15e\n', schemeHR(d,1),schemeHR(d,2),schemeHR(d,3), bs(d) );

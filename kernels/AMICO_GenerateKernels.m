@@ -25,10 +25,8 @@ function AMICO_GenerateKernels( doRegenerate, lmax )
 	end
 	
 	% check if original scheme exists
-	if ~exist( CONFIG.schemeFilename, 'file' )
+	if ~exist( CONFIG.schemeFilename, 'file' ) || isempty(CONFIG.scheme)
 		error( '[AMICO_GenerateKernels] Scheme file "%s" not found', CONFIG.schemeFilename )
-	else
-		scheme = AMICO_LoadScheme( CONFIG.schemeFilename );
 	end
 
 	% check if auxiliary matrices have been precomputed
@@ -58,7 +56,7 @@ function AMICO_GenerateKernels( doRegenerate, lmax )
 	rowIN  = 1;
 	rowOUT = 1;
 	nSH = (lmax+1)*(lmax+2)/2;
-	for i = 1:numel(scheme.shells)
+	for i = 1:numel(CONFIG.scheme.shells)
 		idx_IN{end+1}  = rowIN  : rowIN +500-1;
 		idx_OUT{end+1} = rowOUT : rowOUT+nSH-1;
 		rowIN  = rowIN+500;

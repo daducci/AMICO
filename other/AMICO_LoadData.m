@@ -15,7 +15,7 @@ fprintf( '\t\t- pixdim = %.3f x %.3f x %.3f\n', CONFIG.pixdim );
 
 % DWI scheme
 fprintf( '\t* Loading SCHEME...\n' );
-CONFIG.scheme = AMICO_LoadScheme( CONFIG.schemeFilename, 10 );
+CONFIG.scheme = AMICO_LoadScheme( CONFIG.schemeFilename, CONFIG.b0_thr );
 if CONFIG.scheme.nS ~= CONFIG.dim(4)
 	error( '[AMICO_LoadData] Data and scheme do not match\n' );
 end
