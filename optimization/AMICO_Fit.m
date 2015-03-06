@@ -14,7 +14,12 @@ function AMICO_Fit()
 		delete( fullfile(CONFIG.OUTPUT_path,'*') );
 
         % fit the model to the data
+        fprintf( '\n-> Fitting "%s" model to data:\n', CONFIG.model.name );
+        TIME = tic;
 		[DIRs, MAPs] = CONFIG.model.Fit();
+        TIME = toc(TIME);
+        fprintf( '   [ %.0fh %.0fm %.0fs ]\n', floor(TIME/3600), floor(mod(TIME/60,60)), mod(TIME,60) )
+		CONFIG.OPTIMIZATION.fit_time = TIME;
 	else
 		error( '[AMICO_Fit] Model not set' )
     end
@@ -23,11 +28,11 @@ function AMICO_Fit()
 	% Save CONFIGURATION and OUTPUT to file
     % =====================================
     fprintf( '\n-> Saving output to "AMICO/*":\n' );
-    
+
     fprintf( '\t- CONFIG.mat' );
     save( fullfile(CONFIG.OUTPUT_path,'CONFIG.mat'), '-v6', 'CONFIG' )
     fprintf( ' [OK]\n' );
-    
+
     fprintf( '\t- FIT_dir.nii' );
     niiMAP = niiMASK;
     niiMAP.hdr.dime.dim(1) = 4;

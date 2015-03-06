@@ -29,7 +29,7 @@ methods
 % 			CONFIG.kernels.dPar   = 0.6;										% units of 1E-9 (m/s)
 % 			CONFIG.kernels.dIso   = 2.0;										% units of 1E-9 (m/s)
 
-        
+
         obj.OUTPUT_names        = { 'v', 'a', 'd' };
         obj.OUTPUT_descriptions = {'Intra-cellular volume fraction', 'Mean axonal diameter', 'Axonal density'};
 
@@ -46,15 +46,15 @@ methods
     % ==================================================================
     function GenerateKernels( obj, ATOMS_path, schemeHR, AUX, idx_IN, idx_OUT )
         global CONFIG AMICO_data_path CAMINO_path
-        
+
         % check if high-resolution scheme has been created
         schemeHrFilename = fullfile(ATOMS_path,'protocol_HR.scheme');
         if ~exist( schemeHrFilename, 'file' )
             error( '[AMICO_GenerateKernels_ACTIVEAX] File "protocol_HR.scheme" not found in folder "%s"', ATOMS_path )
         end
-        
+
         filenameHr = [tempname '.Bfloat'];
-        
+
         % Restricted
         % ==========
         idx = 1;
@@ -213,7 +213,7 @@ methods
         idx = idx + 1;
 
         fprintf( '[%.1f seconds]\n', toc(TIME) );
- 
+
     end
 
 
@@ -227,13 +227,11 @@ methods
 
         % setup the output files
         MAPs         = zeros( [CONFIG.dim(1:3) numel(obj.OUTPUT_names)], 'single' );
-        DIRs         = zeros( [CONFIG.dim(1:3) 3], 'single' );        
+        DIRs         = zeros( [CONFIG.dim(1:3) 3], 'single' );
 
     	nIC = numel(obj.IC_Rs);
         nEC = numel(obj.IC_VFs);
 
-        fprintf( '\n-> Fitting "%s" model to data:\n', obj.name );
-        TIME = tic();
         for iz = 1:niiSIGNAL.hdr.dime.dim(4)
         for iy = 1:niiSIGNAL.hdr.dime.dim(3)
         for ix = 1:niiSIGNAL.hdr.dime.dim(2)
@@ -280,9 +278,6 @@ methods
         end
         end
         end
-        TIME = toc(TIME);
-        fprintf( '   [ %.0fh %.0fm %.0fs ]\n', floor(TIME/3600), floor(mod(TIME/60,60)), mod(TIME,60) )
-
     end
 
 

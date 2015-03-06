@@ -1,4 +1,4 @@
-	% Load scheme file (must be in camino format)
+% Load scheme file (must be in camino format)
 %
 % Parameters
 % ----------

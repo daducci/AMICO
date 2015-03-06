@@ -26,7 +26,7 @@ methods
         obj.dIso      = 3.0 * 1E-3;
     	obj.IC_VFs    = linspace(0.1, 0.99,12);
 		obj.IC_ODs    = [0.03, 0.06, linspace(0.09,0.99,10)];
-        
+
         obj.OUTPUT_names        = { 'ICVF', 'OD', 'ISOVF' };
         obj.OUTPUT_descriptions = {'Intra-cellular volume fraction', 'Orientation dispersion', 'Isotropic volume fraction'};
 
@@ -54,11 +54,11 @@ methods
         dIso = CONFIG.model.dIso * 1E-6;
         noddi.GS.fixedvals(2) = dPar;
         noddi.GD.fixedvals(2) = dPar;
-        noddi.GS.fixedvals(5) = dIso; 
+        noddi.GS.fixedvals(5) = dIso;
         noddi.GD.fixedvals(5) = dIso;
 
         protocolHR = obj.Scheme2noddi( schemeHR );
-   
+
         % Coupled compartments
         % ====================
         idx = 1;
@@ -84,8 +84,8 @@ methods
                 fprintf( '[%.1f seconds]\n', toc(TIME) );
             end
         end
-        
-        
+
+
         % Isotropic
         % =========
         TIME = tic();
@@ -166,15 +166,12 @@ methods
 
         % setup the output files
         MAPs         = zeros( [CONFIG.dim(1:3) numel(obj.OUTPUT_names)], 'single' );
-        DIRs         = zeros( [CONFIG.dim(1:3) 3], 'single' );        
+        DIRs         = zeros( [CONFIG.dim(1:3) 3], 'single' );
 
         % precompute norms of coupled atoms (for the l1 minimization)
         A = double( KERNELS.A(CONFIG.scheme.dwi_idx,:,1,1) );
         A_norm = repmat( 1./sqrt( sum(A.^2) ), [size(A,1),1] );
 
-
-        fprintf( '\n-> Fitting "%s" model to data:\n', obj.name );
-        TIME = tic;
         for iz = 1:niiSIGNAL.hdr.dime.dim(4)
         for iy = 1:niiSIGNAL.hdr.dime.dim(3)
         for ix = 1:niiSIGNAL.hdr.dime.dim(2)
@@ -213,7 +210,7 @@ methods
             idx(end+1) = true;
             x(idx) = lsqnonneg( AA(:,idx), yy, CONFIG.OPTIMIZATION.LS_param );
 
-            % STORE results	
+            % STORE results
             DIRs(ix,iy,iz,:) = Vt;
 
             xx =  x(1:end-1);
@@ -229,8 +226,6 @@ methods
         end
         end
         end
-        TIME = toc(TIME);
-        fprintf( '   [ %.0fh %.0fm %.0fs ]\n', floor(TIME/3600), floor(mod(TIME/60,60)), mod(TIME,60) )
     end
 
 
@@ -304,7 +299,7 @@ methods
             protocol.grad_dirs(i,:) = protocol.grad_dirs(i,:)/norm(protocol.grad_dirs(i,:));
         end
     end
- 
+
 end
 
 end

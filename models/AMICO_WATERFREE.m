@@ -24,7 +24,7 @@ methods
         obj.dPar      = 1.7 * 1E-3;
         obj.dIso      = [2.0 3.0] * 1E-3;
         obj.dPer      = linspace(0.1,1.0,10) * 1E-3;
-        
+
         obj.OUTPUT_names        = { 'ICVF', 'ISOVF' };
         obj.OUTPUT_descriptions = {'Intra-cellular volume fraction', 'Isotropic volume fraction'};
 
@@ -79,7 +79,7 @@ methods
 
             fprintf( '[%.1f seconds]\n', toc(TIME) );
         end
- 
+
     end
 
 
@@ -127,7 +127,7 @@ methods
 
             fprintf( '[%.1f seconds]\n', toc(TIME) );
         end
- 
+
     end
 
 
@@ -141,13 +141,11 @@ methods
 
         % setup the output files
         MAPs         = zeros( [CONFIG.dim(1:3) numel(obj.OUTPUT_names)], 'single' );
-        DIRs         = zeros( [CONFIG.dim(1:3) 3], 'single' );        
+        DIRs         = zeros( [CONFIG.dim(1:3) 3], 'single' );
 
         n1 = numel(obj.dPer);
         n2 = numel(obj.dIso);
 
-        fprintf( '\n-> Fitting "%s" model to data:\n', obj.name );
-        TIME = tic();
         for iz = 1:niiSIGNAL.hdr.dime.dim(4)
         for iy = 1:niiSIGNAL.hdr.dime.dim(3)
         for ix = 1:niiSIGNAL.hdr.dime.dim(2)
@@ -176,7 +174,7 @@ methods
             % estimate CSF partial volume and remove it
             x = full( mexLasso( yy, AA, CONFIG.OPTIMIZATION.SPAMS_param ) );
 
-            % STORE results	
+            % STORE results
             DIRs(ix,iy,iz,:) = Vt; % fiber direction
 
             MAPs(ix,iy,iz,1) = sum( x(1:n1) ) / ( sum(x) + eps ); % intracellular volume fraction
@@ -185,9 +183,6 @@ methods
         end
         end
         end
-        TIME = toc(TIME);
-        fprintf( '   [ %.0fh %.0fm %.0fs ]\n', floor(TIME/3600), floor(mod(TIME/60,60)), mod(TIME,60) )
-
     end
 
 
