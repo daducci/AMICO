@@ -15,7 +15,7 @@ niiSIGNAL.img = single(niiSIGNAL.img);
 if ( niiSIGNAL.hdr.dime.scl_slope == 0 )
 	error( '[AMICO_LoadData] Found scl_slope=0 in the header; the signal would be zero!\n' );
 end
-if ( niiSIGNAL.hdr.dime.scl_slope != 1 || niiSIGNAL.hdr.dime.scl_inter != 0 )
+if ( niiSIGNAL.hdr.dime.scl_slope ~= 1 || niiSIGNAL.hdr.dime.scl_inter ~= 0 )
 	niiSIGNAL.img = niiSIGNAL.img * niiSIGNAL.hdr.dime.scl_slope + niiSIGNAL.hdr.dime.scl_inter;
 end
 
