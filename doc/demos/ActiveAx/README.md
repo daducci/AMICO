@@ -68,7 +68,7 @@ The output will look like:
 
 ## Generate the kernels
 
-Generate the kernels corresponding to the different compartments of the NODDI model:
+Generate the kernels corresponding to the different compartments of the ActiveAx model:
 
 ```matlab
 % Setup AMICO to use the 'ActiveAx' model
@@ -108,22 +108,6 @@ The output will look something like:
 	- A_029...  [0.0 seconds]
 	- saving... [5.2 seconds]
    [ 33.4 seconds ]
-```
-
-## Load the kernels
-
-Calculate the kernels corresponding to the different compartments of the NODDI model:
-
-```matlab
-% Load the kernels in memory
-KERNELS = AMICO_LoadKernels();
-```
-
-The output will look like:
-
-```
--> Loading precomputed kernels:
-   [ ACTIVEAX, 29 atoms, 372 samples ]
 ```
 
 
