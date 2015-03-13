@@ -172,10 +172,12 @@ methods
         A = double( KERNELS.A(CONFIG.scheme.dwi_idx,:,1,1) );
         A_norm = repmat( 1./sqrt( sum(A.^2) ), [size(A,1),1] );
 
+        progress = ProgressBar( nnz(niiMASK.img) );
         for iz = 1:niiSIGNAL.hdr.dime.dim(4)
         for iy = 1:niiSIGNAL.hdr.dime.dim(3)
         for ix = 1:niiSIGNAL.hdr.dime.dim(2)
             if niiMASK.img(ix,iy,iz)==0, continue, end
+            progress.update();
 
             % read the signal
             b0 = mean( squeeze( niiSIGNAL.img(ix,iy,iz,CONFIG.scheme.b0_idx) ) );
@@ -212,20 +214,18 @@ methods
 
             % STORE results
             DIRs(ix,iy,iz,:) = Vt;
-
             xx =  x(1:end-1);
             xx = xx ./ ( sum(xx) + eps );
             f1 = KERNELS.A_icvf * xx;
             f2 = (1-KERNELS.A_icvf) * xx;
             MAPs(ix,iy,iz,1) = f1 / (f1+f2+eps);
-
             kappa = KERNELS.A_kappa * xx;
             MAPs(ix,iy,iz,2) = 2/pi * atan2(1,kappa);
-
             MAPs(ix,iy,iz,3) = x(end);
         end
         end
         end
+        progress.close();
     end
 
 

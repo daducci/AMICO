@@ -146,10 +146,12 @@ methods
         n1 = numel(obj.dPer);
         n2 = numel(obj.dIso);
 
+        progress = ProgressBar( nnz(niiMASK.img) );
         for iz = 1:niiSIGNAL.hdr.dime.dim(4)
         for iy = 1:niiSIGNAL.hdr.dime.dim(3)
         for ix = 1:niiSIGNAL.hdr.dime.dim(2)
             if niiMASK.img(ix,iy,iz)==0, continue, end
+            progress.update();
 
             % read the signal
             b0 = mean( squeeze( niiSIGNAL.img(ix,iy,iz,CONFIG.scheme.b0_idx) ) );
@@ -176,13 +178,12 @@ methods
 
             % STORE results
             DIRs(ix,iy,iz,:) = Vt; % fiber direction
-
             MAPs(ix,iy,iz,1) = sum( x(1:n1) ) / ( sum(x) + eps ); % intracellular volume fraction
-
             MAPs(ix,iy,iz,2) = 1 - MAPs(ix,iy,iz,1); % isotropic volume fraction
         end
         end
         end
+        progress.close();
     end
 
 

@@ -26,9 +26,6 @@ methods
         obj.dIso      = 2.0 * 1E-3;
 		obj.IC_Rs     = [0.01 linspace(0.5,10,20)];
 		obj.IC_VFs    = [0.3:0.1:0.9];
-% 			CONFIG.kernels.dPar   = 0.6;										% units of 1E-9 (m/s)
-% 			CONFIG.kernels.dIso   = 2.0;										% units of 1E-9 (m/s)
-
 
         obj.OUTPUT_names        = { 'v', 'a', 'd' };
         obj.OUTPUT_descriptions = {'Intra-cellular volume fraction', 'Mean axonal diameter', 'Axonal density'};
@@ -232,10 +229,12 @@ methods
     	nIC = numel(obj.IC_Rs);
         nEC = numel(obj.IC_VFs);
 
+        progress = ProgressBar( nnz(niiMASK.img) );
         for iz = 1:niiSIGNAL.hdr.dime.dim(4)
         for iy = 1:niiSIGNAL.hdr.dime.dim(3)
         for ix = 1:niiSIGNAL.hdr.dime.dim(2)
             if niiMASK.img(ix,iy,iz)==0, continue, end
+            progress.update();
 
             % read the signal
             b0 = mean( squeeze( niiSIGNAL.img(ix,iy,iz,CONFIG.scheme.b0_idx) ) );
@@ -278,6 +277,7 @@ methods
         end
         end
         end
+        progress.close();
     end
 
 

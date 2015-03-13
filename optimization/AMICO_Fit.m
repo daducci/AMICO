@@ -14,7 +14,7 @@ function AMICO_Fit()
 		delete( fullfile(CONFIG.OUTPUT_path,'*') );
 
         % fit the model to the data
-        fprintf( '\n-> Fitting "%s" model to data:\n', CONFIG.model.name );
+        fprintf( '\n-> Fitting "%s" model to %d voxels:\n', CONFIG.model.name, nnz(niiMASK.img) );
         TIME = tic;
 		[DIRs, MAPs] = CONFIG.model.Fit();
         TIME = toc(TIME);
