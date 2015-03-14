@@ -134,56 +134,22 @@ methods
     % ===========================
     % Fit the model to each voxel
     % ===========================
-    function [DIRs, MAPs] = Fit( obj )
-        global CONFIG
-        global niiSIGNAL niiMASK
-        global KERNELS bMATRIX
+    function [ MAPs ] = Fit( obj, y, i1, i2 )
+        global CONFIG KERNELS
 
-        % setup the output files
-        MAPs         = zeros( [CONFIG.dim(1:3) numel(obj.OUTPUT_names)], 'single' );
-        DIRs         = zeros( [CONFIG.dim(1:3) 3], 'single' );
+        % prepare SIGNAL and DICTIONARY
+        A  = double( [ KERNELS.A1(CONFIG.scheme.dwi_idx,:,i1,i2) KERNELS.A2(CONFIG.scheme.dwi_idx,:) ] );
+        AA = [ ones(1,KERNELS.nA) ; A ];
+        yy = [ 1 ; y(CONFIG.scheme.dwi_idx) ];
 
+        % estimate coefficients
+        x = full( mexLasso( yy, AA, CONFIG.OPTIMIZATION.SPAMS_param ) );
+
+        % compute MAPS
         n1 = numel(obj.dPer);
-        n2 = numel(obj.dIso);
-
-        progress = ProgressBar( nnz(niiMASK.img) );
-        for iz = 1:niiSIGNAL.hdr.dime.dim(4)
-        for iy = 1:niiSIGNAL.hdr.dime.dim(3)
-        for ix = 1:niiSIGNAL.hdr.dime.dim(2)
-            if niiMASK.img(ix,iy,iz)==0, continue, end
-            progress.update();
-
-            % read the signal
-            b0 = mean( squeeze( niiSIGNAL.img(ix,iy,iz,CONFIG.scheme.b0_idx) ) );
-            if ( b0 < 1e-3 ), continue, end
-            y = double( squeeze( niiSIGNAL.img(ix,iy,iz,:) ) ./ ( b0 + eps ) );
-            y( y < 0 ) = 0; % [NOTE] this should not happen!
-
-            % find the MAIN DIFFUSION DIRECTION using DTI
-            [ ~, ~, V ] = AMICO_FitTensor( y, bMATRIX );
-            Vt = V(:,1);
-            if ( Vt(2)<0 ), Vt = -Vt; end
-
-            % build the DICTIONARY
-            [ i1, i2 ] = AMICO_Dir2idx( Vt );
-            A = double( [ KERNELS.A1(CONFIG.scheme.dwi_idx,:,i1,i2) KERNELS.A2(CONFIG.scheme.dwi_idx) ] );
-
-            % fit AMICO
-            y = y(CONFIG.scheme.dwi_idx);
-            yy = [ 1 ; y ];
-            AA = [ ones(1,size(A,2)) ; A ];
-
-            % estimate CSF partial volume and remove it
-            x = full( mexLasso( yy, AA, CONFIG.OPTIMIZATION.SPAMS_param ) );
-
-            % STORE results
-            DIRs(ix,iy,iz,:) = Vt; % fiber direction
-            MAPs(ix,iy,iz,1) = sum( x(1:n1) ) / ( sum(x) + eps ); % intracellular volume fraction
-            MAPs(ix,iy,iz,2) = 1 - MAPs(ix,iy,iz,1); % isotropic volume fraction
-        end
-        end
-        end
-        progress.close();
+        MAPs    = zeros( [1 numel(obj.OUTPUT_names)], 'single' );
+        MAPs(1) = sum( x(1:n1) ) / ( sum(x) + eps ); % intracellular volume fraction
+        MAPs(2) = 1 - MAPs(1);                       % isotropic volume fraction
     end
 
 
