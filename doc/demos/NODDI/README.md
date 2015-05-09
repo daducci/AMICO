@@ -99,22 +99,6 @@ The output will look something like:
    [ 67.1 seconds ]
 ```
 
-## Load the kernels
-
-Calculate the kernels corresponding to the different compartments of the NODDI model:
-
-```matlab
-% Load the kernels in memory
-KERNELS = AMICO_LoadKernels();
-```
-
-The output will look like:
-
-```
--> Loading precomputed kernels:
-   [ NODDI, 145 atoms, 81 samples ]
-```
-
 
 ## Fit the model
 

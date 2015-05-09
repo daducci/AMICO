@@ -5,15 +5,29 @@ fprintf( '\n-> Loading and setup:\n' );
 
 fprintf( '\t* Loading DWI...\n' );
 
-% DWI dataset
+
+% Load DWI dataset
+% ================
 niiSIGNAL = load_untouch_nii( CONFIG.dwiFilename );
 niiSIGNAL.img = single(niiSIGNAL.img);
+
+% Scale signal intensities (if necessary)
+if ( niiSIGNAL.hdr.dime.scl_slope == 0 )
+	error( '[AMICO_LoadData] Found scl_slope=0 in the header; the signal would be zero!\n' );
+end
+if ( niiSIGNAL.hdr.dime.scl_slope ~= 1 || niiSIGNAL.hdr.dime.scl_inter ~= 0 )
+	niiSIGNAL.img = niiSIGNAL.img * niiSIGNAL.hdr.dime.scl_slope + niiSIGNAL.hdr.dime.scl_inter;
+end
+
+%  print the dimensions of the data
 CONFIG.dim    = niiSIGNAL.hdr.dime.dim(2:5);
 CONFIG.pixdim = niiSIGNAL.hdr.dime.pixdim(2:4);
 fprintf( '\t\t- dim    = %d x %d x %d x %d\n' , CONFIG.dim );
 fprintf( '\t\t- pixdim = %.3f x %.3f x %.3f\n', CONFIG.pixdim );
 
-% DWI scheme
+
+% Acquisition scheme
+% ==================
 fprintf( '\t* Loading SCHEME...\n' );
 CONFIG.scheme = AMICO_LoadScheme( CONFIG.schemeFilename, CONFIG.b0_thr );
 if CONFIG.scheme.nS ~= CONFIG.dim(4)
@@ -23,6 +37,7 @@ fprintf( '\t\t- %d measurements divided in %d shells (%d b=0)\n', CONFIG.scheme.
 
 
 % BINARY mask
+% ===========
 fprintf( '\t* Loading MASK...\n' );
 if ~exist(CONFIG.maskFilename,'file')
 	error( '[AMICO_LoadData] no mask specified\n' );
@@ -36,7 +51,8 @@ fprintf( '\t\t- dim    = %d x %d x %d\n' , niiMASK.hdr.dime.dim(2:4) );
 fprintf( '\t\t- voxels = %d\n' , nnz(niiMASK.img) );
 
 
-% precompute the b-matrix to be used in DTI fitting
+% B-matrix to be used in DTI fitting
+% ==================================
 XYZB = CONFIG.scheme.camino(:,1:3);
 XYZB(:,4) = CONFIG.scheme.b;
 bMATRIX = zeros([3 3 size(XYZB,1)]);

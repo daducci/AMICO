@@ -3,18 +3,55 @@
 %
 function AMICO_Fit()
 
-	global CONFIG niiMASK
+	global CONFIG niiSIGNAL niiMASK bMATRIX
 
+    % setup the output files
+    MAPs = zeros( [CONFIG.dim(1:3) numel(CONFIG.model.OUTPUT_names)], 'single' );
+    DIRs = zeros( [CONFIG.dim(1:3) 3], 'single' );
 
-	% Dispatch to the right handler for each model
-    % ============================================
+	% Fit right model to each voxel
+    % =============================
 	if ~isempty(CONFIG.model)
         % delete previous output
         [~,~,~] = mkdir( CONFIG.OUTPUT_path );
 		delete( fullfile(CONFIG.OUTPUT_path,'*') );
 
         % fit the model to the data
-		[DIRs, MAPs] = CONFIG.model.Fit();
+        fprintf( '\n-> Fitting "%s" model to %d voxels:\n', CONFIG.model.name, nnz(niiMASK.img) );
+        TIME = tic;
+        progress = ProgressBar( nnz(niiMASK.img) );
+        for iz = 1:niiSIGNAL.hdr.dime.dim(4)
+        for iy = 1:niiSIGNAL.hdr.dime.dim(3)
+        for ix = 1:niiSIGNAL.hdr.dime.dim(2)
+            if niiMASK.img(ix,iy,iz)==0, continue, end
+            progress.update();
+
+            % Read the signal
+            b0 = mean( squeeze( niiSIGNAL.img(ix,iy,iz,CONFIG.scheme.b0_idx) ) );
+            if ( b0 < 1e-3 ), continue, end
+            y = double( squeeze( niiSIGNAL.img(ix,iy,iz,:) ) ./ ( b0 + eps ) );
+            y( y < 0 ) = 0; % [NOTE] this should not happen!
+            
+            % f\Find the MAIN DIFFUSION DIRECTION using DTI
+            [ ~, ~, V ] = AMICO_FitTensor( y, bMATRIX );
+            vox_DIRs = V(:,1);
+            if ( vox_DIRs(2)<0 ), vox_DIRs = -vox_DIRs; end
+            [ i1, i2 ] = AMICO_Dir2idx( vox_DIRs );
+
+            % Dispatch to the right handler for each model
+            vox_MAPs = CONFIG.model.Fit( y, i1, i2 );
+
+            % Store results
+            DIRs(ix,iy,iz,:) = vox_DIRs;
+            MAPs(ix,iy,iz,:) = vox_MAPs;
+        end
+        end
+        end
+        progress.close();
+
+        TIME = toc(TIME);
+        fprintf( '   [ %.0fh %.0fm %.0fs ]\n', floor(TIME/3600), floor(mod(TIME/60,60)), mod(TIME,60) )
+		CONFIG.OPTIMIZATION.fit_time = TIME;
 	else
 		error( '[AMICO_Fit] Model not set' )
     end
@@ -23,11 +60,11 @@ function AMICO_Fit()
 	% Save CONFIGURATION and OUTPUT to file
     % =====================================
     fprintf( '\n-> Saving output to "AMICO/*":\n' );
-    
+
     fprintf( '\t- CONFIG.mat' );
     save( fullfile(CONFIG.OUTPUT_path,'CONFIG.mat'), '-v6', 'CONFIG' )
     fprintf( ' [OK]\n' );
-    
+
     fprintf( '\t- FIT_dir.nii' );
     niiMAP = niiMASK;
     niiMAP.hdr.dime.dim(1) = 4;

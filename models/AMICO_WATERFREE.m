@@ -24,7 +24,7 @@ methods
         obj.dPar      = 1.7 * 1E-3;
         obj.dIso      = [2.0 3.0] * 1E-3;
         obj.dPer      = linspace(0.1,1.0,10) * 1E-3;
-        
+
         obj.OUTPUT_names        = { 'ICVF', 'ISOVF' };
         obj.OUTPUT_descriptions = {'Intra-cellular volume fraction', 'Isotropic volume fraction'};
 
@@ -79,7 +79,7 @@ methods
 
             fprintf( '[%.1f seconds]\n', toc(TIME) );
         end
- 
+
     end
 
 
@@ -127,7 +127,7 @@ methods
 
             fprintf( '[%.1f seconds]\n', toc(TIME) );
         end
- 
+
     end
 
 
@@ -160,11 +160,6 @@ methods
             y = double( squeeze( niiSIGNAL.img(ix,iy,iz,:) ) ./ ( b0 + eps ) );
             y( y < 0 ) = 0; % [NOTE] this should not happen!
 
-            % find the MAIN DIFFUSION DIRECTION using DTI
-            [ ~, ~, V ] = AMICO_FitTensor( y, bMATRIX );
-            Vt = V(:,1);
-            if ( Vt(2)<0 ), Vt = -Vt; end
-
             % build the DICTIONARY
             [ i1, i2 ] = AMICO_Dir2idx( Vt );
             A = double( [ KERNELS.A1(CONFIG.scheme.dwi_idx,:,i1,i2) KERNELS.A2(CONFIG.scheme.dwi_idx,:) ] );
@@ -194,6 +189,11 @@ methods
         TIME = toc(TIME);
         fprintf( '   [ %.0fh %.0fm %.0fs ]\n', floor(TIME/3600), floor(mod(TIME/60,60)), mod(TIME,60) )
 
+        % compute MAPS
+        n1 = numel(obj.dPer);
+        MAPs    = zeros( [1 numel(obj.OUTPUT_names)], 'single' );
+        MAPs(1) = sum( x(1:n1) ) / ( sum(x) + eps ); % intracellular volume fraction
+        MAPs(2) = 1 - MAPs(1);                       % isotropic volume fraction
     end
 
 
