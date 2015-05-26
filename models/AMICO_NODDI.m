@@ -47,17 +47,12 @@ methods
 
         % Configure NODDI toolbox
         % =======================
-        noddi = MakeModel( 'WatsonSHStickTortIsoV_B0' );
+        protocolHR = obj.Scheme2noddi( schemeHR );
 
         % set the parallel/isotropic diffusivity from AMICO's configuration (accounting for units difference)
         dPar = CONFIG.model.dPar * 1E-6;
         dIso = CONFIG.model.dIso * 1E-6;
-        noddi.GS.fixedvals(2) = dPar;
-        noddi.GD.fixedvals(2) = dPar;
-        noddi.GS.fixedvals(5) = dIso;
-        noddi.GD.fixedvals(5) = dIso;
 
-        protocolHR = obj.Scheme2noddi( schemeHR );
 
         % Coupled compartments
         % ====================
