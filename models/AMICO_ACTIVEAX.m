@@ -1,7 +1,7 @@
 classdef AMICO_ACTIVEAX
 
 properties
-	id, name                % id and name of the model
+    id, name                % id and name of the model
     dPar                    % parallel diffusivity of the tensors [units of mm^2/s]
     dIso                    % isotropic diffusivity [units of mm^2/s]
     IC_Rs                   % radii of the axons [units of 1E-6 (micrometers)]
@@ -16,7 +16,7 @@ methods
     % =================================
     % Setup the parameters of the model
     % =================================
-	function obj = AMICO_ACTIVEAX()
+    function obj = AMICO_ACTIVEAX()
         global CONFIG
 
         % set the parameters of the model
@@ -24,8 +24,8 @@ methods
         obj.name      = 'ActiveAx';
         obj.dPar      = 0.6 * 1E-3;
         obj.dIso      = 2.0 * 1E-3;
-		obj.IC_Rs     = [0.01 linspace(0.5,10,20)];
-		obj.IC_VFs    = [0.3:0.1:0.9];
+        obj.IC_Rs     = [0.01 linspace(0.5,10,20)];
+        obj.IC_VFs    = [0.3:0.1:0.9];
 
         obj.OUTPUT_names        = { 'v', 'a', 'd' };
         obj.OUTPUT_descriptions = {'Intra-cellular volume fraction', 'Mean axonal diameter', 'Axonal density'};
@@ -233,7 +233,7 @@ methods
         x = full( mexLasso( yy, AA, CONFIG.OPTIMIZATION.SPAMS_param ) );
 
         % compute MAPS
-    	nIC = numel(obj.IC_Rs);
+        nIC = numel(obj.IC_Rs);
         nEC = numel(obj.IC_VFs);
         f1 = sum( x( 1:nIC ) );
         f2 = sum( x( (nIC+1):(nIC+nEC) ) );
