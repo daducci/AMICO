@@ -205,10 +205,10 @@ def resample_kernel( KRlm, nS, idx_out, Ylm_out, is_isotropic ) :
         Rotated spherical functions projected to signal space of the subject
     """
     if is_isotropic == False :
-        KR = np.ones( (181,181,nS), dtype=np.float32 )
+        KR = np.ones( (nS,181,181), dtype=np.float32 )
         for ox in xrange(181) :
             for oy in xrange(181) :
-                KR[ox,oy,idx_out] = np.dot( Ylm_out, KRlm[ox,oy,:] ).astype(np.float32)
+                KR[idx_out,ox,oy] = np.dot( Ylm_out, KRlm[ox,oy,:] ).astype(np.float32)
     else :
         KR = np.ones( nS, dtype=np.float32 )
         KR[idx_out] = np.dot( Ylm_out, KRlm ).astype(np.float32)

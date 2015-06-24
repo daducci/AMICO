@@ -135,22 +135,19 @@ class CylinderZeppelinBall :
         # Cylinder(s)
         for i in xrange(len(self.Rs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            s = amico.lut.resample_kernel( lm, self.nS, idx_out, Ylm_out, False )
-            KERNELS['IC'][:,i,:,:] = np.transpose(s, (2, 0, 1))
+            KERNELS['IC'][:,i,:,:] = amico.lut.resample_kernel( lm, self.nS, idx_out, Ylm_out, False )
             progress.update()
 
         # Zeppelin(s)
         for i in xrange(len(self.ICVFs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            s = amico.lut.resample_kernel( lm, self.nS, idx_out, Ylm_out, False )
-            KERNELS['EC'][:,i,:,:] = np.transpose(s, (2, 0, 1))
+            KERNELS['EC'][:,i,:,:] = amico.lut.resample_kernel( lm, self.nS, idx_out, Ylm_out, False )
             progress.update()
 
         # Ball(s)
         for i in xrange(len(self.d_ISOs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            s = amico.lut.resample_kernel( lm, self.nS, idx_out, Ylm_out, True )
-            KERNELS['ISO'][:,i] = s
+            KERNELS['ISO'][:,i] = amico.lut.resample_kernel( lm, self.nS, idx_out, Ylm_out, True )
             progress.update()
 
         return KERNELS
