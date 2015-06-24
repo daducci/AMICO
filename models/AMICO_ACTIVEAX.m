@@ -242,18 +242,6 @@ methods
         MAPs(3) = (4*MAPs(1)) / ( pi*MAPs(2)^2 + eps );             % axonal density
     end
 
-
-    % ================================================================
-    % Simulate signal according to tensor model (1 fiber along z-axis)
-    % ================================================================
-    function [ signal ] = TensorSignal( obj, D, XYZB )
-        nDIR   = size( XYZB, 1 );
-        signal = zeros( nDIR, 1 );
-        for d = 1:nDIR
-            signal(d) = exp(-XYZB(d,4) * XYZB(d,1:3) * D * XYZB(d,1:3)');
-        end
-    end
-
 end
 
 end
