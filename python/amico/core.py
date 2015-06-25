@@ -54,8 +54,9 @@ class Evaluation :
         self.CONFIG['subject']     = subject
         self.CONFIG['DATA_path']   = pjoin( study_path, subject )
 
-        self.CONFIG['doNormalizeSignal'] = True
-        self.CONFIG['doMergeB0']	     = False
+        self.CONFIG['doNormalizeSignal'] = False
+        self.CONFIG['doMergeB0']	     = True
+        self.CONFIG['doComputeNRMSE']	 = False
 
         self.CONFIG['optimization']      = {} # set by "set_model"
 
@@ -242,15 +243,17 @@ class Evaluation :
             raise RuntimeError( 'Response functions were not created with the same model.' )
 
         # setup output files
-        MAPs = np.zeros( [self.CONFIG['dim'][0], self.CONFIG['dim'][1], self.CONFIG['dim'][2], len(self.model.OUTPUT_names)], dtype=np.float32 )
-        DIRs = np.zeros( [self.CONFIG['dim'][0], self.CONFIG['dim'][1], self.CONFIG['dim'][2], 3], dtype=np.float32 )
+        MAPs  = np.zeros( [self.CONFIG['dim'][0], self.CONFIG['dim'][1], self.CONFIG['dim'][2], len(self.model.OUTPUT_names)], dtype=np.float32 )
+        DIRs  = np.zeros( [self.CONFIG['dim'][0], self.CONFIG['dim'][1], self.CONFIG['dim'][2], 3], dtype=np.float32 )
+        if self.CONFIG['doComputeNRMSE'] :
+            NRMSE = np.zeros( [self.CONFIG['dim'][0], self.CONFIG['dim'][1], self.CONFIG['dim'][2]], dtype=np.float32 )
 
         # prepare DTI fitting
         gtab = gradient_table( self.scheme.b, self.scheme.raw[:,:3] )
         DTI = dti.TensorModel(gtab)
 
         # compute indices of samples to use
-        idx = range(self.scheme.nS)
+        idx = None
         if self.CONFIG['doMergeB0'] and self.scheme.b0_count > 0 :
             idx = np.append( self.scheme.dwi_idx, self.scheme.b0_idx[0] )
 
@@ -284,7 +287,12 @@ class Evaluation :
 
                     # dispatch to the right handler for each model
                     i1, i2 = amico.lut.dir_TO_lut_idx( dir )
-                    MAPs[ix,iy,iz,:] = self.model.fit( y, i1, i2, self.KERNELS, idx, self.CONFIG['optimization']['params'] )
+                    y_est, MAPs[ix,iy,iz,:] = self.model.fit( y, i1, i2, self.KERNELS, idx, self.CONFIG['optimization']['params'] )
+
+                    # compute fitting error
+                    if self.CONFIG['doComputeNRMSE'] :
+                        den = np.sum(y**2)
+                        NRMSE[ix,iy,iz] = np.sqrt( np.sum((y-y_est)**2) / den ) if den > 1e-16 else 0
 
                     progress.update()
 
@@ -293,8 +301,10 @@ class Evaluation :
 
         # store results
         self.RESULTS = {}
-        self.RESULTS['DIRs'] = DIRs
-        self.RESULTS['MAPs'] = MAPs
+        self.RESULTS['DIRs']  = DIRs
+        self.RESULTS['MAPs']  = MAPs
+        if self.CONFIG['doComputeNRMSE'] :
+            self.RESULTS['NRMSE'] = NRMSE
 
 
     def save_results( self, path_suffix = None ) :
@@ -340,6 +350,17 @@ class Evaluation :
         niiMAP_hdr['cal_max'] = 1
         nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_dir.nii.gz') )
         print ' [OK]'
+
+        # fitting error
+        if self.CONFIG['doComputeNRMSE'] :
+            print '\t- FIT_nrmse.nii',
+            niiMAP_img = self.RESULTS['NRMSE']
+            niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine )
+            niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
+            niiMAP_hdr['cal_min'] = 0
+            niiMAP_hdr['cal_max'] = 1
+            nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_nrmse.nii.gz') )
+            print ' [OK]'
 
         # voxelwise maps
         for i in xrange( len(self.model.OUTPUT_names) ) :

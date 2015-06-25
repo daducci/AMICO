@@ -154,19 +154,28 @@ class CylinderZeppelinBall :
 
 
     def fit( self, y, i1, i2, KERNELS, idx, params ) :
-        # prepare DICTIONARY and SIGNAL
         n1 = len(self.Rs)
         n2 = len(self.ICVFs)
         n3 = len(self.d_ISOs)
-        A = np.zeros( (len(idx), n1+n2+n3 ), dtype=np.float64, order='F' )
-        A[:,0:n1]       = KERNELS['IC'][idx,:,i1,i2]
-        A[:,n1:(n1+n2)] = KERNELS['EC'][idx,:,i1,i2]
-        A[:,(n1+n2):]   = KERNELS['ISO'][idx,:]
 
-        y = np.asfortranarray(y[idx].reshape(-1,1))
+        # prepare DICTIONARY from LUT
+        A = np.zeros( (len(y), n1+n2+n3 ), dtype=np.float64, order='F' )
+        A[:,0:n1]       = KERNELS['IC'][:,:,i1,i2]
+        A[:,n1:(n1+n2)] = KERNELS['EC'][:,:,i1,i2]
+        A[:,(n1+n2):]   = KERNELS['ISO'][:,:]
 
         # fit
-        x = spams.lasso( y, D=A, **params ).todense()
+        if idx is None :
+            Ar = A
+            yr = np.asfortranarray( y.reshape(-1,1) )
+        else :
+            Ar = np.zeros( (len(idx),n1+n2+n3), dtype=np.float64, order='F' )
+            Ar[:,:] = A[idx,:]
+            yr = np.asfortranarray( y[idx].reshape(-1,1) )
+        x = spams.lasso( yr, D=Ar, **params ).todense().A1
+
+        # estimated signal
+        y_est = np.dot( A, x )
 
         # return estimates
         f1 = x[ :n1 ].sum()
@@ -174,4 +183,4 @@ class CylinderZeppelinBall :
         v = f1 / ( f1 + f2 + 1e-16 )
         a = 1E6 * 2.0 * np.dot(self.Rs,x[:n1]) / ( f1 + 1e-16 )
         d = (4.0*v) / ( np.pi*a**2 + 1e-16 )
-        return [v, a, d]
+        return [ y_est, [v, a, d] ]
