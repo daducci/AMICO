@@ -7,6 +7,5 @@ setup(
     author='Alessandro Daducci',
     author_email='alessandro.daducci@gmail.com',
     url='https://github.com/daducci/AMICO',
-    packages=['amico'],
-    package_data={'amico':["500_dirs.txt"]}
+    packages=['amico']
 )
