@@ -38,7 +38,7 @@ class CylinderZeppelinBall :
         self.id     = 'CylinderZeppelinBall'
         self.name   = 'Cylinder-Zeppelin-Ball'
         self.d_par  = 0.6E-3                                                         # Parallel diffusivity [mm^2/s]
-        self.Rs     = np.concatenate( ([0.01],np.linspace(0.5,10.0,20.0)) ) * 1E-6   # Radii of the axons [meters]
+        self.Rs     = np.concatenate( ([0.01],np.linspace(0.5,8.0,20.0)) ) * 1E-6    # Radii of the axons [meters]
         self.ICVFs  = np.arange(0.3,0.9,0.1)                                         # Intra-cellular volume fraction(s) [0..1]
         self.d_ISOs = [ 2.0E-3 ]                                                     # Isotropic diffusivitie(s) [mm^2/s]
 

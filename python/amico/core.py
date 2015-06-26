@@ -50,15 +50,22 @@ class Evaluation :
 
         # store all the parameters of an evaluation with AMICO
         self.CONFIG = {}
-        self.CONFIG['study_path']  = study_path
-        self.CONFIG['subject']     = subject
-        self.CONFIG['DATA_path']   = pjoin( study_path, subject )
+        self.set_config('study_path', study_path)
+        self.set_config('subject', subject)
+        self.set_config('DATA_path', pjoin( study_path, subject ))
 
-        self.CONFIG['doNormalizeSignal'] = False
-        self.CONFIG['doMergeB0']	     = True
-        self.CONFIG['doComputeNRMSE']	 = False
+        self.set_config('doNormalizeSignal', False)
+        self.set_config('doMergeB0', True)
+        self.set_config('doComputeNRMSE', False)
 
-        self.CONFIG['optimization']      = {} # set by "set_model"
+        self.set_config('optimization', {}) # set by "set_model"
+
+
+    def set_config( self, key, value ) :
+        self.CONFIG[ key ] = value
+
+    def get_config( self, key ) :
+        return self.CONFIG.get( key )
 
 
     def load_data( self, dwi_filename = 'DWI.nii', scheme_filename = 'DWI.scheme', mask_filename = None, b0_thr = 0 ) :
@@ -82,14 +89,14 @@ class Evaluation :
         print '\n-> Loading data:'
 
         print '\t* DWI signal...'
-        self.CONFIG['dwi_filename']    = dwi_filename
-        self.niiDWI  = nibabel.load( pjoin( self.CONFIG['DATA_path'], dwi_filename) )
+        self.set_config('dwi_filename', dwi_filename)
+        self.niiDWI  = nibabel.load( pjoin( self.get_config('DATA_path'), dwi_filename) )
         self.niiDWI_img = self.niiDWI.get_data().astype(np.float32)
         hdr = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
-        self.CONFIG['dim']    = self.niiDWI_img.shape[:3]
-        self.CONFIG['pixdim'] = tuple( hdr.get_zooms()[:3] )
+        self.set_config('dim', self.niiDWI_img.shape[:3])
+        self.set_config('pixdim', tuple( hdr.get_zooms()[:3] ))
         print '\t\t- dim    = %d x %d x %d x %d' % self.niiDWI_img.shape
-        print '\t\t- pixdim = %.3f x %.3f x %.3f' % self.CONFIG['pixdim']
+        print '\t\t- pixdim = %.3f x %.3f x %.3f' % self.get_config('pixdim')
         # % Scale signal intensities (if necessary)
         # if ( niiDWI.hdr.dime.scl_slope ~= 0 && ( niiDWI.hdr.dime.scl_slope ~= 1 || niiDWI.hdr.dime.scl_inter ~= 0 ) )
         #     fprintf( '\t\t- rescaling data\n' );
@@ -97,9 +104,9 @@ class Evaluation :
         # end
 
         print '\t* Acquisition scheme...'
-        self.CONFIG['scheme_filename'] = scheme_filename
-        self.CONFIG['b0_thr'] = b0_thr
-        self.scheme = amico.scheme.Scheme( pjoin( self.CONFIG['DATA_path'], scheme_filename), b0_thr )
+        self.set_config('scheme_filename', scheme_filename)
+        self.set_config('b0_thr', b0_thr)
+        self.scheme = amico.scheme.Scheme( pjoin( self.get_config('DATA_path'), scheme_filename), b0_thr )
         print '\t\t- %d samples, %d shells' % ( self.scheme.nS, len(self.scheme.shells) )
         print '\t\t- %d @ b=0' % ( self.scheme.b0_count ),
         for i in xrange(len(self.scheme.shells)) :
@@ -111,16 +118,16 @@ class Evaluation :
 
         print '\t* Binary mask...'
         if mask_filename is not None :
-            self.niiMASK  = nibabel.load( pjoin( self.CONFIG['DATA_path'], mask_filename) )
+            self.niiMASK  = nibabel.load( pjoin( self.get_config('DATA_path'), mask_filename) )
             self.niiMASK_img = self.niiMASK.get_data().astype(np.uint8)
             niiMASK_hdr = self.niiMASK.header if nibabel.__version__ >= '2.0.0' else self.niiMASK.get_header()
             print '\t\t- dim    = %d x %d x %d' % self.niiMASK_img.shape[:3]
             print '\t\t- pixdim = %.3f x %.3f x %.3f' % niiMASK_hdr.get_zooms()[:3]
-            if self.CONFIG['dim'] != self.niiMASK_img.shape[:3] :
+            if self.get_config('dim') != self.niiMASK_img.shape[:3] :
                 raise ValueError( 'MASK geometry does not match with DWI data' )
         else :
             self.niiMASK = None
-            self.niiMASK_img = np.ones( self.CONFIG['dim'] )
+            self.niiMASK_img = np.ones( self.get_config('dim') )
             print '\t\t- not specified'
         print '\t\t- voxels = %d' % np.count_nonzero(self.niiMASK_img)
 
@@ -142,8 +149,8 @@ class Evaluation :
         else :
             raise ValueError( 'Model "%s" not recognized' % model_name )
 
-        self.CONFIG['model_name'] = self.model.name
-        self.CONFIG['ATOMS_path'] = pjoin( self.CONFIG['study_path'], 'kernels', self.model.id )
+        self.set_config('model_name', self.model.name)
+        self.set_config('ATOMS_path', pjoin( self.get_config('study_path'), 'kernels', self.model.id ))
 
         # setup default parameters for fitting the model (can be changed later on)
         self.set_solver( )
@@ -156,7 +163,7 @@ class Evaluation :
         """
         if self.model is None :
             raise RuntimeError( 'Model not set; call "set_model()" method first.' )
-        self.CONFIG['optimization']['params'] = self.model.set_solver( **params )
+        self.set_config('optimization_params', self.model.set_solver( **params ))
 
 
     def generate_kernels( self, regenerate = False, lmax = 12 ) :
@@ -177,22 +184,22 @@ class Evaluation :
             raise RuntimeError( 'Model not set; call "set_model()" method first.' )
 
         # store some values for later use
-        self.CONFIG['lmax'] = lmax
+        self.set_config('lmax', lmax)
         self.model.nS = self.scheme.nS
 
         print '\n-> Simulating with "%s" model:' % self.model.name
 
         # check if kernels were already generated
-        tmp = glob.glob( pjoin(self.CONFIG['ATOMS_path'],'A_*.npy') )
+        tmp = glob.glob( pjoin(self.get_config('ATOMS_path'),'A_*.npy') )
         if len(tmp)>0 and not regenerate :
             print '   [ Kernels already computed. Call "generate_kernels( regenerate=True )" to force regeneration. ]'
             return
 
         # create folder or delete existing files (if any)
-        if not exists( self.CONFIG['ATOMS_path'] ) :
-            makedirs( self.CONFIG['ATOMS_path'] )
+        if not exists( self.get_config('ATOMS_path') ) :
+            makedirs( self.get_config('ATOMS_path') )
         else :
-            for f in glob.glob( pjoin(self.CONFIG['ATOMS_path'],'*') ) :
+            for f in glob.glob( pjoin(self.get_config('ATOMS_path'),'*') ) :
                 remove( f )
 
         # auxiliary data structures
@@ -201,7 +208,7 @@ class Evaluation :
 
         # Dispatch to the right handler for each model
         tic = time.time()
-        self.model.generate( self.CONFIG['ATOMS_path'], self.scheme, aux, idx_IN, idx_OUT )
+        self.model.generate( self.get_config('ATOMS_path'), self.scheme, aux, idx_IN, idx_OUT )
         print '   [ %.1f seconds ]' % ( time.time() - tic )
 
 
@@ -216,13 +223,13 @@ class Evaluation :
             raise RuntimeError( 'Scheme not loaded; call "load_data()" first.' )
 
         tic = time.time()
-        print '\n-> Resampling kernels for subject "%s":' % self.CONFIG['subject']
+        print '\n-> Resampling kernels for subject "%s":' % self.get_config('subject')
 
         # auxiliary data structures
-        idx_OUT, Ylm_OUT = amico.lut.aux_structures_resample( self.scheme, self.CONFIG['lmax'] )
+        idx_OUT, Ylm_OUT = amico.lut.aux_structures_resample( self.scheme, self.get_config('lmax') )
 
         # Dispatch to the right handler for each model
-        self.KERNELS = self.model.resample( self.CONFIG['ATOMS_path'], idx_OUT, Ylm_OUT )
+        self.KERNELS = self.model.resample( self.get_config('ATOMS_path'), idx_OUT, Ylm_OUT )
 
         print '   [ %.1f seconds ]' % ( time.time() - tic )
 
@@ -243,10 +250,10 @@ class Evaluation :
             raise RuntimeError( 'Response functions were not created with the same model.' )
 
         # setup output files
-        MAPs  = np.zeros( [self.CONFIG['dim'][0], self.CONFIG['dim'][1], self.CONFIG['dim'][2], len(self.model.OUTPUT_names)], dtype=np.float32 )
-        DIRs  = np.zeros( [self.CONFIG['dim'][0], self.CONFIG['dim'][1], self.CONFIG['dim'][2], 3], dtype=np.float32 )
-        if self.CONFIG['doComputeNRMSE'] :
-            NRMSE = np.zeros( [self.CONFIG['dim'][0], self.CONFIG['dim'][1], self.CONFIG['dim'][2]], dtype=np.float32 )
+        MAPs  = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], len(self.model.OUTPUT_names)], dtype=np.float32 )
+        DIRs  = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], 3], dtype=np.float32 )
+        if self.get_config('doComputeNRMSE') :
+            NRMSE = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32 )
 
         # prepare DTI fitting
         gtab = gradient_table( self.scheme.b, self.scheme.raw[:,:3] )
@@ -254,7 +261,7 @@ class Evaluation :
 
         # compute indices of samples to use
         idx = None
-        if self.CONFIG['doMergeB0'] and self.scheme.b0_count > 0 :
+        if self.get_config('doMergeB0') and self.scheme.b0_count > 0 :
             idx = np.append( self.scheme.dwi_idx, self.scheme.b0_idx[0] )
 
         # fit the model to the data
@@ -264,9 +271,10 @@ class Evaluation :
         print '\n-> Fitting "%s" model separately to all %d voxels:' % ( self.model.name, totVoxels )
 
         progress = ProgressBar( n=totVoxels, prefix="   ", erase=True )
-        for iz in xrange(self.CONFIG['dim'][2]) :
-            for iy in xrange(self.CONFIG['dim'][1]) :
-                for ix in xrange(self.CONFIG['dim'][0]) :
+
+        for iz in xrange(self.niiMASK_img.shape[2]) :
+            for iy in xrange(self.niiMASK_img.shape[1]) :
+                for ix in xrange(self.niiMASK_img.shape[0]) :
                     if self.niiMASK_img[ix,iy,iz]==0 :
                         continue
 
@@ -275,10 +283,10 @@ class Evaluation :
                     y[ y < 0 ] = 0 # [NOTE] this should not happen!
 
                     b0 = np.mean( y[self.scheme.b0_idx] )
-                    if self.CONFIG['doMergeB0'] and self.scheme.b0_count > 0 :
+                    if self.get_config('doMergeB0') and self.scheme.b0_count > 0 :
                         y[self.scheme.b0_idx] = b0
 
-                    if self.CONFIG['doNormalizeSignal'] and b0 > 1e-3:
+                    if self.get_config('doNormalizeSignal') and b0 > 1e-3:
                         y = y / b0
 
                     # find the MAIN DIFFUSION DIRECTION using DTI
@@ -287,23 +295,23 @@ class Evaluation :
 
                     # dispatch to the right handler for each model
                     i1, i2 = amico.lut.dir_TO_lut_idx( dir )
-                    y_est, MAPs[ix,iy,iz,:] = self.model.fit( y, i1, i2, self.KERNELS, idx, self.CONFIG['optimization']['params'] )
+                    y_est, MAPs[ix,iy,iz,:] = self.model.fit( y, i1, i2, self.KERNELS, idx, self.get_config('optimization_params') )
 
                     # compute fitting error
-                    if self.CONFIG['doComputeNRMSE'] :
+                    if self.get_config('doComputeNRMSE') :
                         den = np.sum(y**2)
                         NRMSE[ix,iy,iz] = np.sqrt( np.sum((y-y_est)**2) / den ) if den > 1e-16 else 0
 
                     progress.update()
 
-        self.CONFIG['optimization']['fit_time'] = time.time()-t
-        print '   [ %s ]' % ( time.strftime("%Hh %Mm %Ss", time.gmtime(self.CONFIG['optimization']['fit_time']) ) )
+        self.set_config('fit_time', time.time()-t)
+        print '   [ %s ]' % ( time.strftime("%Hh %Mm %Ss", time.gmtime(self.get_config('fit_time')) ) )
 
         # store results
         self.RESULTS = {}
         self.RESULTS['DIRs']  = DIRs
         self.RESULTS['MAPs']  = MAPs
-        if self.CONFIG['doComputeNRMSE'] :
+        if self.get_config('doComputeNRMSE') :
             self.RESULTS['NRMSE'] = NRMSE
 
 
@@ -321,13 +329,12 @@ class Evaluation :
 
         RESULTS_path = pjoin( 'AMICO', self.model.id )
         if path_suffix :
-            # self.CONFIG['path_suffix'] = path_suffix
             RESULTS_path = RESULTS_path +'_'+ path_suffix
         self.RESULTS['RESULTS_path'] = RESULTS_path
         print '\n-> Saving output to "%s/*":' % RESULTS_path
 
         # delete previous output
-        RESULTS_path = pjoin( self.CONFIG['DATA_path'], RESULTS_path )
+        RESULTS_path = pjoin( self.get_config('DATA_path'), RESULTS_path )
         if not exists( RESULTS_path ) :
             makedirs( RESULTS_path )
         else :
@@ -352,7 +359,7 @@ class Evaluation :
         print ' [OK]'
 
         # fitting error
-        if self.CONFIG['doComputeNRMSE'] :
+        if self.get_config('doComputeNRMSE') :
             print '\t- FIT_nrmse.nii',
             niiMAP_img = self.RESULTS['NRMSE']
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine )
