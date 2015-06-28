@@ -54,11 +54,10 @@ class Evaluation :
         self.set_config('subject', subject)
         self.set_config('DATA_path', pjoin( study_path, subject ))
 
+        self.set_config('peaks_filename', None)
         self.set_config('doNormalizeSignal', False)
         self.set_config('doMergeB0', True)
         self.set_config('doComputeNRMSE', False)
-
-        self.set_config('optimization', {}) # set by "set_model"
 
 
     def set_config( self, key, value ) :
@@ -97,11 +96,12 @@ class Evaluation :
         self.set_config('pixdim', tuple( hdr.get_zooms()[:3] ))
         print '\t\t- dim    = %d x %d x %d x %d' % self.niiDWI_img.shape
         print '\t\t- pixdim = %.3f x %.3f x %.3f' % self.get_config('pixdim')
-        # % Scale signal intensities (if necessary)
-        # if ( niiDWI.hdr.dime.scl_slope ~= 0 && ( niiDWI.hdr.dime.scl_slope ~= 1 || niiDWI.hdr.dime.scl_inter ~= 0 ) )
-        #     fprintf( '\t\t- rescaling data\n' );
-        # 	niiDWI.img = niiDWI.img * niiDWI.hdr.dime.scl_slope + niiDWI.hdr.dime.scl_inter;
-        # end
+        # Scale signal intensities (if necessary)
+        if ( np.isfinite(hdr['scl_slope']) and np.isfinite(hdr['scl_inter']) and hdr['scl_slope'] != 0 and
+            ( hdr['scl_slope'] != 1 or hdr['scl_inter'] != 0 ) ):
+            print '\t\t- rescaling data',
+            self.niiDWI_img = self.niiDWI_img * hdr['scl_slope'] + hdr['scl_inter']
+            print "[OK]"
 
         print '\t* Acquisition scheme...'
         self.set_config('scheme_filename', scheme_filename)
@@ -153,7 +153,7 @@ class Evaluation :
         self.set_config('ATOMS_path', pjoin( self.get_config('study_path'), 'kernels', self.model.id ))
 
         # setup default parameters for fitting the model (can be changed later on)
-        self.set_solver( )
+        self.set_solver()
 
 
     def set_solver( self, **params ) :
@@ -163,7 +163,7 @@ class Evaluation :
         """
         if self.model is None :
             raise RuntimeError( 'Model not set; call "set_model()" method first.' )
-        self.set_config('optimization_params', self.model.set_solver( **params ))
+        self.set_config('solver_params', self.model.set_solver( **params ))
 
 
     def generate_kernels( self, regenerate = False, lmax = 12 ) :
@@ -249,17 +249,31 @@ class Evaluation :
         if self.KERNELS['model'] != self.model.id :
             raise RuntimeError( 'Response functions were not created with the same model.' )
 
-        # setup output files
+        self.set_config('fit_time', None)
+        totVoxels = np.count_nonzero(self.niiMASK_img)
+        print '\n-> Fitting "%s" model separately to all %d voxels:' % ( self.model.name, totVoxels )
+
+        # setup fitting directions
+        peaks_filename = self.get_config('peaks_filename')
+        if peaks_filename is None :
+            DIRs  = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], 3], dtype=np.float32 )
+            nDIR = 1
+            gtab = gradient_table( self.scheme.b, self.scheme.raw[:,:3] )
+            DTI = dti.TensorModel( gtab )
+        else :
+            niiPEAKS = nibabel.load( pjoin( self.get_config('DATA_path'), peaks_filename) )
+            DIRs = niiPEAKS.get_data().astype(np.float32)
+            nDIR = np.floor( DIRs.shape[3]/3 )
+            print '\t* peaks dim = %d x %d x %d x %d' % DIRs.shape[:4]
+            if DIRs.shape[:3] != self.niiMASK_img.shape[:3] :
+                raise ValueError( 'PEAKS geometry does not match with DWI data' )
+
+        # setup other output files
         MAPs  = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], len(self.model.OUTPUT_names)], dtype=np.float32 )
-        DIRs  = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], 3], dtype=np.float32 )
         if self.get_config('doComputeNRMSE') :
             NRMSE = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32 )
 
-        # prepare DTI fitting
-        gtab = gradient_table( self.scheme.b, self.scheme.raw[:,:3] )
-        DTI = dti.TensorModel(gtab)
-
-        # compute indices of samples to use
+        # compute indices of signal samples to use
         idx = None
         if self.get_config('doMergeB0') and self.scheme.b0_count > 0 :
             idx = np.append( self.scheme.dwi_idx, self.scheme.b0_idx[0] )
@@ -267,11 +281,7 @@ class Evaluation :
         # fit the model to the data
         # =========================
         t = time.time()
-        totVoxels = np.count_nonzero(self.niiMASK_img)
-        print '\n-> Fitting "%s" model separately to all %d voxels:' % ( self.model.name, totVoxels )
-
         progress = ProgressBar( n=totVoxels, prefix="   ", erase=True )
-
         for iz in xrange(self.niiMASK_img.shape[2]) :
             for iy in xrange(self.niiMASK_img.shape[1]) :
                 for ix in xrange(self.niiMASK_img.shape[0]) :
@@ -289,13 +299,15 @@ class Evaluation :
                     if self.get_config('doNormalizeSignal') and b0 > 1e-3:
                         y = y / b0
 
-                    # find the MAIN DIFFUSION DIRECTION using DTI
-                    dir = DTI.fit( y ).directions[0]
-                    DIRs[ix,iy,iz,:] = dir
+                    # fitting directions
+                    if peaks_filename is None :
+                        dirs = DTI.fit( y ).directions[0]
+                        DIRs[ix,iy,iz,:] = dirs
+                    else :
+                        dirs = DIRs[ix,iy,iz,:]
 
                     # dispatch to the right handler for each model
-                    i1, i2 = amico.lut.dir_TO_lut_idx( dir )
-                    y_est, MAPs[ix,iy,iz,:] = self.model.fit( y, i1, i2, self.KERNELS, idx, self.get_config('optimization_params') )
+                    y_est, MAPs[ix,iy,iz,:] = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, idx, self.get_config('solver_params') )
 
                     # compute fitting error
                     if self.get_config('doComputeNRMSE') :

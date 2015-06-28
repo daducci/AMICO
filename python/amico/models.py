@@ -153,23 +153,37 @@ class CylinderZeppelinBall :
         return KERNELS
 
 
-    def fit( self, y, i1, i2, KERNELS, idx, params ) :
+    def fit( self, y, dirs, KERNELS, idx, params ) :
+        dirs_norms = np.linalg.norm( dirs, axis=1 )
+        dirs = dirs[ dirs_norms >= 1e-1 ]
+        nD = dirs.shape[0]
         n1 = len(self.Rs)
         n2 = len(self.ICVFs)
         n3 = len(self.d_ISOs)
 
-        # prepare DICTIONARY from LUT
-        A = np.zeros( (len(y), n1+n2+n3 ), dtype=np.float64, order='F' )
-        A[:,0:n1]       = KERNELS['IC'][:,:,i1,i2]
-        A[:,n1:(n1+n2)] = KERNELS['EC'][:,:,i1,i2]
-        A[:,(n1+n2):]   = KERNELS['ISO'][:,:]
+        # prepare DICTIONARY from dirs and lookup tables
+        A = np.zeros( (len(y), nD*(n1+n2)+n3 ), dtype=np.float64, order='F' )
+        o = 0
+        for i in xrange(nD) :
+            i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
+            A[:,o:(o+n1)] = KERNELS['IC'][:,:,i1,i2]
+            o += n1
+        for i in xrange(nD) :
+            i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
+            A[:,o:(o+n2)] = KERNELS['EC'][:,:,i1,i2]
+            o += n2
+        A[:,o:] = KERNELS['ISO'][:,:]
+
+        # empty dictionary
+        if A.shape[1] == 0 :
+            return [ np.zeros(y.shape), [0, 0, 0] ]
 
         # fit
         if idx is None :
             Ar = A
             yr = np.asfortranarray( y.reshape(-1,1) )
         else :
-            Ar = np.zeros( (len(idx),n1+n2+n3), dtype=np.float64, order='F' )
+            Ar = np.zeros( (len(idx),nD*(n1+n2+n3)), dtype=np.float64, order='F' )
             Ar[:,:] = A[idx,:]
             yr = np.asfortranarray( y[idx].reshape(-1,1) )
         x = spams.lasso( yr, D=Ar, **params ).todense().A1
@@ -178,9 +192,10 @@ class CylinderZeppelinBall :
         y_est = np.dot( A, x )
 
         # return estimates
-        f1 = x[ :n1 ].sum()
-        f2 = x[ n1:(n1+n2) ].sum()
+        f1 = x[ :(nD*n1) ].sum()
+        f2 = x[ (nD*n1):(nD*(n1+n2)) ].sum()
         v = f1 / ( f1 + f2 + 1e-16 )
-        a = 1E6 * 2.0 * np.dot(self.Rs,x[:n1]) / ( f1 + 1e-16 )
+        xIC = x[:nD*n1].reshape(-1,n1).sum(axis=0)
+        a = 1E6 * 2.0 * np.dot(self.Rs,xIC) / ( f1 + 1e-16 )
         d = (4.0*v) / ( np.pi*a**2 + 1e-16 )
         return [ y_est, [v, a, d] ]
