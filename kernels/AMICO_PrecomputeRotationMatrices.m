@@ -24,6 +24,9 @@ function AMICO_PrecomputeRotationMatrices( lmax )
 	grad500 = importdata( '500_dirs.txt' );
 	for i = 1:size(grad500,1)
 		grad500(i,:) = grad500(i,:) ./ norm( grad500(i,:) );
+        if grad500(i,2) < 0
+            grad500(i,:) = -grad500(i,:);
+        end
 	end
 
 	% precompute the matrix to fit the SH coefficients
