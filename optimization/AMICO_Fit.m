@@ -32,17 +32,25 @@ function AMICO_Fit()
             y = double( squeeze( niiSIGNAL.img(ix,iy,iz,:) ) ./ ( b0 + eps ) );
             y( y < 0 ) = 0; % [NOTE] this should not happen!
             
-            % f\Find the MAIN DIFFUSION DIRECTION using DTI
-            [ ~, ~, V ] = AMICO_FitTensor( y, bMATRIX );
-            vox_DIRs = V(:,1);
-            if ( vox_DIRs(2)<0 ), vox_DIRs = -vox_DIRs; end
-            [ i1, i2 ] = AMICO_Dir2idx( vox_DIRs );
+            % Find the MAIN DIFFUSION DIRECTIONS
+            if any(strcmp(properties(CONFIG.model), 'max_dirs'))==false || CONFIG.model.max_dirs>0
+                % using DTI
+                [ ~, ~, V ] = AMICO_FitTensor( y, bMATRIX );
+                vox_DIRs = V(:,1);
+                if ( vox_DIRs(2)<0 ), vox_DIRs = -vox_DIRs; end
+                [ i1, i2 ] = AMICO_Dir2idx( vox_DIRs );
+                DIRs(ix,iy,iz,:) = vox_DIRs;
+            else
+                % not needed by the model
+                DIRs(ix,iy,iz,:) = 0;
+                i1 = 1;
+                i2 = 1;
+            end
 
             % Dispatch to the right handler for each model
             vox_MAPs = CONFIG.model.Fit( y, i1, i2 );
 
             % Store results
-            DIRs(ix,iy,iz,:) = vox_DIRs;
             MAPs(ix,iy,iz,:) = vox_MAPs;
         end
         end
