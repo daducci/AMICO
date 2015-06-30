@@ -2,6 +2,7 @@ classdef AMICO_VERDICTPROSTATE
 
 properties
     id, name                % id and name of the model
+    max_dirs                % maximum number of directions to fit
     dIC                     %
     Rs                      %
     dEES                    %
@@ -22,6 +23,7 @@ methods
         % set the parameters of the model
         obj.id        = 'VerdictProstate';
         obj.name      = 'VERDICT prostate';
+        obj.max_dirs  = 0; % no need to estimate directions, it's an isotropic model
         obj.dIC       = 2.0 * 1E-3;
         obj.Rs        = linspace(0.01,20.1,20);
         obj.dEES      = 2.0 * 1E-3;
@@ -216,52 +218,50 @@ end
     function [ MAPs ] = Fit( obj, y, i1, i2 )
         global CONFIG KERNELS
 
-        % [NODDI style] estimate and remove EES and VASC contributions
         A = double( [ KERNELS.Aic(CONFIG.scheme.dwi_idx,:) KERNELS.Aees(CONFIG.scheme.dwi_idx) KERNELS.Avasc(CONFIG.scheme.dwi_idx) ] );
         AA = [ ones(1,KERNELS.nA) ; A ];
-        y  = y(CONFIG.scheme.dwi_idx);
-        yy = [ 1 ; y ];
-        x = lsqnonneg( AA, yy, CONFIG.OPTIMIZATION.LS_param );
-        y = y - x(end)*A(:,end);
-        y = y - x(end-1)*A(:,end-1);
+        yy = [ 1 ; y(CONFIG.scheme.dwi_idx) ];
 
-        % find sparse support for remaining signal
-        An = A(:,1:size(KERNELS.Aic,2)) .* KERNELS.Aic_norm;
-        x = full( mexLasso( y, An, CONFIG.OPTIMIZATION.SPAMS_param ) );
+        switch( 1 )
         
-        % debias coefficients
-        idx = [ x>0 ; true ; true ];
-        x(idx) = lsqnonneg( AA(:,idx), yy, CONFIG.OPTIMIZATION.LS_param );
+            case 1
+            % [ normal fitting ]
+            norms = repmat( 1./sqrt(sum(AA.^2)), [size(AA,1),1] );
+            AA = AA .* norms;
+            x = full( mexLasso( yy, AA, CONFIG.OPTIMIZATION.SPAMS_param ) );
+            x = x .* norms(1,:)';
+            
+            case 2
+            params = CONFIG.OPTIMIZATION.SPAMS_param;
+            params.loss = 'square';
+            params.regul = 'group-lasso-l2';
+            params.groups = int32([ repmat(1,1,numel(KERNELS.Aic_R)) 2 3 ]);  % all the groups are of size 2
+            params.intercept = false;
+            x = full( mexFistaFlat( yy, AA, zeros(size(A,2),1), params ) );
 
-        % [ normal fitting ]
-%         AA = double( [ KERNELS.Aic KERNELS.Aees KERNELS.Avasc ] );
-%         norms = repmat( 1./sqrt(sum(AA.^2)), [size(AA,1),1] );
-%         An = AA .* norms;
-%         yy = y;
-%         x = full( mexLasso( yy, An, CONFIG.OPTIMIZATION.SPAMS_param ) );
-%         x = x .* norms(1,:)';
+            case 3
+            % [NODDI style] estimate and remove EES and VASC contributions
+            y = y(CONFIG.scheme.dwi_idx);
+            x = lsqnonneg( AA, yy, CONFIG.OPTIMIZATION.LS_param );
+            y = y - x(end)*A(:,end);
+            y = y - x(end-1)*A(:,end-1);
 
+            % find sparse support for remaining signal
+            An = A(:,1:size(KERNELS.Aic,2)) .* KERNELS.Aic_norm;
+            x = full( mexLasso( y, An, CONFIG.OPTIMIZATION.SPAMS_param ) );
 
-        figure(1), clf
-        subplot(2,2,1), hold
-        plot( yy, 'x:','color',[0 .5 0])
-        plot( AA*x, 'ro')
-        axis([0 numel(yy)+1 0 1.2])
-        grid on, box on
-        subplot(2,2,2)
-        stem(x)
-        axis tight, grid on, box on
-        set(gca,'xtick',1:numel(x))
-        set(gca,'xticklabel',[KERNELS.Aic_R 0 0])
-        subplot(2,2,3)
-        imagesc(AA)
+            % debias coefficients
+            idx = [ x>0 ; true ; true ];
+            x(idx) = lsqnonneg( AA(:,idx), yy, CONFIG.OPTIMIZATION.LS_param );
+        end
 
         % compute MAPS
-        fIC   = sum( x( 1:end-2 ) );
-        MAPs(1) = KERNELS.Aic_R * x( 1:end-2 ) / ( fIC + eps );           % cell radius
-        MAPs(2) = fIC;                                                      % fIC
-        MAPs(3) = x( end-1 );                                               % fEES
-        MAPs(4) = x( end );                                                 % fVASC
+        xIC = x( 1:end-2 );
+        fIC = sum( xIC );
+        MAPs(1) = KERNELS.Aic_R * xIC / ( fIC + eps );           % cell radius
+        MAPs(2) = fIC;                                           % fIC
+        MAPs(3) = x( end-1 );                                    % fEES
+        MAPs(4) = x( end );                                      % fVASC
     end
 
     
