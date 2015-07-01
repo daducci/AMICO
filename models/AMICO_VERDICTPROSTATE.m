@@ -28,8 +28,8 @@ methods
         obj.Rs        = linspace(0.01,20.1,20);
         obj.dEES      = 2.0 * 1E-3;
         obj.P         = 8.0 * 1E-3;
-        obj.OUTPUT_names        = {'R', 'fIC', 'fEES', 'fVASC'};
-        obj.OUTPUT_descriptions = {'R', 'fIC', 'fEES', 'fVASC'};
+        obj.OUTPUT_names        = {'R', 'fIC', 'fEES', 'fVASC', 'Fobj'};
+        obj.OUTPUT_descriptions = {'R', 'fIC', 'fEES', 'fVASC', 'Fobj'};
 
         % set the parameters to fit it
         CONFIG.OPTIMIZATION.SPAMS_param.mode    = 2;
@@ -218,9 +218,12 @@ end
     function [ MAPs ] = Fit( obj, y, i1, i2 )
         global CONFIG KERNELS
 
-        A = double( [ KERNELS.Aic(CONFIG.scheme.dwi_idx,:) KERNELS.Aees(CONFIG.scheme.dwi_idx) KERNELS.Avasc(CONFIG.scheme.dwi_idx) ] );
-        AA = [ ones(1,KERNELS.nA) ; A ];
-        yy = [ 1 ; y(CONFIG.scheme.dwi_idx) ];
+%         A = double( [ KERNELS.Aic(CONFIG.scheme.dwi_idx,:) KERNELS.Aees(CONFIG.scheme.dwi_idx) KERNELS.Avasc(CONFIG.scheme.dwi_idx) ] );
+%         AA = [ ones(1,KERNELS.nA) ; A ];
+%         yy = [ 1 ; y(CONFIG.scheme.dwi_idx) ];
+        A = double( [ KERNELS.Aic KERNELS.Aees KERNELS.Avasc ] );
+        AA = A;%[ ones(1,KERNELS.nA) ; A ];
+        yy = y;%[ 1 ; y(CONFIG.scheme.dwi_idx) ];
 
         switch( 1 )
         
@@ -262,6 +265,11 @@ end
         MAPs(2) = fIC;                                           % fIC
         MAPs(3) = x( end-1 );                                    % fEES
         MAPs(4) = x( end );                                      % fVASC
+        
+        y_predicted = A*x;
+        MAPs(5) = norm(y-y_predicted) / norm(y);
+%         sigma = 0;
+%         MAPs(5) = sum( (y - sqrt((y_predicted).^2+sigma^2) ) ).^2;
     end
 
     
