@@ -238,7 +238,6 @@ class Evaluation :
         """
         Fit the model to the data iterating over all voxels (in the mask) one after the other.
         Call the appropriate fit() method of the actual model used.
-
         """
         if self.niiDWI is None :
             raise RuntimeError( 'Data not loaded; call "load_data()" first.' )
@@ -256,7 +255,7 @@ class Evaluation :
         # setup fitting directions
         peaks_filename = self.get_config('peaks_filename')
         if peaks_filename is None :
-            DIRs  = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], 3], dtype=np.float32 )
+            DIRs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], 3], dtype=np.float32 )
             nDIR = 1
             gtab = gradient_table( self.scheme.b, self.scheme.raw[:,:3] )
             DTI = dti.TensorModel( gtab )
@@ -269,7 +268,7 @@ class Evaluation :
                 raise ValueError( 'PEAKS geometry does not match with DWI data' )
 
         # setup other output files
-        MAPs  = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], len(self.model.OUTPUT_names)], dtype=np.float32 )
+        MAPs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], len(self.model.OUTPUT_names)], dtype=np.float32 )
         if self.get_config('doComputeNRMSE') :
             NRMSE = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32 )
 

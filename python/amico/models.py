@@ -198,4 +198,4 @@ class CylinderZeppelinBall :
         xIC = x[:nD*n1].reshape(-1,n1).sum(axis=0)
         a = 1E6 * 2.0 * np.dot(self.Rs,xIC) / ( f1 + 1e-16 )
         d = (4.0*v) / ( np.pi*a**2 + 1e-16 )
-        return [ y_est, [v, a, d] ]
+        return y_est, [v, a, d]
