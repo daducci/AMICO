@@ -56,7 +56,6 @@ class Evaluation :
 
         self.set_config('peaks_filename', None)
         self.set_config('doNormalizeSignal', True)
-        self.set_config('doMergeB0', True)
         self.set_config('doComputeNRMSE', False)
 
 
@@ -272,11 +271,6 @@ class Evaluation :
         if self.get_config('doComputeNRMSE') :
             NRMSE = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32 )
 
-        # compute indices of signal samples to use
-        idx_to_keep = None
-        if self.get_config('doMergeB0') and self.scheme.b0_count > 0 :
-            idx_to_keep = np.append( self.scheme.dwi_idx, self.scheme.b0_idx[0] )
-
         # fit the model to the data
         # =========================
         t = time.time()
@@ -291,12 +285,10 @@ class Evaluation :
                     y = self.niiDWI_img[ix,iy,iz,:].astype(np.float64)
                     y[ y < 0 ] = 0 # [NOTE] this should not happen!
 
-                    b0 = np.mean( y[self.scheme.b0_idx] )
-                    if self.get_config('doMergeB0') and self.scheme.b0_count > 0 :
-                        y[self.scheme.b0_idx] = b0
-
-                    if self.get_config('doNormalizeSignal') and b0 > 1e-3:
-                        y = y / b0
+                    if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
+                        b0 = np.mean( y[self.scheme.b0_idx] )
+                        if b0 > 1e-3 :
+                            y = y / b0
 
                     # fitting directions
                     if peaks_filename is None :
@@ -305,8 +297,7 @@ class Evaluation :
                         dirs = DIRs[ix,iy,iz,:]
 
                     # dispatch to the right handler for each model
-                    y_est, dirs_mod, MAPs[ix,iy,iz,:] = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, idx_to_keep, self.get_config('solver_params') )
-                    DIRs[ix,iy,iz,:] = dirs_mod
+                    y_est, DIRs[ix,iy,iz,:], MAPs[ix,iy,iz,:] = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, self.get_config('solver_params') )
 
                     # compute fitting error
                     if self.get_config('doComputeNRMSE') :

@@ -156,7 +156,7 @@ class CylinderZeppelinBall :
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, idx_to_keep, params ) :
+    def fit( self, y, dirs, KERNELS, params ) :
         dirs_norms = np.linalg.norm( dirs, axis=1 )
         dirs = dirs[ dirs_norms >= 1e-1 ]
         nD = dirs.shape[0]
@@ -182,14 +182,7 @@ class CylinderZeppelinBall :
             return [ np.zeros(y.shape), [0, 0, 0] ]
 
         # fit
-        if idx_to_keep is None :
-            Ar = A
-            yr = np.asfortranarray( y.reshape(-1,1) )
-        else :
-            Ar = np.zeros( (len(idx_to_keep),nD*(n1+n2+n3)), dtype=np.float64, order='F' )
-            Ar[:,:] = A[idx_to_keep,:]
-            yr = np.asfortranarray( y[idx_to_keep].reshape(-1,1) )
-        x = spams.lasso( yr, D=Ar, **params ).todense().A1
+        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=Ar, **params ).todense().A1
 
         # estimated signal
         y_est = np.dot( A, x )
@@ -303,7 +296,7 @@ class NODDI :
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, idx_to_keep, params ) :
+    def fit( self, y, dirs, KERNELS, params ) :
         nD = dirs.shape[0]
         if nD != 1 :
             raise RuntimeError( 'NODDI model requires exactly 1 orientation' )
