@@ -13,7 +13,145 @@ import warnings
 warnings.filterwarnings("ignore") # needed for a problem with spams
 
 
-class CylinderZeppelinBall :
+class BasicModel :
+    """
+    Basic class to build a model; new models should inherit from this class.
+    All the methods need to be overloaded to account for the specific needs of the model.
+    Each method will then be called by a dispatcher when needed.
+    NB: this model also serves the purpose of illustrating the creation of new models.
+    """
+
+    def __init__( self ) :
+        """
+        To define the parameters of the model, e.g. id and name, returned maps,
+        model-specific parameters etc.
+        """
+        # ID code for the model
+        self.id          = 'BasicModel'
+        # Human radable name for the model (could be equel to self.id)
+        self.description = 'Basic Model'
+        # Scheme to be used for resampling ()
+        self.scheme = None
+
+        # Generated scalar maps
+        self.OUTPUT_names        = [ 'dummy' ]
+        self.OUTPUT_descriptions = [ 'Dummy value' ]
+
+        # OPTIONAL: model-specific parameters, e.g.
+        # self.d = 1.7e-3
+        # self.n = 2
+        # ...
+
+
+    def set( self ) :
+        """
+        For setting all the parameters specific to the model.
+        NB: the parameters are model-dependent.
+        """
+        # self.d_par  = d_par
+        # self.Rs     = Rs
+        # ...
+        pass
+
+
+    def set_solver( self ) :
+        """
+        For setting the parameters required by the solver to fit the model.
+        NB: the parameters are model-dependent.
+
+        Returns
+        -------
+        params : dictionary
+            All the parameters that the solver will need to fit the model
+        """
+        params = {}
+        # params['lambda'] = lambda_val
+        # params['tol']    = tol_val
+        # ...
+        return params
+
+
+    def generate( self, out_path, aux, idx_in, idx_out ) :
+        """
+        For generating the signal response-functions and createing the LUT.
+        NB: do not change the signature!
+
+        Parameters
+        ----------
+        out_path : string
+            Path where the response function have to be saved
+        aux : structure
+            Auxiliary structures to perform SH fitting and rotations
+        idx_in : array
+            Indices of the samples belonging to each shell
+        idx_out : array
+            Indices of the SH coefficients corresponding to each shell
+        """
+        pass
+
+
+    def resample( self, in_path, idx_out, Ylm_out ) :
+        """
+        For projecting the LUT to the subject space.
+        NB: do not change the signature!
+
+        Parameters
+        ----------
+        in_path : Scheme class
+            Acquisition scheme of the acquired signal
+        idx_out : array
+            Indices of the samples belonging to each shell
+        Ylm_out : array
+            SH bases to project back each shell to signal space
+
+        Returns
+        -------
+        KERNELS : dictionary
+            Contains the LUT and all corresponding details
+        """
+        KERNELS = {}
+        KERNELS['model'] = self.id
+        # KERNELS['IC']    = np.zeros( (self.scheme.nS,len(self.Rs),181,181), dtype=np.float32 )
+        # KERNELS['EC']    = np.zeros( (self.scheme.nS,len(self.ICVFs),181,181), dtype=np.float32 )
+        # ...
+        return KERNELS
+
+
+    def fit( self, y, dirs, KERNELS, params ) :
+        """
+        For fitting the model to the data.
+        NB: do not change the signature!
+
+        Parameters
+        ----------
+        y : array
+            Diffusion signal at this voxel
+        dirs : list of arrays
+            Directions fitted in the voxel
+        KERNELS : dictionary
+            Contains the LUT and all corresponding details
+        params : dictionary
+            Parameters to be used by the solver
+
+        Returns
+        -------
+        MAPs : list of floats
+            Scalar values eastimated in each voxel
+        dirs_mod : list of arrays
+            Updated directions (if applicable), otherwise just return dirs
+        x : array
+            Coefficients of the fitting
+        A : array
+            Actual dictionary used in the fitting
+        """
+        MAPs = [ 1.0 ]
+        dirs_mod = dirs
+        x = np.array([])
+        A = np.array([])
+        return MAPs, dirs, x, A
+
+
+class CylinderZeppelinBall( BasicModel ) :
     """
     Simulate the response functions according to the Cylinder-Zeppelin-Ball model.
 
@@ -38,8 +176,8 @@ class CylinderZeppelinBall :
     """
 
     def __init__( self ) :
-        self.id     = 'CylinderZeppelinBall'
-        self.name   = 'Cylinder-Zeppelin-Ball'
+        self.id          = 'CylinderZeppelinBall'
+        self.description = 'Cylinder-Zeppelin-Ball'
 
         self.d_par  = 0.6E-3                                                         # Parallel diffusivity [mm^2/s]
         self.Rs     = np.concatenate( ([0.01],np.linspace(0.5,8.0,20.0)) ) * 1E-6    # Radii of the axons [meters]
@@ -68,11 +206,11 @@ class CylinderZeppelinBall :
 
 
     def generate( self, out_path, aux, idx_in, idx_out ) :
-        if scheme.version != 1 :
+        if self.scheme.version != 1 :
             raise RuntimeError( 'This model requires a "VERSION: STEJSKALTANNER" scheme.' )
 
         # create a high-resolution scheme to pass to 'datasynth'
-        scheme_high = amico.lut.create_high_resolution_scheme( scheme, b_scale=1E6 )
+        scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1E6 )
         filename_scheme = pjoin( out_path, 'scheme.txt' )
         np.savetxt( filename_scheme, scheme_high.raw, fmt='%15.8e', delimiter=' ', header='VERSION: STEJSKALTANNER', comments='' )
 
@@ -184,9 +322,6 @@ class CylinderZeppelinBall :
         # fit
         x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=Ar, **params ).todense().A1
 
-        # estimated signal
-        y_est = np.dot( A, x )
-
         # return estimates
         f1 = x[ :(nD*n1) ].sum()
         f2 = x[ (nD*n1):(nD*(n1+n2)) ].sum()
@@ -194,19 +329,25 @@ class CylinderZeppelinBall :
         xIC = x[:nD*n1].reshape(-1,n1).sum(axis=0)
         a = 1E6 * 2.0 * np.dot(self.Rs,xIC) / ( f1 + 1e-16 )
         d = (4.0*v) / ( np.pi*a**2 + 1e-16 )
-        return y_est, dirs, [v, a, d]
+        return [v, a, d], dirs, x, A
 
 
-class NODDI :
+
+class NODDI( BasicModel ) :
     """
     Simulate the response functions according to the NODDI model.
 
-    Bla bla bla...
-    """
+    NB: this model does not require to have the "NODDI MATLAB toolbox" installed;
+        All the necessary functions have been ported to Python.
 
+    References
+    ----------
+    .. [1] Zhang et al. (2012) NODDI: Practical in vivo neurite orientation
+           dispersion and density imaging of the human brain. NeuroImage, 61: 1000-16
+    """
     def __init__( self ):
-        self.id        = "NODDI"
-        self.name      = "NODDI"
+        self.id          = "NODDI"
+        self.description = "NODDI"
 
         self.dPar      = 1.7E-3
         self.dIso      = 3.0E-3
@@ -333,14 +474,13 @@ class NODDI :
         y_est = np.dot( A, x )
 
         # return estimates
-        x = x / ( x.sum() + 1e-16 )
+        xx = x / ( x.sum() + 1e-16 )
         if self.isExvivo == True :
-            xWM  = x[:-2]
-            fISO = x[-2]
+            xWM  = xx[:-2]
+            fISO = xx[-2]
         else :
-            xWM  = x[:-1]
-            fISO = x[-1]
-
+            xWM  = xx[:-1]
+            fISO = xx[-1]
         xWM = xWM / ( xWM.sum() + 1e-16 )
         f1 = np.dot( KERNELS['icvf'], xWM )
         f2 = np.dot( (1.0-KERNELS['icvf']), xWM )
@@ -348,8 +488,7 @@ class NODDI :
         k = np.dot( KERNELS['kappa'], xWM )
         od = 2.0/np.pi * np.arctan2(1.0,k)
 
-        return y_est, dirs, [v, od, fISO]
-
+        return [v, od, fISO], dirs, x, A
 
 
     def scheme2noddi( self, scheme ):

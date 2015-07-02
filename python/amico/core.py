@@ -148,7 +148,6 @@ class Evaluation :
         else :
             raise ValueError( 'Model "%s" not recognized' % model_name )
 
-        self.set_config('model_name', self.model.name)
         self.set_config('ATOMS_path', pjoin( self.get_config('study_path'), 'kernels', self.model.id ))
 
         # setup default parameters for fitting the model (can be changed later on)
@@ -186,12 +185,12 @@ class Evaluation :
         self.set_config('lmax', lmax)
         self.model.scheme = self.scheme
 
-        print '\n-> Simulating with "%s" model:' % self.model.name
+        print '\n-> Creating LUT for "%s" model:' % self.model.description
 
         # check if kernels were already generated
         tmp = glob.glob( pjoin(self.get_config('ATOMS_path'),'A_*.npy') )
         if len(tmp)>0 and not regenerate :
-            print '   [ Kernels already computed. Call "generate_kernels( regenerate=True )" to force regeneration. ]'
+            print '   [ LUT already computed. Call "generate_kernels( regenerate=True )" to force regeneration. ]'
             return
 
         # create folder or delete existing files (if any)
@@ -222,7 +221,7 @@ class Evaluation :
             raise RuntimeError( 'Scheme not loaded; call "load_data()" first.' )
 
         tic = time.time()
-        print '\n-> Resampling kernels for subject "%s":' % self.get_config('subject')
+        print '\n-> Resampling LUT for subject "%s":' % self.get_config('subject')
 
         # auxiliary data structures
         idx_OUT, Ylm_OUT = amico.lut.aux_structures_resample( self.scheme, self.get_config('lmax') )
@@ -249,7 +248,7 @@ class Evaluation :
 
         self.set_config('fit_time', None)
         totVoxels = np.count_nonzero(self.niiMASK_img)
-        print '\n-> Fitting "%s" model separately to all %d voxels:' % ( self.model.name, totVoxels )
+        print '\n-> Fitting "%s" model to %d voxels:' % ( self.model.description, totVoxels )
 
         # setup fitting directions
         peaks_filename = self.get_config('peaks_filename')
@@ -297,10 +296,11 @@ class Evaluation :
                         dirs = DIRs[ix,iy,iz,:]
 
                     # dispatch to the right handler for each model
-                    y_est, DIRs[ix,iy,iz,:], MAPs[ix,iy,iz,:] = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, self.get_config('solver_params') )
+                    MAPs[ix,iy,iz,:], DIRs[ix,iy,iz,:], x, A = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, self.get_config('solver_params') )
 
                     # compute fitting error
                     if self.get_config('doComputeNRMSE') :
+                        y_est = np.dot( A, x )
                         den = np.sum(y**2)
                         NRMSE[ix,iy,iz] = np.sqrt( np.sum((y-y_est)**2) / den ) if den > 1e-16 else 0
 
