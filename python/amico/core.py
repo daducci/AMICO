@@ -55,7 +55,7 @@ class Evaluation :
         self.set_config('DATA_path', pjoin( study_path, subject ))
 
         self.set_config('peaks_filename', None)
-        self.set_config('doNormalizeSignal', False)
+        self.set_config('doNormalizeSignal', True)
         self.set_config('doMergeB0', True)
         self.set_config('doComputeNRMSE', False)
 
@@ -185,7 +185,7 @@ class Evaluation :
 
         # store some values for later use
         self.set_config('lmax', lmax)
-        self.model.nS = self.scheme.nS
+        self.model.scheme = self.scheme
 
         print '\n-> Simulating with "%s" model:' % self.model.name
 
@@ -208,7 +208,7 @@ class Evaluation :
 
         # Dispatch to the right handler for each model
         tic = time.time()
-        self.model.generate( self.get_config('ATOMS_path'), self.scheme, aux, idx_IN, idx_OUT )
+        self.model.generate( self.get_config('ATOMS_path'), aux, idx_IN, idx_OUT )
         print '   [ %.1f seconds ]' % ( time.time() - tic )
 
 
@@ -273,9 +273,9 @@ class Evaluation :
             NRMSE = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32 )
 
         # compute indices of signal samples to use
-        idx = None
+        idx_to_keep = None
         if self.get_config('doMergeB0') and self.scheme.b0_count > 0 :
-            idx = np.append( self.scheme.dwi_idx, self.scheme.b0_idx[0] )
+            idx_to_keep = np.append( self.scheme.dwi_idx, self.scheme.b0_idx[0] )
 
         # fit the model to the data
         # =========================
@@ -301,12 +301,12 @@ class Evaluation :
                     # fitting directions
                     if peaks_filename is None :
                         dirs = DTI.fit( y ).directions[0]
-                        DIRs[ix,iy,iz,:] = dirs
                     else :
                         dirs = DIRs[ix,iy,iz,:]
 
                     # dispatch to the right handler for each model
-                    y_est, MAPs[ix,iy,iz,:] = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, idx, self.get_config('solver_params') )
+                    y_est, dirs_mod, MAPs[ix,iy,iz,:] = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, idx_to_keep, self.get_config('solver_params') )
+                    DIRs[ix,iy,iz,:] = dirs_mod
 
                     # compute fitting error
                     if self.get_config('doComputeNRMSE') :
@@ -359,7 +359,7 @@ class Evaluation :
         print ' [OK]'
 
         # estimated orientations
-        print '\t- FIT_dir.nii',
+        print '\t- FIT_dir.nii.gz',
         niiMAP_img = self.RESULTS['DIRs']
         affine     = self.niiDWI.affine if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_affine()
         niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine )
@@ -371,7 +371,7 @@ class Evaluation :
 
         # fitting error
         if self.get_config('doComputeNRMSE') :
-            print '\t- FIT_nrmse.nii',
+            print '\t- FIT_nrmse.nii.gz',
             niiMAP_img = self.RESULTS['NRMSE']
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
@@ -382,7 +382,7 @@ class Evaluation :
 
         # voxelwise maps
         for i in xrange( len(self.model.OUTPUT_names) ) :
-            print '\t- AMICO/FIT_%s.nii' % self.model.OUTPUT_names[i],
+            print '\t- FIT_%s.nii.gz' % self.model.OUTPUT_names[i],
             niiMAP_img = self.RESULTS['MAPs'][:,:,:,i]
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
