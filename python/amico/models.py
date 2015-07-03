@@ -515,7 +515,7 @@ class NODDI( BaseModel ) :
                 KERNELS['wm'][idx,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
                 KERNELS['kappa'][idx] = 1.0 / np.tan( self.IC_ODs[i]*np.pi/2.0 )
                 KERNELS['icvf'][idx]  = self.IC_VFs[j]
-                KERNELS['norms'][:,idx] = 1 / np.linalg.norm( KERNELS['wm'][self.scheme.dwi_idx,idx,0,0] ) # norm of coupled atoms (for l1 minimization)
+                KERNELS['norms'][:,idx] = 1 / np.linalg.norm( KERNELS['wm'][idx,0,0,self.scheme.dwi_idx] ) # norm of coupled atoms (for l1 minimization)
                 progress.update()
 
         # Isotropic
@@ -558,9 +558,6 @@ class NODDI( BaseModel ) :
             x = np.append( x, 1 )
         idx = x>0
         x[idx], _ = scipy.optimize.nnls( A[:,idx], y )
-
-        # estimated signal
-        y_est = np.dot( A, x )
 
         # return estimates
         xx = x / ( x.sum() + 1e-16 )
