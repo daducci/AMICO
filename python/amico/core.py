@@ -15,22 +15,17 @@ import dipy.reconst.dti as dti
 
 
 def setup( lmax = 12 ) :
-    """
-    General setup/initialization of the AMICO framework.
-    """
+    """General setup/initialization of the AMICO framework."""
     amico.lut.precompute_rotation_matrices( lmax )
 
 
-
-"""
-Class to hold all the information (data and parameters) when performing an
-evaluation with the AMICO framework.
-"""
 class Evaluation :
+    """Class to hold all the information (data and parameters) when performing an
+    evaluation with the AMICO framework.
+    """
 
     def __init__( self, study_path, subject ) :
-        """
-        Setup the data structure with default values.
+        """Setup the data structure with default values.
 
         Parameters
         ----------
@@ -67,8 +62,7 @@ class Evaluation :
 
 
     def load_data( self, dwi_filename = 'DWI.nii', scheme_filename = 'DWI.scheme', mask_filename = None, b0_thr = 0 ) :
-        """
-        Load the diffusion signal and its corresponding acquisition scheme.
+        """Load the diffusion signal and its corresponding acquisition scheme.
 
         Parameters
         ----------
@@ -134,8 +128,7 @@ class Evaluation :
 
 
     def set_model( self, model_name ) :
-        """
-        Set the model to use to describe the signal contributions in each voxel.
+        """Set the model to use to describe the signal contributions in each voxel.
 
         Parameters
         ----------
@@ -155,8 +148,7 @@ class Evaluation :
 
 
     def set_solver( self, **params ) :
-        """
-        Setup the specific parameters of the solver to fit the model.
+        """Setup the specific parameters of the solver to fit the model.
         Dispatch to the proper function, depending on the model; a model shoudl provide a "set_solver" function to set these parameters.
         """
         if self.model is None :
@@ -165,8 +157,7 @@ class Evaluation :
 
 
     def generate_kernels( self, regenerate = False, lmax = 12 ) :
-        """
-        Generate the high-resolution response functions for each compartment.
+        """Generate the high-resolution response functions for each compartment.
         Dispatch to the proper function, depending on the model.
 
         Parameters
@@ -185,7 +176,7 @@ class Evaluation :
         self.set_config('lmax', lmax)
         self.model.scheme = self.scheme
 
-        print '\n-> Creating LUT for "%s" model:' % self.model.description
+        print '\n-> Creating LUT for "%s" model:' % self.model.name
 
         # check if kernels were already generated
         tmp = glob.glob( pjoin(self.get_config('ATOMS_path'),'A_*.npy') )
@@ -211,8 +202,7 @@ class Evaluation :
 
 
     def load_kernels( self ) :
-        """
-        Load rotated kernels and project to the specific gradient scheme of this subject.
+        """Load rotated kernels and project to the specific gradient scheme of this subject.
         Dispatch to the proper function, depending on the model.
         """
         if self.model is None :
@@ -233,8 +223,7 @@ class Evaluation :
 
 
     def fit( self ) :
-        """
-        Fit the model to the data iterating over all voxels (in the mask) one after the other.
+        """Fit the model to the data iterating over all voxels (in the mask) one after the other.
         Call the appropriate fit() method of the actual model used.
         """
         if self.niiDWI is None :
@@ -248,7 +237,7 @@ class Evaluation :
 
         self.set_config('fit_time', None)
         totVoxels = np.count_nonzero(self.niiMASK_img)
-        print '\n-> Fitting "%s" model to %d voxels:' % ( self.model.description, totVoxels )
+        print '\n-> Fitting "%s" model to %d voxels:' % ( self.model.name, totVoxels )
 
         # setup fitting directions
         peaks_filename = self.get_config('peaks_filename')
@@ -266,7 +255,7 @@ class Evaluation :
                 raise ValueError( 'PEAKS geometry does not match with DWI data' )
 
         # setup other output files
-        MAPs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], len(self.model.OUTPUT_names)], dtype=np.float32 )
+        MAPs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], len(self.model.maps_name)], dtype=np.float32 )
         if self.get_config('doComputeNRMSE') :
             NRMSE = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32 )
 
@@ -318,8 +307,7 @@ class Evaluation :
 
 
     def save_results( self, path_suffix = None ) :
-        """
-        Save the output (direction, maps etc).
+        """Save the output (directions, maps etc).
 
         Parameters
         ----------
@@ -372,15 +360,15 @@ class Evaluation :
             print ' [OK]'
 
         # voxelwise maps
-        for i in xrange( len(self.model.OUTPUT_names) ) :
-            print '\t- FIT_%s.nii.gz' % self.model.OUTPUT_names[i],
+        for i in xrange( len(self.model.maps_name) ) :
+            print '\t- FIT_%s.nii.gz' % self.model.maps_name[i],
             niiMAP_img = self.RESULTS['MAPs'][:,:,:,i]
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
-            niiMAP_hdr['descrip'] = self.model.OUTPUT_descriptions[i]
+            niiMAP_hdr['descrip'] = self.model.maps_descr[i]
             niiMAP_hdr['cal_min'] = niiMAP_img.min()
             niiMAP_hdr['cal_max'] = niiMAP_img.max()
-            nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_%s.nii.gz' % self.model.OUTPUT_names[i] ) )
+            nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_%s.nii.gz' % self.model.maps_name[i] ) )
             print ' [OK]'
 
         print '   [ DONE ]'

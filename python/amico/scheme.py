@@ -1,22 +1,22 @@
 import numpy as np
-import re
+from re import match as re_match
 import os.path
 
 class Scheme :
-    """
-    A class to hold information about an acquisition scheme.
+    """A class to hold information about an acquisition scheme.
+
     The scheme can be specified in two formats:
     - as a Nx4 matrix: the first three columns are the gradient directions and
       the fourth is the b-value (s/mm^2).
     - as a Nx7 matrix: the first three columns are the gradient directions, and
       the remaining four are: the gradient strength (T/m), big delta (s),
       small delta (s) and echo time (s), respectively.
+
     The "Camino header line" (eg. VERSION: BVECTOR) is optional.
     """
 
     def __init__( self, data, b0_thr = 0 ) :
-        """
-        Initialize the acquisition scheme.
+        """Initialize the acquisition scheme.
 
         Parameters
         ----------
@@ -31,7 +31,7 @@ class Scheme :
                 n = 0 # headers lines to skip to get to the numeric data
                 with open(data) as fid :
                     for line in fid :
-                        if re.match( r'[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?', line.strip() ) :
+                        if re_match( r'[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?', line.strip() ) :
                             break
                         n += 1
                 tmp = np.loadtxt( data, skiprows=n )
@@ -44,8 +44,7 @@ class Scheme :
 
 
     def load_from_table( self, data, b0_thr = 0 ) :
-        """
-        Build the structure from an input matrix.
+        """Build the structure from an input matrix.
 
         The first three columns represent the gradient directions.
         Then, we accept two formats to describe each gradient:

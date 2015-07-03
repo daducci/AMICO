@@ -1,14 +1,11 @@
 from sys import stdout
-from math import floor, ceil
+from math import ceil
 
-"""
-A simple text-based progress indicator.
-"""
 class ProgressBar :
+    """A simple text-based progress indicator."""
 
     def __init__( self, n, width = 50, prefix = "", erase=False ) :
-        """
-        Initialize the progress indicator.
+        """Initialize the progress indicator.
 
         Parameters
         ----------
@@ -30,10 +27,9 @@ class ProgressBar :
         print '\r%s[%s] %5.1f%%' % ( prefix, ' ' * width, 0.0 ),
         stdout.flush()
 
+
     def update( self ) :
-        """
-        Updated the status and the progress bar.
-        """
+        """Update the status and redraw the progress bar (if needed)."""
         if self.i < 1 or self.i > self.n :
             return
         ratio = float(self.i) / float(self.n)

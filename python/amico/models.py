@@ -1,62 +1,67 @@
 import numpy as np
+import numpy.matlib as matlib
+import scipy
 from os.path import exists, join as pjoin
 from os import remove
 import subprocess
 import tempfile
 import amico.lut
 from amico.progressbar import ProgressBar
-import scipy
-import numpy.matlib as matlib
+from dipy.core.gradients import gradient_table
+from dipy.sims.voxel import single_tensor
+import abc
 
 import spams
 import warnings
 warnings.filterwarnings("ignore") # needed for a problem with spams
 
 
-class BasicModel :
-    """
-    Basic class to build a model; new models should inherit from this class.
+class BaseModel( object ) :
+    """Basic class to build a model; new models should inherit from this class.
     All the methods need to be overloaded to account for the specific needs of the model.
     Each method will then be called by a dispatcher when needed.
-    NB: this model also serves the purpose of illustrating the creation of new models.
-    """
 
+    NB: this model also serves the purpose of illustrating the creation of new models.
+
+    Attributes
+    ----------
+    id : string
+        Identification code for the model
+    name : string
+        A more human-readable description for the model (can be equal to id)
+    scheme: Scheme class
+        Acquisition scheme to be used for resampling
+    maps_name : list of strings
+        Names of the maps computed/returned by the model (suffix to saved filenames)
+    maps_descr : list of strings
+        Description of each map (will be saved in the description of the NIFTI header)
+    """
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
     def __init__( self ) :
-        """
-        To define the parameters of the model, e.g. id and name, returned maps,
+        """To define the parameters of the model, e.g. id and name, returned maps,
         model-specific parameters etc.
         """
-        # ID code for the model
-        self.id          = 'BasicModel'
-        # Human radable name for the model (could be equel to self.id)
-        self.description = 'Basic Model'
-        # Scheme to be used for resampling ()
+        self.id         = 'BaseModel'
+        self.name       = 'Base Model'
+        self.maps_name  = []
+        self.maps_descr = []
         self.scheme = None
-
-        # Generated scalar maps
-        self.OUTPUT_names        = [ 'dummy' ]
-        self.OUTPUT_descriptions = [ 'Dummy value' ]
-
-        # OPTIONAL: model-specific parameters, e.g.
-        # self.d = 1.7e-3
-        # self.n = 2
-        # ...
+        return
 
 
-    def set( self ) :
-        """
-        For setting all the parameters specific to the model.
+    @abc.abstractmethod
+    def set( self, *args, **kwargs ) :
+        """For setting all the parameters specific to the model.
         NB: the parameters are model-dependent.
         """
-        # self.d_par  = d_par
-        # self.Rs     = Rs
-        # ...
-        pass
+        return
 
 
-    def set_solver( self ) :
-        """
-        For setting the parameters required by the solver to fit the model.
+    @abc.abstractmethod
+    def set_solver( self, *args, **kwargs ) :
+        """For setting the parameters required by the solver to fit the model.
         NB: the parameters are model-dependent.
 
         Returns
@@ -64,16 +69,12 @@ class BasicModel :
         params : dictionary
             All the parameters that the solver will need to fit the model
         """
-        params = {}
-        # params['lambda'] = lambda_val
-        # params['tol']    = tol_val
-        # ...
-        return params
+        return
 
 
+    @abc.abstractmethod
     def generate( self, out_path, aux, idx_in, idx_out ) :
-        """
-        For generating the signal response-functions and createing the LUT.
+        """For generating the signal response-functions and createing the LUT.
         NB: do not change the signature!
 
         Parameters
@@ -87,12 +88,12 @@ class BasicModel :
         idx_out : array
             Indices of the SH coefficients corresponding to each shell
         """
-        pass
+        return
 
 
+    @abc.abstractmethod
     def resample( self, in_path, idx_out, Ylm_out ) :
-        """
-        For projecting the LUT to the subject space.
+        """For projecting the LUT to the subject space.
         NB: do not change the signature!
 
         Parameters
@@ -107,19 +108,20 @@ class BasicModel :
         Returns
         -------
         KERNELS : dictionary
-            Contains the LUT and all corresponding details
+            Contains the LUT and all corresponding details. In particular, it is
+            required to have a field 'model' set to "self.if".
         """
-        KERNELS = {}
-        KERNELS['model'] = self.id
-        # KERNELS['IC']    = np.zeros( (self.scheme.nS,len(self.Rs),181,181), dtype=np.float32 )
-        # KERNELS['EC']    = np.zeros( (self.scheme.nS,len(self.ICVFs),181,181), dtype=np.float32 )
+        # KERNELS = {}
+        # KERNELS['model'] = self.id
+        # KERNELS['IC']    = np.zeros( (len(self.Rs),181,181,self.scheme.nS), dtype=np.float32 )
+        # KERNELS['EC']    = np.zeros( (len(self.ICVFs),181,181,self.scheme.nS), dtype=np.float32 )
         # ...
-        return KERNELS
+        return
 
 
+    @abc.abstractmethod
     def fit( self, y, dirs, KERNELS, params ) :
-        """
-        For fitting the model to the data.
+        """For fitting the model to the data.
         NB: do not change the signature!
 
         Parameters
@@ -144,25 +146,119 @@ class BasicModel :
         A : array
             Actual dictionary used in the fitting
         """
-        MAPs = [ 1.0 ]
-        dirs_mod = dirs
-        x = np.array([])
-        A = np.array([])
-        return MAPs, dirs, x, A
+        return
 
 
-class CylinderZeppelinBall( BasicModel ) :
-    """
-    Simulate the response functions according to the Cylinder-Zeppelin-Ball model.
+class StickZeppelinBall( BaseModel ) :
+    """Implements the Stick-Zeppelin-Ball model [1].
 
-    The contributions of the tracts are modeled as "cylinders" with specific radii (Rs)
-    and a given axial diffusivity (d_par).
+    The intra-cellular contributions from within the axons are modeled as "sticks", i.e.
+    tensors with a given axial diffusivity (d_par) but null perpendicular diffusivity.
     Extra-cellular contributions are modeled as tensors with the same axial diffusivity
-    as the sticks (d_par) and whose perpendicular diffusivities are calculated with a tortuosity
-    model as a function of the intra-cellular volume fractions (ICVFs).
+    as the sticks (d_par) and whose perpendicular diffusivities are calculated with a
+    tortuosity model as a function of the intra-cellular volume fractions (ICVFs).
     Isotropic contributions are modeled as tensors with isotropic diffusivities (d_ISOs).
 
-    NB: this models works only with schemes containing the full specification of
+    References
+    ----------
+    .. [1] Panagiotaki et al. (2012) Compartment models of the diffusion MR signal
+           in brain white matter: A taxonomy and comparison. NeuroImage, 59: 2241-54
+    """
+
+    def __init__( self ) :
+        self.id         = 'StickZeppelinBall'
+        self.name       = 'Stick-Zeppelin-Ball'
+        self.maps_name  = [ 'v', 'a', 'd' ]
+        self.maps_descr = [ 'Intra-cellular volume fraction', 'Mean axonal diameter', 'Axonal density' ]
+
+        self.d_par  = 1.7E-3                    # Parallel diffusivity [mm^2/s]
+        self.ICVFs  = np.arange(0.3,0.9,0.1)    # Intra-cellular volume fraction(s) [0..1]
+        self.d_ISOs = [ 3.0E-3 ]                # Isotropic diffusivitie(s) [mm^2/s]
+
+
+    def set( self, d_par, ICVFs, d_ISOs ) :
+        self.d_par  = d_par
+        self.ICVFs  = ICVFs
+        self.d_ISOs = d_ISOs
+
+
+    def set_solver( self ) :
+        raise NotImplementedError
+
+
+    def generate( self, out_path, aux, idx_in, idx_out ) :
+        scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1 )
+        gtab = gradient_table( scheme_high.b, scheme_high.raw[:,0:3] )
+
+        nATOMS = 1 + len(self.ICVFs) + len(self.d_ISOs)
+        progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
+
+        # Stick
+        signal = single_tensor( gtab, evals=[0, 0, self.d_par] )
+        lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False )
+        np.save( pjoin( out_path, 'A_001.npy' ), lm )
+        progress.update()
+
+        # Zeppelin(s)
+        for d in [ self.d_par*(1.0-ICVF) for ICVF in self.ICVFs] :
+            signal = single_tensor( gtab, evals=[d, d, self.d_par] )
+            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False )
+            np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
+            progress.update()
+
+        # Ball(s)
+        for d in self.d_ISOs :
+            signal = single_tensor( gtab, evals=[d, d, d] )
+            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True )
+            np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
+            progress.update()
+
+
+    def resample( self, in_path, idx_out, Ylm_out ) :
+        KERNELS = {}
+        KERNELS['model'] = self.id
+        KERNELS['wmr']   = np.zeros( (1,181,181,self.scheme.nS), dtype=np.float32 )
+        KERNELS['wmh']   = np.zeros( (len(self.ICVFs),181,181,self.scheme.nS), dtype=np.float32 )
+        KERNELS['iso']   = np.zeros( (len(self.d_ISOs),self.scheme.nS), dtype=np.float32 )
+
+        nATOMS = 1 + len(self.ICVFs) + len(self.d_ISOs)
+        progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
+
+        # Stick
+        lm = np.load( pjoin( in_path, 'A_001.npy' ) )
+        KERNELS['wmr'][0,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
+        progress.update()
+
+        # Zeppelin(s)
+        for i in xrange(len(self.ICVFs)) :
+            lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
+            KERNELS['wmh'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
+            progress.update()
+
+        # Ball(s)
+        for i in xrange(len(self.d_ISOs)) :
+            lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
+            KERNELS['iso'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )
+            progress.update()
+
+        return KERNELS
+
+
+    def fit( self, y, dirs, KERNELS, params ) :
+        raise NotImplementedError
+
+
+class CylinderZeppelinBall( BaseModel ) :
+    """Implements the Cylinder-Zeppelin-Ball model [1].
+
+    The intra-cellular contributions from within the axons are modeled as "cylinders"
+    with specific radii (Rs) and a given axial diffusivity (d_par).
+    Extra-cellular contributions are modeled as tensors with the same axial diffusivity
+    as the cylinders (d_par) and whose perpendicular diffusivities are calculated with a
+    tortuosity model as a function of the intra-cellular volume fractions (ICVFs).
+    Isotropic contributions are modeled as tensors with isotropic diffusivities (d_ISOs).
+
+    NB: this model works only with schemes containing the full specification of
         the diffusion gradients (eg gradient strength, small delta etc).
 
     NB: this model requires Camino to be installed and properly configured
@@ -176,17 +272,15 @@ class CylinderZeppelinBall( BasicModel ) :
     """
 
     def __init__( self ) :
-        self.id          = 'CylinderZeppelinBall'
-        self.description = 'Cylinder-Zeppelin-Ball'
+        self.id         = 'CylinderZeppelinBall'
+        self.name       = 'Cylinder-Zeppelin-Ball'
+        self.maps_name  = [ 'v', 'a', 'd' ]
+        self.maps_descr = [ 'Intra-cellular volume fraction', 'Mean axonal diameter', 'Axonal density' ]
 
         self.d_par  = 0.6E-3                                                         # Parallel diffusivity [mm^2/s]
         self.Rs     = np.concatenate( ([0.01],np.linspace(0.5,8.0,20.0)) ) * 1E-6    # Radii of the axons [meters]
         self.ICVFs  = np.arange(0.3,0.9,0.1)                                         # Intra-cellular volume fraction(s) [0..1]
         self.d_ISOs = [ 2.0E-3 ]                                                     # Isotropic diffusivitie(s) [mm^2/s]
-
-        # generated scalar maps
-        self.OUTPUT_names        = [ 'v', 'a', 'd' ]
-        self.OUTPUT_descriptions = [ 'Intra-cellular volume fraction', 'Mean axonal diameter', 'Axonal density' ]
 
 
     def set( self, d_par, Rs, ICVFs, d_ISOs ) :
@@ -196,10 +290,10 @@ class CylinderZeppelinBall( BasicModel ) :
         self.d_ISOs = d_ISOs
 
 
-    def set_solver( self, mode = 2, pos = True, lambda1 = 0.0, lambda2 = 4.0 ) :
+    def set_solver( self, lambda1 = 0.0, lambda2 = 4.0 ) :
         params = {}
-        params['mode']    = mode
-        params['pos']     = pos
+        params['mode']    = 2
+        params['pos']     = True
         params['lambda1'] = lambda1
         params['lambda2'] = lambda2
         return params
@@ -209,7 +303,6 @@ class CylinderZeppelinBall( BasicModel ) :
         if self.scheme.version != 1 :
             raise RuntimeError( 'This model requires a "VERSION: STEJSKALTANNER" scheme.' )
 
-        # create a high-resolution scheme to pass to 'datasynth'
         scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1E6 )
         filename_scheme = pjoin( out_path, 'scheme.txt' )
         np.savetxt( filename_scheme, scheme_high.raw, fmt='%15.8e', delimiter=' ', header='VERSION: STEJSKALTANNER', comments='' )
@@ -266,9 +359,9 @@ class CylinderZeppelinBall( BasicModel ) :
     def resample( self, in_path, idx_out, Ylm_out ) :
         KERNELS = {}
         KERNELS['model'] = self.id
-        KERNELS['IC']    = np.zeros( (self.scheme.nS,len(self.Rs),181,181), dtype=np.float32 )
-        KERNELS['EC']    = np.zeros( (self.scheme.nS,len(self.ICVFs),181,181), dtype=np.float32 )
-        KERNELS['ISO']   = np.zeros( (self.scheme.nS,len(self.d_ISOs)), dtype=np.float32 )
+        KERNELS['wmr'] = np.zeros( (len(self.Rs),181,181,self.scheme.nS,), dtype=np.float32 )
+        KERNELS['wmh'] = np.zeros( (len(self.ICVFs),181,181,self.scheme.nS,), dtype=np.float32 )
+        KERNELS['iso'] = np.zeros( (len(self.d_ISOs),self.scheme.nS,), dtype=np.float32 )
 
         nATOMS = len(self.Rs) + len(self.ICVFs) + len(self.d_ISOs)
         progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
@@ -276,19 +369,19 @@ class CylinderZeppelinBall( BasicModel ) :
         # Cylinder(s)
         for i in xrange(len(self.Rs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['IC'][:,i,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
+            KERNELS['wmr'][i,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
             progress.update()
 
         # Zeppelin(s)
         for i in xrange(len(self.ICVFs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['EC'][:,i,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
+            KERNELS['wmh'][i,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
             progress.update()
 
         # Ball(s)
         for i in xrange(len(self.d_ISOs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['ISO'][:,i] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )
+            KERNELS['iso'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )
             progress.update()
 
         return KERNELS
@@ -307,13 +400,13 @@ class CylinderZeppelinBall( BasicModel ) :
         o = 0
         for i in xrange(nD) :
             i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
-            A[:,o:(o+n1)] = KERNELS['IC'][:,:,i1,i2]
+            A[:,o:(o+n1)] = KERNELS['wmr'][:,i1,i2,:].T
             o += n1
         for i in xrange(nD) :
             i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
-            A[:,o:(o+n2)] = KERNELS['EC'][:,:,i1,i2]
+            A[:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,:].T
             o += n2
-        A[:,o:] = KERNELS['ISO'][:,:]
+        A[:,o:] = KERNELS['iso']
 
         # empty dictionary
         if A.shape[1] == 0 :
@@ -332,32 +425,28 @@ class CylinderZeppelinBall( BasicModel ) :
         return [v, a, d], dirs, x, A
 
 
-
-class NODDI( BasicModel ) :
-    """
-    Simulate the response functions according to the NODDI model.
+class NODDI( BaseModel ) :
+    """Implements the NODDI model [2].
 
     NB: this model does not require to have the "NODDI MATLAB toolbox" installed;
-        All the necessary functions have been ported to Python.
+        all the necessary functions have been ported to Python.
 
     References
     ----------
-    .. [1] Zhang et al. (2012) NODDI: Practical in vivo neurite orientation
+    .. [2] Zhang et al. (2012) NODDI: Practical in vivo neurite orientation
            dispersion and density imaging of the human brain. NeuroImage, 61: 1000-16
     """
     def __init__( self ):
-        self.id          = "NODDI"
-        self.description = "NODDI"
+        self.id         = "NODDI"
+        self.name       = "NODDI"
+        self.maps_name  = [ 'ICVF', 'OD', 'ISOVF' ]
+        self.maps_descr = [ 'Intra-cellular volume fraction', 'Orientation dispersion', 'Isotropic volume fraction' ]
 
         self.dPar      = 1.7E-3
         self.dIso      = 3.0E-3
         self.IC_VFs    = np.linspace(0.1,0.99,12)
         self.IC_ODs    = np.hstack((np.array([0.03, 0.06]),np.linspace(0.09,0.99,10)))
         self.isExvivo  = False
-
-        # generated scalar maps
-        self.OUTPUT_names        = [ 'ICVF', 'OD', 'ISOVF' ]
-        self.OUTPUT_descriptions = [ 'Intra-cellular volume fraction', 'Orientation dispersion', 'Isotropic volume fraction' ]
 
 
     def set( self, dPar, dIso, IC_VFs, IC_ODs, isExvivo ):
@@ -410,7 +499,7 @@ class NODDI( BasicModel ) :
 
         KERNELS = {}
         KERNELS['model'] = self.id
-        KERNELS['wm']    = np.zeros( (self.scheme.nS,nATOMS-1,181,181), dtype=np.float32 )
+        KERNELS['wm']    = np.zeros( (nATOMS-1,181,181,self.scheme.nS), dtype=np.float32 )
         KERNELS['iso']   = np.zeros( self.scheme.nS, dtype=np.float32 )
         KERNELS['kappa'] = np.zeros( nATOMS-1, dtype=np.float32 )
         KERNELS['icvf']  = np.zeros( nATOMS-1, dtype=np.float32 )
@@ -423,7 +512,7 @@ class NODDI( BasicModel ) :
             for j in xrange( len(self.IC_VFs) ):
                 lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
                 idx = progress.i - 1
-                KERNELS['wm'][:,idx,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
+                KERNELS['wm'][idx,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
                 KERNELS['kappa'][idx] = 1.0 / np.tan( self.IC_ODs[i]*np.pi/2.0 )
                 KERNELS['icvf'][idx]  = self.IC_VFs[j]
                 KERNELS['norms'][:,idx] = 1 / np.linalg.norm( KERNELS['wm'][self.scheme.dwi_idx,idx,0,0] ) # norm of coupled atoms (for l1 minimization)
@@ -448,7 +537,7 @@ class NODDI( BasicModel ) :
             nATOMS += 1
         A = np.ones( (len(y), nATOMS), dtype=np.float64, order='F' )
         i1, i2 = amico.lut.dir_TO_lut_idx( dirs[0] )
-        A[:,:-1] = KERNELS['wm'][:,:,i1,i2]
+        A[:,:-1] = KERNELS['wm'][:,i1,i2,:].T
         A[:,-1]  = KERNELS['iso']
 
         # estimate CSF partial volume (and isotropic restriction, if exvivo) and remove from signal
