@@ -406,14 +406,14 @@ class CylinderZeppelinBall( BaseModel ) :
             i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
             A[:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,:].T
             o += n2
-        A[:,o:] = KERNELS['iso']
+        A[:,o:] = KERNELS['iso'].T
 
         # empty dictionary
         if A.shape[1] == 0 :
             return [ np.zeros(y.shape), [0, 0, 0] ]
 
         # fit
-        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=Ar, **params ).todense().A1
+        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, **params ).todense().A1
 
         # return estimates
         f1 = x[ :(nD*n1) ].sum()
