@@ -8,8 +8,7 @@ import amico.scheme
 
 
 def precompute_rotation_matrices( lmax = 12 ) :
-    """
-    Precompute the rotation matrices to rotate the high-resolution kernels (500 directions per shell)
+    """Precompute the rotation matrices to rotate the high-resolution kernels (500 directions/shell).
 
     Parameters
     ----------
@@ -55,8 +54,7 @@ def precompute_rotation_matrices( lmax = 12 ) :
 
 
 def load_precomputed_rotation_matrices( lmax = 12 ) :
-    """
-    Load precomputed the rotation matrices to rotate the high-resolution kernels
+    """Load precomputed the rotation matrices to rotate the high-resolution kernels.
 
     Parameters
     ----------
@@ -70,8 +68,7 @@ def load_precomputed_rotation_matrices( lmax = 12 ) :
 
 
 def aux_structures_generate( scheme, lmax = 12 ) :
-    """
-    Compute the auxiliary data structures to generate the high-resolution kernels
+    """Compute the auxiliary data structures to generate the high-resolution kernels.
 
     Parameters
     ----------
@@ -97,8 +94,7 @@ def aux_structures_generate( scheme, lmax = 12 ) :
 
 
 def aux_structures_resample( scheme, lmax = 12 ) :
-    """
-    Compute the auxiliary data structures to resample the kernels to the original acquisition scheme
+    """Compute the auxiliary data structures to resample the kernels to the original acquisition scheme.
 
     Parameters
     ----------
@@ -129,8 +125,7 @@ def aux_structures_resample( scheme, lmax = 12 ) :
 
 
 def rotate_kernel( K, AUX, idx_IN, idx_OUT, is_isotropic ) :
-    """
-    Rotate a spherical function.
+    """Rotate a response function (symmetric about z-axis).
 
     Parameters
     ----------
@@ -176,8 +171,7 @@ def rotate_kernel( K, AUX, idx_IN, idx_OUT, is_isotropic ) :
 
 
 def resample_kernel( KRlm, nS, idx_out, Ylm_out, is_isotropic ) :
-    """
-    Resample a spherical function
+    """Project/resample a spherical function to signal space.
 
     Parameters
     ----------
@@ -198,10 +192,10 @@ def resample_kernel( KRlm, nS, idx_out, Ylm_out, is_isotropic ) :
         Rotated spherical functions projected to signal space of the subject
     """
     if is_isotropic == False :
-        KR = np.ones( (nS,181,181), dtype=np.float32 )
+        KR = np.ones( (181,181,nS), dtype=np.float32 )
         for ox in xrange(181) :
             for oy in xrange(181) :
-                KR[idx_out,ox,oy] = np.dot( Ylm_out, KRlm[ox,oy,:] ).astype(np.float32)
+                KR[ox,oy,idx_out] = np.dot( Ylm_out, KRlm[ox,oy,:] ).astype(np.float32)
     else :
         KR = np.ones( nS, dtype=np.float32 )
         KR[idx_out] = np.dot( Ylm_out, KRlm ).astype(np.float32)
@@ -209,8 +203,7 @@ def resample_kernel( KRlm, nS, idx_out, Ylm_out, is_isotropic ) :
 
 
 def dir_TO_lut_idx( direction ) :
-    """
-    Compute the index in the kernel LUT corresponding to the estimated direction
+    """Compute the index in the kernel LUT corresponding to the estimated direction.
 
     Parameters
     ----------
@@ -247,8 +240,7 @@ def dir_TO_lut_idx( direction ) :
 
 
 def create_high_resolution_scheme( scheme, b_scale = 1 ) :
-    """
-    Create an high-resolution version of a scheme to be used for kernel rotation (500 directions per shell).
+    """Create an high-resolution version of a scheme to be used for kernel rotation (500 directions per shell).
     All other parameters of the scheme remain the same.
 
     Parameters
@@ -275,10 +267,9 @@ def create_high_resolution_scheme( scheme, b_scale = 1 ) :
     return amico.scheme.Scheme( raw )
 
 
-'''
-Gradient orientations for each shell of the high-resolution response functions.
+"""Gradient orientations for each shell of the high-resolution response functions.
 NB: directions are built to ensure proper indexing in the [0,180]x[0,180] range of the lookup tables.
-'''
+"""
 grad = np.array([
     [-0.0490038,  0.9190721,  0.3910307 ],
     [ 0.7261449,  0.3010601, -0.6181233 ],

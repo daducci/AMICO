@@ -2,7 +2,7 @@
 
 This code implements the AMICO framework in the Python language.
 
-> This is a **working progress** project!
+> This is a **work-in-progress** project!
 
 # Installation
 
@@ -10,7 +10,7 @@ This code implements the AMICO framework in the Python language.
 
 ### Python and DIPY
 
-AMICO is written in [Python](https://www.python.org/) and it internally makes use of the [DIPY](http://dipy.org) library.
+This version of AMICO is written in [Python](https://www.python.org/) and it internally makes use of the [DIPY](http://dipy.org) library.
 Please install and configure them by following the guidelines on the corresponding websites.
 
 ### SPArse Modeling Software (SPAMS)
@@ -25,9 +25,7 @@ Please follow the corresponding [documentation](http://cmic.cs.ucl.ac.uk/camino/
 
 ### NODDI toolbox
 
-
-> We are in the process of porting to Python all the MATLAB functions that are required to generate the response functions of the NODDI model. Hence, at the moment the **NODDI model is not available**, sorry...
-
+> This version of AMICO **doesn not require** the [NODDI MATLAB toolbox](http://mig.cs.ucl.ac.uk/index.php?n=Download.NODDI) to be present on your system; all the necessary MATLAB functions for generating the response functions of the NODDI model have in fact been ported to Python.
 
 
 ## Install AMICO
