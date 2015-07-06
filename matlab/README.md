@@ -1,14 +1,6 @@
-# AMICO
+# Installation
 
-Implementation of the linear framework for Accelerated Microstructure Imaging via Convex Optimization (AMICO) described here:
-
-> **Accelerated Microstructure Imaging via Convex Optimization (AMICO) from diffusion MRI data**  
-> *Alessandro Daducci, Erick Canales-Rodriguez, Hui Zhang, Tim Dyrby, Daniel Alexander, Jean-Philippe Thiran*  
-> NeuroImage 105, pp. 32-44 (2015)
-
-## Installation
-
-### Download and install external software
+## Download and install external software
 
 - **NODDI MATLAB toolbox**. [Download](http://mig.cs.ucl.ac.uk/index.php?n=Download.NODDI) the software and follow the instructions provided [here](http://mig.cs.ucl.ac.uk/index.php?n=Tutorial.NODDImatlab) to install it.  
 
@@ -16,13 +8,13 @@ Implementation of the linear framework for Accelerated Microstructure Imaging vi
 
 - **SPArse Modeling Software (SPAMS)**. [Download](http://spams-devel.gforge.inria.fr/downloads.html) the software and follow the instructions provided [here](http://spams-devel.gforge.inria.fr/doc/html/doc_spams003.html) to install it.  
 
-### Setup paths/variables in MATLAB
+## Setup paths/variables in MATLAB
 
 Add the folder containing the source code of AMICO to your `MATLAB PATH`.
 
 Copy the file `AMICO_Setup.txt` and rename it to `AMICO_Setup.m`. Modify its content to set the paths to your specific needs, as follows:
 
-- `AMICO_code_path` : path to the folder containing the *source code* of AMICO (this repository). E.g. `/home/user/AMICO/code`.
+- `AMICO_code_path` : path to the folder containing the *MATLAB source code* of AMICO (this repository). E.g. `/home/user/AMICO/code/matlab`.
 
 - `NODDI_path` : path to the folder containing the *source code* of the NODDI toolbox (in case you want to use NODDI, not needed for ActiveAx). E.g. `/home/user/NODDI_toolbox_v0.9`.
 
@@ -47,6 +39,6 @@ Copy the file `AMICO_Setup.txt` and rename it to `AMICO_Setup.m`. Modify its con
   This way, the kernels need to be computed only *once per each study*, i.e. same protocol (number of shells, b-values etc), and subsequently adapted to each subject (specific gradient directions) very efficiently.
 
 
-## Getting started
+# Getting started
 
-Tutorials/demos are provided in the folder `doc/demos` to help you get started with the AMICO framework.
+Tutorials/demos are provided in the folder [`doc/demos/`](matlab/doc/demos/) to help you get started with the AMICO framework.
