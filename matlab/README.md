@@ -41,4 +41,4 @@ Copy the file `AMICO_Setup.txt` and rename it to `AMICO_Setup.m`. Modify its con
 
 # Getting started
 
-Tutorials/demos are provided in the folder [`doc/demos/`](matlab/doc/demos/) to help you get started with the AMICO framework.
+Tutorials/demos are provided in the folder [`doc/demos/`](doc/demos/) to help you get started with the AMICO framework.
