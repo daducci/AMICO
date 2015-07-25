@@ -168,8 +168,8 @@ class StickZeppelinBall( BaseModel ) :
     def __init__( self ) :
         self.id         = 'StickZeppelinBall'
         self.name       = 'Stick-Zeppelin-Ball'
-        self.maps_name  = [ 'v', 'a', 'd' ]
-        self.maps_descr = [ 'Intra-cellular volume fraction', 'Mean axonal diameter', 'Axonal density' ]
+        self.maps_name  = [ ]
+        self.maps_descr = [ ]
 
         self.d_par  = 1.7E-3                    # Parallel diffusivity [mm^2/s]
         self.ICVFs  = np.arange(0.3,0.9,0.1)    # Intra-cellular volume fraction(s) [0..1]
@@ -388,8 +388,6 @@ class CylinderZeppelinBall( BaseModel ) :
 
 
     def fit( self, y, dirs, KERNELS, params ) :
-        dirs_norms = np.linalg.norm( dirs, axis=1 )
-        dirs = dirs[ dirs_norms >= 1e-1 ]
         nD = dirs.shape[0]
         n1 = len(self.Rs)
         n2 = len(self.ICVFs)
@@ -410,7 +408,7 @@ class CylinderZeppelinBall( BaseModel ) :
 
         # empty dictionary
         if A.shape[1] == 0 :
-            return [ np.zeros(y.shape), [0, 0, 0] ]
+            return [0, 0, 0], None, None, None
 
         # fit
         x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, **params ).todense().A1
@@ -529,7 +527,7 @@ class NODDI( BaseModel ) :
     def fit( self, y, dirs, KERNELS, params ) :
         nD = dirs.shape[0]
         if nD != 1 :
-            raise RuntimeError( 'NODDI model requires exactly 1 orientation' )
+            raise RuntimeError( '"%s" model requires exactly 1 orientation' % self.name )
 
         # prepare DICTIONARY from dir and lookup tables
         nATOMS = len(self.IC_ODs)*len(self.IC_VFs) + 1
@@ -968,3 +966,104 @@ class NODDI( BaseModel ) :
         modQ_Sq = np.power(modQ,2)
         difftime = protocol['delta'].transpose()-protocol['smalldel']/3.0
         return np.exp(-difftime*modQ_Sq*d)
+
+
+class FreeWater( BaseModel ) :
+    """Implements the Free-Water model.
+    """
+
+    def __init__( self ) :
+        self.id         = 'FreeWater'
+        self.name       = 'Free-Water'
+        self.maps_name  = [ 'ICVF', 'ISOVF' ]
+        self.maps_descr = [ 'Intra-cellular volume fraction', 'Isotropic volume fraction' ]
+
+        self.d_par   = 1.0E-3                       # Parallel diffusivity [mm^2/s]
+        self.d_perps = np.linspace(0.1,1.0,10)*1E-3 # Parallel diffusivities [mm^2/s]
+        self.d_isos  = [ 2.5E-3 ]                   # Isotropic diffusivities [mm^2/s]
+
+
+    def set( self, d_par, d_perps, d_isos ) :
+        self.d_par   = d_par
+        self.d_perps = d_perps
+        self.d_isos  = d_isos
+
+
+    def set_solver( self, lambda1 = 0.0, lambda2 = 1e-3 ):
+        params = {}
+        params['mode']    = 2
+        params['pos']     = True
+        params['lambda1'] = lambda1
+        params['lambda2'] = lambda2
+        return params
+
+
+    def generate( self, out_path, aux, idx_in, idx_out ) :
+        scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1 )
+        gtab = gradient_table( scheme_high.b, scheme_high.raw[:,0:3] )
+
+        nATOMS = len(self.d_perps) + len(self.d_isos)
+        progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
+
+        # Tensor compartment(s)
+        for d in self.d_perps :
+            signal = single_tensor( gtab, evals=[d, d, self.d_par] )
+            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False )
+            np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
+            progress.update()
+
+        # Isotropic compartment(s)
+        for d in self.d_isos :
+            signal = single_tensor( gtab, evals=[d, d, d] )
+            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True )
+            np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
+            progress.update()
+
+
+    def resample( self, in_path, idx_out, Ylm_out ) :
+        KERNELS = {}
+        KERNELS['model'] = self.id
+        KERNELS['D']     = np.zeros( (len(self.d_perps),181,181,self.scheme.nS), dtype=np.float32 )
+        KERNELS['CSF']   = np.zeros( (len(self.d_isos),self.scheme.nS), dtype=np.float32 )
+
+        nATOMS = len(self.d_perps) + len(self.d_isos)
+        progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
+
+        # Tensor compartment(s)
+        for i in xrange(len(self.d_perps)) :
+            lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
+            KERNELS['D'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
+            progress.update()
+
+        # Isotropic compartment(s)
+        for i in xrange(len(self.d_isos)) :
+            lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
+            KERNELS['CSF'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )
+            progress.update()
+
+        return KERNELS
+
+
+    def fit( self, y, dirs, KERNELS, params ) :
+        nD = dirs.shape[0]
+        if nD > 1 : # model works only with one direction
+            raise RuntimeError( '"%s" model requires exactly 1 orientation' % self.name )
+
+        n1 = len(self.d_perps)
+        n2 = len(self.d_isos)
+        nATOMS = n1+n2
+        if nATOMS == 0 : # empty dictionary
+            return [0, 0], None, None, None
+
+        # prepare DICTIONARY from dir and lookup tables
+        i1, i2 = amico.lut.dir_TO_lut_idx( dirs[0] )
+        A = np.zeros( (len(y), nATOMS), dtype=np.float64, order='F' )
+        A[:,:(nD*n1)] = KERNELS['D'][:,i1,i2,:].T
+        A[:,(nD*n1):] = KERNELS['CSF'].T
+
+        # fit
+        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, **params ).todense().A1
+
+        # return estimates
+        v = x[ :n1 ].sum() / ( x.sum() + 1e-16 )
+        return [ v, 1-v ], dirs, x, A
