@@ -6,6 +6,7 @@ properties
     dIso                    % isotropic diffusivity [units of mm^2/s]
     IC_VFs                  % volume fractions of the intra-cellular space
     IC_ODs                  % dispersions of the intra-cellular space
+    isExvivo                % if ExVivo imaging, then add the "dot" compartment
     OUTPUT_names            % suffix of the output maps
     OUTPUT_descriptions     % description of the output maps
 end
@@ -26,6 +27,7 @@ methods
         obj.dIso      = 3.0 * 1E-3;
     	obj.IC_VFs    = linspace(0.1, 0.99,12);
 		obj.IC_ODs    = [0.03, 0.06, linspace(0.09,0.99,10)];
+        obj.isExvivo  = false;
 
         obj.OUTPUT_names        = { 'ICVF', 'OD', 'ISOVF' };
         obj.OUTPUT_descriptions = {'Intra-cellular volume fraction', 'Orientation dispersion', 'Isotropic volume fraction'};
@@ -47,17 +49,12 @@ methods
 
         % Configure NODDI toolbox
         % =======================
-        noddi = MakeModel( 'WatsonSHStickTortIsoV_B0' );
+        protocolHR = obj.Scheme2noddi( schemeHR );
 
         % set the parallel/isotropic diffusivity from AMICO's configuration (accounting for units difference)
         dPar = CONFIG.model.dPar * 1E-6;
         dIso = CONFIG.model.dIso * 1E-6;
-        noddi.GS.fixedvals(2) = dPar;
-        noddi.GD.fixedvals(2) = dPar;
-        noddi.GS.fixedvals(5) = dIso;
-        noddi.GD.fixedvals(5) = dIso;
 
-        protocolHR = obj.Scheme2noddi( schemeHR );
 
         % Coupled compartments
         % ====================
@@ -113,11 +110,11 @@ methods
         % Setup the KERNELS structure
         % ===========================
         KERNELS = {};
+        n = numel(obj.IC_VFs) * numel(obj.IC_ODs);
         KERNELS.nS      = CONFIG.scheme.nS;
-        KERNELS.nA      = numel(obj.IC_VFs) * numel(obj.IC_ODs) + 1; % number of atoms
-        KERNELS.A       = zeros( [KERNELS.nS KERNELS.nA-1 181 181], 'single' );
-    	KERNELS.A_kappa = zeros( 1, KERNELS.nA-1, 'single' );
-        KERNELS.A_icvf  = zeros( 1, KERNELS.nA-1, 'single' );;
+        KERNELS.A       = zeros( [KERNELS.nS n 181 181], 'single' );
+    	KERNELS.A_kappa = zeros( 1, n, 'single' );
+        KERNELS.A_icvf  = zeros( 1, n, 'single' );;
         KERNELS.Aiso    = zeros( [KERNELS.nS 1], 'single' );
         KERNELS.Aiso_d  = NaN;
 
@@ -156,7 +153,6 @@ methods
         idx = idx + 1;
 
         fprintf( '[%.1f seconds]\n', toc(TIME) );
-
     end
 
 
@@ -167,32 +163,48 @@ methods
         global CONFIG KERNELS
 
         % prepare SIGNAL and DICTIONARY
-        A  = double( [ KERNELS.A(CONFIG.scheme.dwi_idx,:,i1,i2) KERNELS.Aiso(CONFIG.scheme.dwi_idx) ] );
-        AA = [ ones(1,KERNELS.nA) ; A ];
+        A = double( [ KERNELS.A(CONFIG.scheme.dwi_idx,:,i1,i2) KERNELS.Aiso(CONFIG.scheme.dwi_idx) ] );
+        if ( obj.isExvivo )
+            % in case of ExVivo data, add the "dot" compartment (that does not need to be explicitly generated)
+            A(:,end+1) = 1;
+        end
+        AA = [ ones(1,size(A,2)) ; A ];
         y  = y(CONFIG.scheme.dwi_idx);
         yy = [ 1 ; y ];
 
-        % estimate CSF partial volume and remove it
+        % estimate CSF partial volume (and isotropic restriction compartment, if exvivo) and remove from signal
         x = lsqnonneg( AA, yy, CONFIG.OPTIMIZATION.LS_param );
         y = y - x(end)*A(:,end);
+        if ( obj.isExvivo )
+            y = y - x(end-1)*A(:,end-1);
+        end
 
         % estimate IC and EC compartments and promote sparsity
-        An = A(:,1:end-1) .* KERNELS.A_norm;
+        An = A(:,1:size(KERNELS.A,2)) .* KERNELS.A_norm;
         x = full( mexLasso( y, An, CONFIG.OPTIMIZATION.SPAMS_param ) );
 
         % debias coefficients
         idx = x>0;
         idx(end+1) = true;
+        if ( obj.isExvivo )
+            idx(end+1) = true;
+        end
         x(idx) = lsqnonneg( AA(:,idx), yy, CONFIG.OPTIMIZATION.LS_param );
 
         % compute MAPS
-        xx =  x(1:end-1);
+        if ( obj.isExvivo )
+            xx =  x(1:end-2);
+            fISO = x(end-1);
+        else
+            xx =  x(1:end-1);
+            fISO = x(end);
+        end
         xx = xx ./ ( sum(xx) + eps );
         f1 = KERNELS.A_icvf * xx;
         f2 = (1-KERNELS.A_icvf) * xx;
         MAPs(1) = f1 / (f1+f2+eps);
         MAPs(2) = 2/pi * atan2(1,KERNELS.A_kappa*xx);
-        MAPs(3) = x(end);
+        MAPs(3) = fISO;
     end
 
 

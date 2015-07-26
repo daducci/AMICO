@@ -118,7 +118,7 @@ The output will look something like:
    [ AMICO/FIT_*.nii ]
 ```
 
-![NRMSE for COMMIT](https://github.com/daducci/AMICO/blob/master/doc/demos/NODDI/RESULTS_Fig1.png)
+![NRMSE for COMMIT](https://github.com/daducci/AMICO/blob/master/matlab/doc/demos/NODDI/RESULTS_Fig1.png)
 
 The results will be saved as NIFTI/ANALYZE files in `NoddiTutorial/Tutorial/AMICO/`.
 

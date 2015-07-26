@@ -10,12 +10,11 @@ fprintf( '\t* Loading DWI...\n' );
 % ================
 niiSIGNAL = load_untouch_nii( CONFIG.dwiFilename );
 niiSIGNAL.img = single(niiSIGNAL.img);
+niiSIGNAL.img = reshape(niiSIGNAL.img,niiSIGNAL.hdr.dime.dim(2:5));
 
 % Scale signal intensities (if necessary)
-if ( niiSIGNAL.hdr.dime.scl_slope == 0 )
-	error( '[AMICO_LoadData] Found scl_slope=0 in the header; the signal would be zero!\n' );
-end
-if ( niiSIGNAL.hdr.dime.scl_slope ~= 1 || niiSIGNAL.hdr.dime.scl_inter ~= 0 )
+if ( niiSIGNAL.hdr.dime.scl_slope ~= 0 && ( niiSIGNAL.hdr.dime.scl_slope ~= 1 || niiSIGNAL.hdr.dime.scl_inter ~= 0 ) )
+    fprintf( '\t\t- rescaling data\n' );
 	niiSIGNAL.img = niiSIGNAL.img * niiSIGNAL.hdr.dime.scl_slope + niiSIGNAL.hdr.dime.scl_inter;
 end
 
@@ -39,15 +38,21 @@ fprintf( '\t\t- %d measurements divided in %d shells (%d b=0)\n', CONFIG.scheme.
 % BINARY mask
 % ===========
 fprintf( '\t* Loading MASK...\n' );
-if ~exist(CONFIG.maskFilename,'file')
-	error( '[AMICO_LoadData] no mask specified\n' );
+if exist(CONFIG.maskFilename,'file')
+    niiMASK = load_untouch_nii( CONFIG.maskFilename );
+    if nnz( CONFIG.dim(1:3) - niiMASK.hdr.dime.dim(2:4) ) > 0
+        error( '[AMICO_LoadData] Data and mask do not match\n' );
+    end
+    fprintf( '\t\t- dim    = %d x %d x %d\n' , niiMASK.hdr.dime.dim(2:4) );
+else
+    niiMASK = [];
+    niiMASK.hdr = niiSIGNAL.hdr;
+    niiMASK.hdr.dime.datatype = 2;
+    niiMASK.hdr.dime.bitpix = 8;
+    niiMASK.hdr.dime.dim([1 5]) = [3 1];
+    niiMASK.untouch =  1;
+    niiMASK.img = ones( niiSIGNAL.hdr.dime.dim(2:4), 'uint8' );
 end
-
-niiMASK = load_untouch_nii( CONFIG.maskFilename );
-if nnz( CONFIG.dim(1:3) - niiMASK.hdr.dime.dim(2:4) ) > 0
-	error( '[AMICO_LoadData] Data and mask do not match\n' );
-end
-fprintf( '\t\t- dim    = %d x %d x %d\n' , niiMASK.hdr.dime.dim(2:4) );
 fprintf( '\t\t- voxels = %d\n' , nnz(niiMASK.img) );
 
 
