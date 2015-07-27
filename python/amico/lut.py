@@ -36,7 +36,7 @@ def precompute_rotation_matrices( lmax = 12 ) :
     for ox in xrange(181) :
         for oy in xrange(181) :
             tmp, _, _ = real_sym_sh_basis( lmax, ox/180.0*np.pi, oy/180.0*np.pi )
-            AUX['Ylm_rot'][ox,oy] = tmp
+            AUX['Ylm_rot'][ox,oy] = tmp.reshape(-1)
 
     # auxiliary data to perform rotations
     AUX['const'] = np.zeros( AUX['fit'].shape[0], dtype=np.float64 )
