@@ -1,5 +1,6 @@
 import numpy as np
-import os.path
+from os import makedirs
+from os.path import isdir, isfile, join as pjoin
 import cPickle
 from dipy.data.fetcher import dipy_home
 from dipy.core.geometry import cart2sphere
@@ -15,8 +16,10 @@ def precompute_rotation_matrices( lmax = 12 ) :
     lmax : int
         Maximum SH order to use for the rotation phase (default : 12)
     """
-    filename = os.path.join( dipy_home, 'AMICO_aux_matrices_lmax=%d.pickle'%lmax )
-    if os.path.isfile( filename ) :
+    if not isdir(dipy_home) :
+        makedirs(dipy_home)
+    filename = pjoin( dipy_home, 'AMICO_aux_matrices_lmax=%d.pickle'%lmax )
+    if isfile( filename ) :
         return
 
     print '\n-> Precomputing rotation matrices for l_max=%d:' % lmax
@@ -61,8 +64,8 @@ def load_precomputed_rotation_matrices( lmax = 12 ) :
     lmax : int
         Maximum SH order to use for the rotation phase (default : 12)
     """
-    filename = os.path.join( dipy_home, 'AMICO_aux_matrices_lmax=%d.pickle'%lmax )
-    if not os.path.exists( filename ) :
+    filename = pjoin( dipy_home, 'AMICO_aux_matrices_lmax=%d.pickle'%lmax )
+    if not isfile( filename ) :
         raise RuntimeError( 'Auxiliary matrices not found; call "lut.precompute_rotation_matrices()" first.' )
     return cPickle.load( open(filename,'rb') )
 
