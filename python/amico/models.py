@@ -11,9 +11,17 @@ from dipy.core.gradients import gradient_table
 from dipy.sims.voxel import single_tensor
 import abc
 
-import spams
 import warnings
 warnings.filterwarnings("ignore") # needed for a problem with spams
+warnings.formatwarning = lambda message, category, filename, lineno, line=None: \
+    "[WARNING] %s " % message
+
+# import the spams module, which is used only to fit the models in AMICO.
+# But, on the other hand, using the models from COMMIT does not require that!
+try :
+    import spams
+except ImportError:
+    warnings.warn('Module "spams" does not seems to be installed; perhaps you will not be able to call the fit() functions of some models.')
 
 
 class BaseModel( object ) :
