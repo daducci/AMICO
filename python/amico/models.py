@@ -983,12 +983,21 @@ class FreeWater( BaseModel ) :
     def __init__( self ) :
         self.id         = 'FreeWater'
         self.name       = 'Free-Water'
-        self.maps_name  = [ 'ICVF', 'ISOVF' ]
-        self.maps_descr = [ 'Intra-cellular volume fraction', 'Isotropic volume fraction' ]
+        self.maps_name  = [ 'FiberVolume', 'FW', 'FW_blood', 'FW_csf' ]
+        self.maps_descr = [ 'fiber volume fraction', 
+                            'Isotropic free-water volume fraction', 
+                            'FW blood', 'FW csf' ]
 
+        # these parameters are human-like parameters
         self.d_par   = 1.0E-3                       # Parallel diffusivity [mm^2/s]
         self.d_perps = np.linspace(0.1,1.0,10)*1E-3 # Parallel diffusivities [mm^2/s]
         self.d_isos  = [ 2.5E-3 ]                   # Isotropic diffusivities [mm^2/s]
+
+        # for small animal mouse
+        #1.0E-3, 
+        #np.linspace(0.15,0.55,10)*1E-3, 
+        #[1.5e-3, 3e-3]
+
 
 
     def set( self, d_par, d_perps, d_isos ) :
@@ -1071,7 +1080,10 @@ class FreeWater( BaseModel ) :
 
         # fit
         x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, **params ).todense().A1
-
+        
         # return estimates
         v = x[ :n1 ].sum() / ( x.sum() + 1e-16 )
-        return [ v, 1-v ], dirs, x, A
+        v_blood = x[ n1 ].sum() / ( x.sum() + 1e-16 )
+        v_csf = x[ n1+1 ].sum() / ( x.sum() + 1e-16 )
+        
+        return [ v, 1-v, v_blood, v_csf ], dirs, x, A
