@@ -979,31 +979,48 @@ class NODDI( BaseModel ) :
 class FreeWater( BaseModel ) :
     """Implements the Free-Water model.
     """
-
     def __init__( self ) :
         self.id         = 'FreeWater'
         self.name       = 'Free-Water'
-        self.maps_name  = [ 'FiberVolume', 'FW', 'FW_blood', 'FW_csf' ]
-        self.maps_descr = [ 'fiber volume fraction', 
-                            'Isotropic free-water volume fraction', 
-                            'FW blood', 'FW csf' ]
+        self.type       = 'Human'
 
-        # these parameters are human-like parameters
-        self.d_par   = 1.0E-3                       # Parallel diffusivity [mm^2/s]
-        self.d_perps = np.linspace(0.1,1.0,10)*1E-3 # Parallel diffusivities [mm^2/s]
-        self.d_isos  = [ 2.5E-3 ]                   # Isotropic diffusivities [mm^2/s]
-
-        # for small animal mouse
-        #1.0E-3, 
-        #np.linspace(0.15,0.55,10)*1E-3, 
-        #[1.5e-3, 3e-3]
+        if self.type == 'Mouse' :
+            self.maps_name  = [ 'FiberVolume', 'FW', 'FW_blood', 'FW_csf' ]
+            self.maps_descr = [ 'fiber volume fraction', 
+                                'Isotropic free-water volume fraction', 
+                                'FW blood', 'FW csf' ]
+            
+            # for mouse imaging 
+            self.d_par   = 1.0E-3
+            self.d_perps = np.linspace(0.15,0.55,10)*1E-3
+            self.d_isos  = [1.5e-3, 3e-3]
 
 
+        else :
+            self.maps_name  = [ 'FiberVolume', 'FW' ]
+            self.maps_descr = [ 'fiber volume fraction', 
+                                'Isotropic free-water volume fraction']
+            self.d_par   = 1.0E-3                       # Parallel diffusivity [mm^2/s]
+            self.d_perps = np.linspace(0.1,1.0,10)*1E-3 # Parallel diffusivities [mm^2/s]
+            self.d_isos  = [ 2.5E-3 ]                   # Isotropic diffusivities [mm^2/s]
 
-    def set( self, d_par, d_perps, d_isos ) :
+
+    def set( self, d_par, d_perps, d_isos, type ) :
         self.d_par   = d_par
         self.d_perps = d_perps
         self.d_isos  = d_isos
+        self.type    = type 
+
+        if self.type == 'Mouse' :
+            self.maps_name  = [ 'FiberVolume', 'FW', 'FW_blood', 'FW_csf' ]
+            self.maps_descr = [ 'fiber volume fraction', 
+                                'Isotropic free-water volume fraction', 
+                                'FW blood', 'FW csf' ]                
+
+        else :
+            self.maps_name  = [ 'FiberVolume', 'FW' ]
+            self.maps_descr = [ 'fiber volume fraction', 
+                                'Isotropic free-water volume fraction']
 
 
     def set_solver( self, lambda1 = 0.0, lambda2 = 1e-3 ):
@@ -1083,7 +1100,13 @@ class FreeWater( BaseModel ) :
         
         # return estimates
         v = x[ :n1 ].sum() / ( x.sum() + 1e-16 )
-        v_blood = x[ n1 ].sum() / ( x.sum() + 1e-16 )
-        v_csf = x[ n1+1 ].sum() / ( x.sum() + 1e-16 )
+        
+        # checking that there is more than 1 isotropic compartment
+        if n2 > 1 :
+            v_blood = x[ n1 ].sum() / ( x.sum() + 1e-16 )
+            v_csf = x[ n1+1 ].sum() / ( x.sum() + 1e-16 )
+        else :
+            v_blood = 1-v
+            v_csf = 1-v
         
         return [ v, 1-v, v_blood, v_csf ], dirs, x, A
