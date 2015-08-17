@@ -1029,6 +1029,11 @@ class FreeWater( BaseModel ) :
         params['pos']     = True
         params['lambda1'] = lambda1
         params['lambda2'] = lambda2
+
+        # need more regul for mouse data
+        if self.type == 'Mouse' :
+            lambda2 = 0.25
+
         return params
 
 

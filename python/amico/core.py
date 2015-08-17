@@ -52,6 +52,7 @@ class Evaluation :
 
         self.set_config('peaks_filename', None)
         self.set_config('doNormalizeSignal', True)
+        self.set_config('doKeepb0Intact', False)  # does change b0 images in the predicted signal
         self.set_config('doComputeNRMSE', False)
         self.set_config('doSaveCorrectedDWI', False)
 
@@ -286,8 +287,10 @@ class Evaluation :
                     y = self.niiDWI_img[ix,iy,iz,:].astype(np.float64)
                     y[ y < 0 ] = 0 # [NOTE] this should not happen!
 
-                    if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
+                    if self.scheme.b0_count > 0 :
                         b0 = np.mean( y[self.scheme.b0_idx] )
+
+                    if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :                        
                         if b0 > 1e-3 :
                             y = y / b0
 
@@ -303,15 +306,23 @@ class Evaluation :
                     # compute fitting error
                     if self.get_config('doComputeNRMSE') :
                         y_est = np.dot( A, x )
-                        #den = np.sum(y**2)
-                        #NRMSE[ix,iy,iz] = np.sqrt( np.sum((y-y_est)**2) / den ) if den > 1e-16 else 0
-                        den = np.sum(y)
-                        NRMSE[ix,iy,iz] = np.sum(y-y_est) / den ) if den > 1e-16 else 0
+                        den = np.sum(y**2)
+                        NRMSE[ix,iy,iz] = np.sqrt( np.sum((y-y_est)**2) / den ) if den > 1e-16 else 0
                                             
                     if self.get_config('doSaveCorrectedDWI') :
                         n_iso = len(self.model.d_isos)
                         x[-1*n_iso:] = 0
-                        y_fw_corrected = np.dot( A, x ) * b0                       
+
+                        #print(y, x, b0, A.shape)
+                        if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
+                            y_fw_corrected = np.dot( A, x ) * b0
+                        else :
+                            y_fw_corrected = np.dot( A, x )
+
+                        if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
+                            # put original b0 data back in. 
+                            y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*b0
+
                         DWI_corrected[ix,iy,iz,:] = y_fw_corrected
                         
                     progress.update()
