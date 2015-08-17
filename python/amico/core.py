@@ -303,12 +303,13 @@ class Evaluation :
                     # compute fitting error
                     if self.get_config('doComputeNRMSE') :
                         y_est = np.dot( A, x )
-                        den = np.sum(y**2)
-                        NRMSE[ix,iy,iz] = np.sqrt( np.sum((y-y_est)**2) / den ) if den > 1e-16 else 0
+                        #den = np.sum(y**2)
+                        #NRMSE[ix,iy,iz] = np.sqrt( np.sum((y-y_est)**2) / den ) if den > 1e-16 else 0
+                        den = np.sum(y)
+                        NRMSE[ix,iy,iz] = np.sum(y-y_est) / den ) if den > 1e-16 else 0
                                             
                     if self.get_config('doSaveCorrectedDWI') :
                         n_iso = len(self.model.d_isos)
-                        # -2 should not be hard coded!!!
                         x[-1*n_iso:] = 0
                         y_fw_corrected = np.dot( A, x ) * b0                       
                         DWI_corrected[ix,iy,iz,:] = y_fw_corrected

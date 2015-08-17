@@ -1102,11 +1102,13 @@ class FreeWater( BaseModel ) :
         v = x[ :n1 ].sum() / ( x.sum() + 1e-16 )
         
         # checking that there is more than 1 isotropic compartment
-        if n2 > 1 :
-            v_blood = x[ n1 ].sum() / ( x.sum() + 1e-16 )
-            v_csf = x[ n1+1 ].sum() / ( x.sum() + 1e-16 )
+        if self.type == 'Mouse' :
+            v_blood = x[ n1 ] / ( x.sum() + 1e-16 )
+            v_csf = x[ n1+1 ] / ( x.sum() + 1e-16 )
+            
+            return [ v, 1-v, v_blood, v_csf ], dirs, x, A
+
         else :
-            v_blood = 1-v
-            v_csf = 1-v
+            return [ v, 1-v ], dirs, x, A
         
-        return [ v, 1-v, v_blood, v_csf ], dirs, x, A
+
