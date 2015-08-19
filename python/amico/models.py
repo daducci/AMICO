@@ -1021,6 +1021,12 @@ class FreeWater( BaseModel ) :
             self.maps_name  = [ 'FiberVolume', 'FW' ]
             self.maps_descr = [ 'fiber volume fraction', 
                                 'Isotropic free-water volume fraction']
+        
+        print '      %s settings for Freewater elimination... ' % self.type        
+        print '             -iso  compartments: ', self.d_isos
+        print '             -perp compartments: ', self.d_perps
+        print '             -para compartments: ', self.d_par
+
 
 
     def set_solver( self, lambda1 = 0.0, lambda2 = 1e-3 ):

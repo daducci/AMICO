@@ -269,10 +269,6 @@ class Evaluation :
             DWI_corrected = np.zeros(self.niiDWI.shape, dtype=np.float32)
 
 
-        print '      -iso  compartments: ', self.model.d_isos
-        print '      -perp compartments: ', self.model.d_perps
-        print '      -para compartments: ', self.model.d_par
-
         # fit the model to the data
         # =========================
         t = time.time()
@@ -310,21 +306,24 @@ class Evaluation :
                         NRMSE[ix,iy,iz] = np.sqrt( np.sum((y-y_est)**2) / den ) if den > 1e-16 else 0
                                             
                     if self.get_config('doSaveCorrectedDWI') :
-                        n_iso = len(self.model.d_isos)
-                        x[-1*n_iso:] = 0
 
-                        #print(y, x, b0, A.shape)
-                        if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
-                            y_fw_corrected = np.dot( A, x ) * b0
-                        else :
-                            y_fw_corrected = np.dot( A, x )
+                        if self.model.name == 'Free-Water' :
+                            n_iso = len(self.model.d_isos)
+                            x[-1*n_iso:] = 0
 
-                        if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
-                            # put original b0 data back in. 
-                            y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*b0
+                            #print(y, x, b0, A.shape)
+                            if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
+                                y_fw_corrected = np.dot( A, x ) * b0
+                            else :
+                                y_fw_corrected = np.dot( A, x )
 
-                        DWI_corrected[ix,iy,iz,:] = y_fw_corrected
-                        
+                            if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
+                                # put original b0 data back in. 
+                                y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*b0
+
+                            DWI_corrected[ix,iy,iz,:] = y_fw_corrected
+
+                            
                     progress.update()
 
         self.set_config('fit_time', time.time()-t)
@@ -394,14 +393,17 @@ class Evaluation :
             print ' [OK]'
 
         if self.get_config('doSaveCorrectedDWI') :
-            print '\t- dwi_fw_corrected.nii.gz',
-            niiMAP_img = self.RESULTS['DWI_corrected']
-            niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine )
-            niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
-            niiMAP_hdr['cal_min'] = 0
-            niiMAP_hdr['cal_max'] = 1
-            nibabel.save( niiMAP, pjoin(RESULTS_path, 'dwi_fw_corrected.nii.gz') )
-            print ' [OK]'
+            if self.model.name == 'Free-Water' :
+                print '\t- dwi_fw_corrected.nii.gz',
+                niiMAP_img = self.RESULTS['DWI_corrected']
+                niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine )
+                niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
+                niiMAP_hdr['cal_min'] = 0
+                niiMAP_hdr['cal_max'] = 1
+                nibabel.save( niiMAP, pjoin(RESULTS_path, 'dwi_fw_corrected.nii.gz') )
+                print ' [OK]'
+            else :
+                print '          doSaveCorrectedDWI option not supported for %s model' % self.model.name
 
         # voxelwise maps
         for i in xrange( len(self.model.maps_name) ) :
@@ -414,5 +416,5 @@ class Evaluation :
             niiMAP_hdr['cal_max'] = niiMAP_img.max()
             nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_%s.nii.gz' % self.model.maps_name[i] ) )
             print ' [OK]'
-
+            
         print '   [ DONE ]'
