@@ -41,7 +41,8 @@ class Evaluation :
         self.niiMASK_img = None
         self.model       = None # set by "set_model" method
         self.KERNELS     = None # set by "load_kernels" method
-        self.RESULTS     = None # set by "fit" method
+        self.RESULTS     = None # set by "fit" method        
+        self.niiDWI_corrected = None # set by doSaveCorrectedDWI
 
         # store all the parameters of an evaluation with AMICO
         self.CONFIG = {}
@@ -51,8 +52,9 @@ class Evaluation :
 
         self.set_config('peaks_filename', None)
         self.set_config('doNormalizeSignal', True)
+        self.set_config('doKeepb0Intact', False)  # does change b0 images in the predicted signal
         self.set_config('doComputeNRMSE', False)
-
+        self.set_config('doSaveCorrectedDWI', False)
 
     def set_config( self, key, value ) :
         self.CONFIG[ key ] = value
@@ -61,7 +63,8 @@ class Evaluation :
         return self.CONFIG.get( key )
 
 
-    def load_data( self, dwi_filename = 'DWI.nii', scheme_filename = 'DWI.scheme', mask_filename = None, b0_thr = 0 ) :
+    def load_data( self, dwi_filename = 'DWI.nii', 
+                   scheme_filename = 'DWI.scheme', mask_filename = None, b0_thr = 0 ) :
         """Load the diffusion signal and its corresponding acquisition scheme.
 
         Parameters
@@ -255,9 +258,16 @@ class Evaluation :
                 raise ValueError( 'PEAKS geometry does not match with DWI data' )
 
         # setup other output files
-        MAPs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], len(self.model.maps_name)], dtype=np.float32 )
+        MAPs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], 
+                          self.get_config('dim')[2], len(self.model.maps_name)], dtype=np.float32 )
+
         if self.get_config('doComputeNRMSE') :
-            NRMSE = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32 )
+            NRMSE = np.zeros( [self.get_config('dim')[0], 
+                               self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32 )
+            
+        if self.get_config('doSaveCorrectedDWI') :
+            DWI_corrected = np.zeros(self.niiDWI.shape, dtype=np.float32)
+
 
         # fit the model to the data
         # =========================
@@ -273,8 +283,10 @@ class Evaluation :
                     y = self.niiDWI_img[ix,iy,iz,:].astype(np.float64)
                     y[ y < 0 ] = 0 # [NOTE] this should not happen!
 
-                    if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
+                    if self.scheme.b0_count > 0 :
                         b0 = np.mean( y[self.scheme.b0_idx] )
+
+                    if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :                        
                         if b0 > 1e-3 :
                             y = y / b0
 
@@ -292,7 +304,26 @@ class Evaluation :
                         y_est = np.dot( A, x )
                         den = np.sum(y**2)
                         NRMSE[ix,iy,iz] = np.sqrt( np.sum((y-y_est)**2) / den ) if den > 1e-16 else 0
+                                            
+                    if self.get_config('doSaveCorrectedDWI') :
 
+                        if self.model.name == 'Free-Water' :
+                            n_iso = len(self.model.d_isos)
+                            x[-1*n_iso:] = 0
+
+                            #print(y, x, b0, A.shape)
+                            if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
+                                y_fw_corrected = np.dot( A, x ) * b0
+                            else :
+                                y_fw_corrected = np.dot( A, x )
+
+                            if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
+                                # put original b0 data back in. 
+                                y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*b0
+
+                            DWI_corrected[ix,iy,iz,:] = y_fw_corrected
+
+                            
                     progress.update()
 
         self.set_config('fit_time', time.time()-t)
@@ -304,6 +335,8 @@ class Evaluation :
         self.RESULTS['MAPs']  = MAPs
         if self.get_config('doComputeNRMSE') :
             self.RESULTS['NRMSE'] = NRMSE
+        if self.get_config('doSaveCorrectedDWI') :
+            self.RESULTS['DWI_corrected'] = DWI_corrected
 
 
     def save_results( self, path_suffix = None ) :
@@ -359,6 +392,19 @@ class Evaluation :
             nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_nrmse.nii.gz') )
             print ' [OK]'
 
+        if self.get_config('doSaveCorrectedDWI') :
+            if self.model.name == 'Free-Water' :
+                print '\t- dwi_fw_corrected.nii.gz',
+                niiMAP_img = self.RESULTS['DWI_corrected']
+                niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine )
+                niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
+                niiMAP_hdr['cal_min'] = 0
+                niiMAP_hdr['cal_max'] = 1
+                nibabel.save( niiMAP, pjoin(RESULTS_path, 'dwi_fw_corrected.nii.gz') )
+                print ' [OK]'
+            else :
+                print '          doSaveCorrectedDWI option not supported for %s model' % self.model.name
+
         # voxelwise maps
         for i in xrange( len(self.model.maps_name) ) :
             print '\t- FIT_%s.nii.gz' % self.model.maps_name[i],
@@ -370,5 +416,5 @@ class Evaluation :
             niiMAP_hdr['cal_max'] = niiMAP_img.max()
             nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_%s.nii.gz' % self.model.maps_name[i] ) )
             print ' [OK]'
-
+            
         print '   [ DONE ]'
