@@ -176,8 +176,8 @@ class StickZeppelinBall( BaseModel ) :
     def __init__( self ) :
         self.id         = 'StickZeppelinBall'
         self.name       = 'Stick-Zeppelin-Ball'
-        self.maps_name  = [ ]
-        self.maps_descr = [ ]
+        self.maps_name  = [ 'f1', 'f2', 'f3' ]
+        self.maps_descr = [ 'Intra-cellular volume fraction', 'Extra-cellular volume fraction', 'Isotropic volume fraction' ]
 
         self.d_par  = 1.7E-3                    # Parallel diffusivity [mm^2/s]
         self.ICVFs  = np.arange(0.3,0.9,0.1)    # Intra-cellular volume fraction(s) [0..1]
@@ -190,8 +190,13 @@ class StickZeppelinBall( BaseModel ) :
         self.d_ISOs = d_ISOs
 
 
-    def set_solver( self ) :
-        raise NotImplementedError
+    def set_solver( self, lambda1 = 0.0, lambda2 = 4.0 ) :
+        params = {}
+        params['mode']    = 2
+        params['pos']     = True
+        params['lambda1'] = lambda1
+        params['lambda2'] = lambda2
+        return params
 
 
     def generate( self, out_path, aux, idx_in, idx_out ) :
@@ -253,7 +258,35 @@ class StickZeppelinBall( BaseModel ) :
 
 
     def fit( self, y, dirs, KERNELS, params ) :
-        raise NotImplementedError
+        nD = dirs.shape[0]
+        n2 = len(self.ICVFs)
+        n3 = len(self.d_ISOs)
+
+        # prepare DICTIONARY from dirs and lookup tables
+        A = np.zeros( (len(y), nD*(1+n2)+n3 ), dtype=np.float64, order='F' )
+        o = 0
+        for i in xrange(nD) :
+            i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
+            A[:,o:o+1] = KERNELS['wmr'][:,i1,i2,:].T
+            o += 1
+        for i in xrange(nD) :
+            i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
+            A[:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,:].T
+            o += n2
+        A[:,o:] = KERNELS['iso'].T
+
+        # empty dictionary
+        if A.shape[1] == 0 :
+            return [0, 0, 0], None, None, None
+
+        # fit
+        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, **params ).todense().A1
+
+        # return estimates
+        f1 = x[ :nD ].sum()
+        f2 = x[ nD:(nD*(1+n2)) ].sum()
+        f3 = x[ (nD*(1+n2)): ].sum()
+        return [f1, f2, f3], dirs, x, A
 
 
 class CylinderZeppelinBall( BaseModel ) :
@@ -986,11 +1019,11 @@ class FreeWater( BaseModel ) :
 
         if self.type == 'Mouse' :
             self.maps_name  = [ 'FiberVolume', 'FW', 'FW_blood', 'FW_csf' ]
-            self.maps_descr = [ 'fiber volume fraction', 
-                                'Isotropic free-water volume fraction', 
+            self.maps_descr = [ 'fiber volume fraction',
+                                'Isotropic free-water volume fraction',
                                 'FW blood', 'FW csf' ]
-            
-            # for mouse imaging 
+
+            # for mouse imaging
             self.d_par   = 1.0E-3
             self.d_perps = np.linspace(0.15,0.55,10)*1E-3
             self.d_isos  = [1.5e-3, 3e-3]
@@ -998,7 +1031,7 @@ class FreeWater( BaseModel ) :
 
         else :
             self.maps_name  = [ 'FiberVolume', 'FW' ]
-            self.maps_descr = [ 'fiber volume fraction', 
+            self.maps_descr = [ 'fiber volume fraction',
                                 'Isotropic free-water volume fraction']
             self.d_par   = 1.0E-3                       # Parallel diffusivity [mm^2/s]
             self.d_perps = np.linspace(0.1,1.0,10)*1E-3 # Parallel diffusivities [mm^2/s]
@@ -1009,24 +1042,23 @@ class FreeWater( BaseModel ) :
         self.d_par   = d_par
         self.d_perps = d_perps
         self.d_isos  = d_isos
-        self.type    = type 
+        self.type    = type
 
         if self.type == 'Mouse' :
             self.maps_name  = [ 'FiberVolume', 'FW', 'FW_blood', 'FW_csf' ]
-            self.maps_descr = [ 'fiber volume fraction', 
-                                'Isotropic free-water volume fraction', 
-                                'FW blood', 'FW csf' ]                
+            self.maps_descr = [ 'fiber volume fraction',
+                                'Isotropic free-water volume fraction',
+                                'FW blood', 'FW csf' ]
 
         else :
             self.maps_name  = [ 'FiberVolume', 'FW' ]
-            self.maps_descr = [ 'fiber volume fraction', 
+            self.maps_descr = [ 'fiber volume fraction',
                                 'Isotropic free-water volume fraction']
-        
-        print '      %s settings for Freewater elimination... ' % self.type        
+
+        print '      %s settings for Freewater elimination... ' % self.type
         print '             -iso  compartments: ', self.d_isos
         print '             -perp compartments: ', self.d_perps
         print '             -para compartments: ', self.d_par
-
 
 
     def set_solver( self, lambda1 = 0.0, lambda2 = 1e-3 ):
@@ -1108,18 +1140,16 @@ class FreeWater( BaseModel ) :
 
         # fit
         x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, **params ).todense().A1
-        
+
         # return estimates
         v = x[ :n1 ].sum() / ( x.sum() + 1e-16 )
-        
+
         # checking that there is more than 1 isotropic compartment
         if self.type == 'Mouse' :
             v_blood = x[ n1 ] / ( x.sum() + 1e-16 )
             v_csf = x[ n1+1 ] / ( x.sum() + 1e-16 )
-            
+
             return [ v, 1-v, v_blood, v_csf ], dirs, x, A
 
         else :
             return [ v, 1-v ], dirs, x, A
-        
-
