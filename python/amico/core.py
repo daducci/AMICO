@@ -345,6 +345,8 @@ class Evaluation :
         niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
         niiMAP_hdr['cal_min'] = -1
         niiMAP_hdr['cal_max'] = 1
+        niiMAP_hdr['scl_slope'] = 1
+        niiMAP_hdr['scl_inter'] = 0
         nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_dir.nii.gz') )
         print ' [OK]'
 
