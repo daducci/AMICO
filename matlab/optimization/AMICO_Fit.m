@@ -82,6 +82,8 @@ function AMICO_Fit()
     niiMAP.hdr.dime.glmax = 1;
     niiMAP.hdr.dime.calmin = niiMAP.hdr.dime.glmin;
     niiMAP.hdr.dime.calmax = niiMAP.hdr.dime.glmax;
+    niiMAP.hdr.dime.scl_slope = 1;
+    niiMAP.hdr.dime.scl_inter = 0;
 
     niiMAP.img = DIRs;
     niiMAP.hdr.dime.dim(5) = size(DIRs,4);
