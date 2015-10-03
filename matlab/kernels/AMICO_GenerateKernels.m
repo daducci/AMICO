@@ -14,7 +14,7 @@ function AMICO_GenerateKernels( doRegenerate, lmax )
 	if nargin < 2, lmax = 12; end
 	global CONFIG AMICO_data_path
 	
-	fprintf( '\n-> Generating kernels for protocol "%s":\n', CONFIG.protocol );
+	fprintf( '\n-> Generating kernels with model "%s" for protocol "%s":\n', CONFIG.model.name, CONFIG.protocol );
 
 	% check if kernels were already generated
 	ATOMS_path = fullfile(AMICO_data_path,CONFIG.protocol,'kernels',CONFIG.model.id);
@@ -40,14 +40,10 @@ function AMICO_GenerateKernels( doRegenerate, lmax )
 
 	% Create folder for common atoms
 	% ==============================
-	fprintf( '\t* Creating high-resolution scheme:\n' );
-
 	[~,~,~] = mkdir( ATOMS_path );
 	delete( fullfile(ATOMS_path,'*') );
 	AMICO_CreateHighResolutionScheme( fullfile(ATOMS_path,'protocol_HR.scheme') );
     schemeHR   = AMICO_LoadScheme( fullfile(ATOMS_path,'protocol_HR.scheme'), CONFIG.b0_thr );
-
-	fprintf( '\t  [ DONE ]\n' );
 
 
 	% Precompute aux data structures
@@ -66,15 +62,11 @@ function AMICO_GenerateKernels( doRegenerate, lmax )
     
 	% Dispatch to the right handler for each model
 	% ============================================
-    if ~isempty(CONFIG.model)
-        TIME = tic();
-        fprintf( '\t* Simulating kernels with "%s" model:\n', CONFIG.model.name );
-        CONFIG.model.GenerateKernels( ATOMS_path, schemeHR, AUX, idx_IN, idx_OUT );
-        fprintf( '\t  [ %.1f seconds ]\n', toc(TIME) );
-    else
-		error( '[AMICO_GenerateKernels] Model not set' )
-	end
-
-
-	fprintf( '   [ DONE ]\n' );
+    if isempty(CONFIG.model)
+        error( '[AMICO_GenerateKernels] Model not set' )
+    end
+    
+    TIME = tic();
+    CONFIG.model.GenerateKernels( ATOMS_path, schemeHR, AUX, idx_IN, idx_OUT );
+    fprintf( '   [ %.1f seconds ]\n', toc(TIME) );
 end
