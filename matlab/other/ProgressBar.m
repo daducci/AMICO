@@ -14,10 +14,12 @@ methods
     % ===========================
 	function obj = ProgressBar( N )
         obj.width = 25;
-        obj.back  = '';
-        obj.msg   = '';
         obj.i     = 1;
         obj.N     = N;
+        % display empty bar
+        obj.msg = [ '   [' repmat(' ',1,obj.width) '] ' ];
+        fprintf([obj.back, obj.msg]);
+        obj.back = repmat('\b',1,length(obj.msg));
     end
 
 
@@ -34,9 +36,6 @@ methods
             obj.msg = [ '   [' repmat('=',1,p) repmat(' ',1,obj.width-p) '] ' ];
             fprintf([obj.back, obj.msg]);
             obj.back = repmat('\b',1,length(obj.msg));
-        end
-        if ( obj.i==obj.N )
-            fprintf('');
         end
         obj.i = obj.i + 1;
     end
