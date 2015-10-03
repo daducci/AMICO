@@ -85,7 +85,7 @@ methods
 
         % resample and save
         lm = AMICO_RotateKernel( signal, AUX, idx_IN, idx_OUT, true );
-        save( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), '-v6', 'lm' )
+        save( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), '-v6', 'lm' )
         progress.update();
         
         progress.close();
