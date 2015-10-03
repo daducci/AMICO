@@ -52,14 +52,11 @@ methods
         end
 
         filenameHr = [tempname '.Bfloat'];
+        progress = ProgressBar( numel(obj.Rs) + 2 );
 
         % IC compartment
         % ==============
-        idx = 1;
         for R = obj.Rs
-            TIME = tic();
-            fprintf( '\t\t- A_%03d... ', idx );
-
             % generate
             if exist( filenameHr, 'file' ), delete( filenameHr ); end
             CMD = sprintf( '%s/datasynth -synthmodel compartment 1 SPHEREGPD %E %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null', CAMINO_path, obj.dIC*1e-6, R*1e-6, schemeHrFilename, filenameHr );
@@ -75,18 +72,13 @@ methods
             fclose(fid);
             delete( filenameHr );
             lm = AMICO_RotateKernel( signal, AUX, idx_IN, idx_OUT, true );
-            save( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), '-v6', 'lm' )
-
-            idx = idx + 1;
-            fprintf( '[%.1f seconds]\n', toc(TIME) );
+            save( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), '-v6', 'lm' )
+            progress.update();
         end
 
 
         % EES compartment
         % ===============
-        TIME = tic();
-        fprintf( '\t\t- A_%03d... ', idx );
-
         % generate
         if exist( filenameHr, 'file' ), delete( filenameHr ); end
         CMD = sprintf( '%s/datasynth -synthmodel compartment 1 BALL %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null', CAMINO_path, obj.dEES*1e-6, schemeHrFilename, filenameHr );
@@ -102,17 +94,12 @@ methods
         fclose(fid);
         delete( filenameHr );
         lm = AMICO_RotateKernel( signal, AUX, idx_IN, idx_OUT, true );
-        save( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), '-v6', 'lm' )
-
-        idx = idx + 1;
-        fprintf( '[%.1f seconds]\n', toc(TIME) );
+        save( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), '-v6', 'lm' )
+        progress.update();
 
     
         % VASC compartment
         % ================
-        TIME = tic();
-        fprintf( '\t\t- A_%03d... ', idx );
-
         % generate
         if exist( filenameHr, 'file' ), delete( filenameHr ); end
         CMD = sprintf( '%s/datasynth -synthmodel compartment 1 ASTROSTICKS %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null', CAMINO_path, obj.P*1e-6, schemeHrFilename, filenameHr );
@@ -128,10 +115,10 @@ methods
         fclose(fid);
         delete( filenameHr );
         lm = AMICO_RotateKernel( signal, AUX, idx_IN, idx_OUT, true );
-        save( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), '-v6', 'lm' )
+        save( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), '-v6', 'lm' )
+        progress.update();
 
-        idx = idx + 1;
-        fprintf( '[%.1f seconds]\n', toc(TIME) );
+        progress.close();
 end
     
     
@@ -158,22 +145,17 @@ end
 
         KERNELS.Avasc     = zeros( [KERNELS.nS 1], 'single' );
         KERNELS.Avasc_P   = NaN;
+        
+        progress = ProgressBar( KERNELS.nA );
 
 
         % IC compartment
         % ==============
-        idx = 1;
         for i = 1:nIC
-            TIME = tic();
-            fprintf( '\t- A_%03d...  ', idx );
-
-            load( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), 'lm' );
-
+            load( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), 'lm' );
             KERNELS.Aic(:,i) = AMICO_ResampleKernel( lm, idx_OUT, Ylm_OUT, true );
             KERNELS.Aic_R(i) = obj.Rs(i);
-            idx = idx + 1;
-
-            fprintf( '[%.1f seconds]\n', toc(TIME) );
+            progress.update();
         end
         
         % Precompute norms of coupled atoms (for the l1 minimization)
@@ -181,34 +163,21 @@ end
         KERNELS.Aic_norm = repmat( 1./sqrt( sum(A.^2) ), [size(A,1),1] );
         clear A
 
-
         % EES compartment
         % ===============
-        TIME = tic();
-        fprintf( '\t- A_%03d...  ', idx );
-
-        load( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), 'lm' );
-
+        load( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), 'lm' );
         KERNELS.Aees   = AMICO_ResampleKernel( lm, idx_OUT, Ylm_OUT, true );
         KERNELS.Aees_d = obj.dEES;
-        idx = idx + 1;
-
-        fprintf( '[%.1f seconds]\n', toc(TIME) );
-
+        progress.update();
 
         % VASC compartment
         % ================
-        TIME = tic();
-        fprintf( '\t- A_%03d...  ', idx );
-
-        load( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), 'lm' );
-
+        load( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), 'lm' );
         KERNELS.Avasc   = AMICO_ResampleKernel( lm, idx_OUT, Ylm_OUT, true );
         KERNELS.Avasc_P = obj.P;
-        idx = idx + 1;
+        progress.update();
 
-        fprintf( '[%.1f seconds]\n', toc(TIME) );
-
+        progress.close();
     end
 
 

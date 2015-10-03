@@ -51,14 +51,11 @@ methods
         end
 
         filenameHr = [tempname '.Bfloat'];
+        progress = ProgressBar( numel(obj.IC_Rs) + numel(obj.IC_VFs) + 1 );
 
         % Restricted
         % ==========
-        idx = 1;
         for R = obj.IC_Rs
-            TIME = tic();
-            fprintf( '\t\t- A_%03d... ', idx );
-
             % generate
             if exist( filenameHr, 'file' ), delete( filenameHr ); end
             CMD = sprintf( '%s/datasynth -synthmodel compartment 1 CYLINDERGPD %E 0 0 %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null', CAMINO_path, obj.dPar*1e-6, R*1e-6, schemeHrFilename, filenameHr );
@@ -74,19 +71,14 @@ methods
             fclose(fid);
             delete( filenameHr );
             lm = AMICO_RotateKernel( signal, AUX, idx_IN, idx_OUT, false );
-            save( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), '-v6', 'lm' )
-
-            idx = idx + 1;
-            fprintf( '[%.1f seconds]\n', toc(TIME) );
+            save( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), '-v6', 'lm' )
+            progress.update();
         end
 
 
         % Hindered
         % ========
         for ICVF = obj.IC_VFs
-            TIME = tic();
-            fprintf( '\t\t- A_%03d... ', idx );
-
             % generate
             d_perp = obj.dPar * ( 1.0 - ICVF );
             if exist( filenameHr, 'file' ), delete( filenameHr ); end
@@ -103,18 +95,14 @@ methods
             fclose(fid);
             delete( filenameHr );
             lm = AMICO_RotateKernel( signal, AUX, idx_IN, idx_OUT, false );
-            save( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), '-v6', 'lm' )
+            save( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), '-v6', 'lm' )
 
-            idx = idx + 1;
-            fprintf( '[%.1f seconds]\n', toc(TIME) );
+            progress.update();
         end
 
 
         % Isotropic
         % =========
-        TIME = tic();
-        fprintf( '\t\t- A_%03d... ', idx );
-
         % generate
         if exist( filenameHr, 'file' ), delete( filenameHr ); end
         CMD = sprintf( '%s/datasynth -synthmodel compartment 1 BALL %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null', CAMINO_path, obj.dIso*1e-6, schemeHrFilename, filenameHr );
@@ -130,10 +118,10 @@ methods
         fclose(fid);
         delete( filenameHr );
         lm = AMICO_RotateKernel( signal, AUX, idx_IN, idx_OUT, true );
-        save( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), '-v6', 'lm' )
-
-        idx = idx + 1;
-        fprintf( '[%.1f seconds]\n', toc(TIME) );
+        save( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), '-v6', 'lm' )
+        progress.update();
+        
+        progress.close();
     end
 
 
@@ -163,54 +151,35 @@ methods
 
         KERNELS.Aiso     = zeros( [KERNELS.nS 1], 'single' );
         KERNELS.Aiso_d   = NaN;
-
+        
+        progress = ProgressBar( KERNELS.nA );
 
         % Restricted
         % ==========
-        idx = 1;
         for i = 1:nIC
-            TIME = tic();
-            fprintf( '\t- A_%03d...  ', idx );
-
-            load( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), 'lm' );
-
+            load( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), 'lm' );
             KERNELS.Aic(:,i,:,:) = AMICO_ResampleKernel( lm, idx_OUT, Ylm_OUT, false );
             KERNELS.Aic_R(i)     = obj.IC_Rs(i);
-            idx = idx + 1;
-
-            fprintf( '[%.1f seconds]\n', toc(TIME) );
+            progress.update();
         end
-
 
         % Hindered
         % ========
         for i = 1:nEC
-            TIME = tic();
-            fprintf( '\t- A_%03d...  ', idx );
-
-            load( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), 'lm' );
-
+            load( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), 'lm' );
             KERNELS.Aec(:,i,:,:) = AMICO_ResampleKernel( lm, idx_OUT, Ylm_OUT, false );
             KERNELS.Aec_icvf(i)  = obj.IC_VFs(i);
-            idx = idx + 1;
-
-            fprintf( '[%.1f seconds]\n', toc(TIME) );
+            progress.update();
         end
-
 
         % Isotropic
         % =========
-        TIME = tic();
-        fprintf( '\t- A_%03d...  ', idx );
-
-        load( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), 'lm' );
-
+        load( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), 'lm' );
         KERNELS.Aiso   = AMICO_ResampleKernel( lm, idx_OUT, Ylm_OUT, true );
         KERNELS.Aiso_d = obj.dIso;
-        idx = idx + 1;
+        progress.update();
 
-        fprintf( '[%.1f seconds]\n', toc(TIME) );
-
+        progress.close();
     end
 
 

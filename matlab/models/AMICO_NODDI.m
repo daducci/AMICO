@@ -55,18 +55,15 @@ methods
         dPar = CONFIG.model.dPar * 1E-6;
         dIso = CONFIG.model.dIso * 1E-6;
 
+        progress = ProgressBar( numel(obj.IC_VFs) * numel(obj.IC_ODs) + 1 );
 
         % Coupled compartments
         % ====================
-        idx = 1;
         for ii = 1:numel(obj.IC_ODs)
             kappa = 1 ./ tan(obj.IC_ODs(ii)*pi/2);
             signal_ic = SynthMeasWatsonSHCylNeuman_PGSE( [dPar 0 kappa], protocolHR.grad_dirs, protocolHR.G', protocolHR.delta', protocolHR.smalldel', [0;0;1], 0 );
 
             for jj = 1:numel(obj.IC_VFs)
-                TIME = tic();
-                fprintf( '\t\t- A_%03d... ', idx );
-
                 % generate
                 v_ic = obj.IC_VFs(jj);
                 dPerp = dPar * (1 - v_ic);
@@ -75,29 +72,23 @@ methods
 
                 % rotate and save
                 lm = AMICO_RotateKernel( signal, AUX, idx_IN, idx_OUT, false );
-                save( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), '-v6', 'lm' )
-
-                idx = idx+1;
-                fprintf( '[%.1f seconds]\n', toc(TIME) );
+                save( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), '-v6', 'lm' )
+                progress.update();
             end
         end
 
 
         % Isotropic
         % =========
-        TIME = tic();
-        fprintf( '\t\t- A_%03d... ', idx );
-
         % generate
         signal = SynthMeasIsoGPD( dIso, protocolHR );
 
         % resample and save
         lm = AMICO_RotateKernel( signal, AUX, idx_IN, idx_OUT, true );
         save( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), '-v6', 'lm' )
-
-        idx = idx + 1;
-        fprintf( '[%.1f seconds]\n', toc(TIME) );
-
+        progress.update();
+        
+        progress.close();
     end
 
 
@@ -117,23 +108,18 @@ methods
         KERNELS.A_icvf  = zeros( 1, n, 'single' );;
         KERNELS.Aiso    = zeros( [KERNELS.nS 1], 'single' );
         KERNELS.Aiso_d  = NaN;
-
+        
+        progress = ProgressBar( n+1 );
 
         % Coupled atoms
         % =============
-        idx = 1;
         for ii = 1:numel(obj.IC_ODs)
         for jj = 1:numel(obj.IC_VFs)
-            TIME = tic();
-            fprintf( '\t- A_%03d...  ', idx );
-
-            load( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), 'lm' );
-            KERNELS.A(:,idx,:,:) = AMICO_ResampleKernel( lm, idx_OUT, Ylm_OUT, false );
-            KERNELS.A_kappa(idx) = 1 ./ tan(obj.IC_ODs(ii)*pi/2);
-            KERNELS.A_icvf(idx)  = obj.IC_VFs(jj);
-            idx = idx + 1;
-
-            fprintf( '[%.1f seconds]\n', toc(TIME) );
+            load( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), 'lm' );
+            KERNELS.A(:,progress.i,:,:) = AMICO_ResampleKernel( lm, idx_OUT, Ylm_OUT, false );
+            KERNELS.A_kappa(progress.i) = 1 ./ tan(obj.IC_ODs(ii)*pi/2);
+            KERNELS.A_icvf(progress.i)  = obj.IC_VFs(jj);
+            progress.update();
         end
         end
 
@@ -141,18 +127,14 @@ methods
         A = double( KERNELS.A(CONFIG.scheme.dwi_idx,:,1,1) );
         KERNELS.A_norm = repmat( 1./sqrt( sum(A.^2) ), [size(A,1),1] );
 
-
         % Isotropic
         % =========
-        TIME = tic();
-        fprintf( '\t- A_%03d...  ', idx );
-
-        load( fullfile( ATOMS_path, sprintf('A_%03d.mat',idx) ), 'lm' );
+        load( fullfile( ATOMS_path, sprintf('A_%03d.mat',progress.i) ), 'lm' );
         KERNELS.Aiso   = AMICO_ResampleKernel( lm, idx_OUT, Ylm_OUT, true );
         KERNELS.Aiso_d = obj.dIso;
-        idx = idx + 1;
-
-        fprintf( '[%.1f seconds]\n', toc(TIME) );
+        progress.update();
+        
+        progress.close();
     end
 
 
