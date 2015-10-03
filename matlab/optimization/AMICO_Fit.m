@@ -25,33 +25,38 @@ function AMICO_Fit()
         for ix = 1:niiSIGNAL.hdr.dime.dim(2)
             if niiMASK.img(ix,iy,iz)==0, continue, end
             progress.update();
-
-            % Read the signal
-            b0 = mean( squeeze( niiSIGNAL.img(ix,iy,iz,CONFIG.scheme.b0_idx) ) );
-            if ( b0 < 1e-3 ), continue, end
-            y = double( squeeze( niiSIGNAL.img(ix,iy,iz,:) ) ./ ( b0 + eps ) );
-            y( y < 0 ) = 0; % [NOTE] this should not happen!
             
-            % Find the MAIN DIFFUSION DIRECTIONS
-            if any(strcmp(properties(CONFIG.model), 'max_dirs'))==false || CONFIG.model.max_dirs>0
-                % using DTI
-                [ ~, ~, V ] = AMICO_FitTensor( y, bMATRIX );
-                vox_DIRs = V(:,1);
-                if ( vox_DIRs(2)<0 ), vox_DIRs = -vox_DIRs; end
-                [ i1, i2 ] = AMICO_Dir2idx( vox_DIRs );
-                DIRs(ix,iy,iz,:) = vox_DIRs;
-            else
-                % not needed by the model
-                DIRs(ix,iy,iz,:) = 0;
-                i1 = 1;
-                i2 = 1;
+            try
+                % Read the signal
+                b0 = mean( squeeze( niiSIGNAL.img(ix,iy,iz,CONFIG.scheme.b0_idx) ) );
+                if ( b0 < 1e-3 ), continue, end
+                y = double( squeeze( niiSIGNAL.img(ix,iy,iz,:) ) ./ ( b0 + eps ) );
+                y( y < 0 ) = 0; % [NOTE] this should not happen!
+
+                % Find the MAIN DIFFUSION DIRECTIONS
+                if any(strcmp(properties(CONFIG.model), 'max_dirs'))==false || CONFIG.model.max_dirs>0
+                    % using DTI
+                    [ ~, ~, V ] = AMICO_FitTensor( y, bMATRIX );
+                    vox_DIRs = V(:,1);
+                    if ( vox_DIRs(2)<0 ), vox_DIRs = -vox_DIRs; end
+                    [ i1, i2 ] = AMICO_Dir2idx( vox_DIRs );
+                    DIRs(ix,iy,iz,:) = vox_DIRs;
+                else
+                    % not needed by the model
+                    DIRs(ix,iy,iz,:) = 0;
+                    i1 = 1;
+                    i2 = 1;
+                end
+
+                % Dispatch to the right handler for each model
+                vox_MAPs = CONFIG.model.Fit( y, i1, i2 );
+
+                % Store results
+                MAPs(ix,iy,iz,:) = vox_MAPs;
+            catch exception
+                % set output maps to NaN in case of problems
+                MAPs(ix,iy,iz,:) = NaN;
             end
-
-            % Dispatch to the right handler for each model
-            vox_MAPs = CONFIG.model.Fit( y, i1, i2 );
-
-            % Store results
-            MAPs(ix,iy,iz,:) = vox_MAPs;
         end
         end
         end
