@@ -181,13 +181,13 @@ class StickZeppelinBall( BaseModel ) :
 
         self.d_par  = 1.7E-3                    # Parallel diffusivity [mm^2/s]
         self.ICVFs  = np.arange(0.3,0.9,0.1)    # Intra-cellular volume fraction(s) [0..1]
-        self.d_ISOs = [ 3.0E-3 ]                # Isotropic diffusivitie(s) [mm^2/s]
+        self.d_ISOs = np.array([ 3.0E-3 ])      # Isotropic diffusivitie(s) [mm^2/s]
 
 
     def set( self, d_par, ICVFs, d_ISOs ) :
         self.d_par  = d_par
-        self.ICVFs  = ICVFs
-        self.d_ISOs = d_ISOs
+        self.ICVFs  = np.array( ICVFs )
+        self.d_ISOs = np.array( d_ISOs )
 
 
     def set_solver( self ) :
@@ -288,14 +288,14 @@ class CylinderZeppelinBall( BaseModel ) :
         self.d_par  = 0.6E-3                                                         # Parallel diffusivity [mm^2/s]
         self.Rs     = np.concatenate( ([0.01],np.linspace(0.5,8.0,20.0)) ) * 1E-6    # Radii of the axons [meters]
         self.ICVFs  = np.arange(0.3,0.9,0.1)                                         # Intra-cellular volume fraction(s) [0..1]
-        self.d_ISOs = [ 2.0E-3 ]                                                     # Isotropic diffusivitie(s) [mm^2/s]
+        self.d_ISOs = np.array( [ 2.0E-3 ] )                                         # Isotropic diffusivitie(s) [mm^2/s]
 
 
     def set( self, d_par, Rs, ICVFs, d_ISOs ) :
         self.d_par  = d_par
-        self.Rs     = Rs
-        self.ICVFs  = ICVFs
-        self.d_ISOs = d_ISOs
+        self.Rs     = np.array(Rs)
+        self.ICVFs  = np.array(ICVFs)
+        self.d_ISOs = np.array(d_ISOs)
 
 
     def set_solver( self, lambda1 = 0.0, lambda2 = 4.0 ) :
@@ -458,8 +458,8 @@ class NODDI( BaseModel ) :
     def set( self, dPar, dIso, IC_VFs, IC_ODs, isExvivo ):
         self.dPar      = dPar
         self.dIso      = dIso
-        self.IC_VFs    = IC_VFs
-        self.IC_ODs    = IC_ODs
+        self.IC_VFs    = np.array( IC_VFs )
+        self.IC_ODs    = np.array( IC_ODs )
         self.isExvivo  = isExvivo
 
 
@@ -986,11 +986,11 @@ class FreeWater( BaseModel ) :
 
         if self.type == 'Mouse' :
             self.maps_name  = [ 'FiberVolume', 'FW', 'FW_blood', 'FW_csf' ]
-            self.maps_descr = [ 'fiber volume fraction', 
-                                'Isotropic free-water volume fraction', 
+            self.maps_descr = [ 'fiber volume fraction',
+                                'Isotropic free-water volume fraction',
                                 'FW blood', 'FW csf' ]
-            
-            # for mouse imaging 
+
+            # for mouse imaging
             self.d_par   = 1.0E-3
             self.d_perps = np.linspace(0.15,0.55,10)*1E-3
             self.d_isos  = [1.5e-3, 3e-3]
@@ -998,7 +998,7 @@ class FreeWater( BaseModel ) :
 
         else :
             self.maps_name  = [ 'FiberVolume', 'FW' ]
-            self.maps_descr = [ 'fiber volume fraction', 
+            self.maps_descr = [ 'fiber volume fraction',
                                 'Isotropic free-water volume fraction']
             self.d_par   = 1.0E-3                       # Parallel diffusivity [mm^2/s]
             self.d_perps = np.linspace(0.1,1.0,10)*1E-3 # Parallel diffusivities [mm^2/s]
@@ -1009,20 +1009,20 @@ class FreeWater( BaseModel ) :
         self.d_par   = d_par
         self.d_perps = d_perps
         self.d_isos  = d_isos
-        self.type    = type 
+        self.type    = type
 
         if self.type == 'Mouse' :
             self.maps_name  = [ 'FiberVolume', 'FW', 'FW_blood', 'FW_csf' ]
-            self.maps_descr = [ 'fiber volume fraction', 
-                                'Isotropic free-water volume fraction', 
-                                'FW blood', 'FW csf' ]                
+            self.maps_descr = [ 'fiber volume fraction',
+                                'Isotropic free-water volume fraction',
+                                'FW blood', 'FW csf' ]
 
         else :
             self.maps_name  = [ 'FiberVolume', 'FW' ]
-            self.maps_descr = [ 'fiber volume fraction', 
+            self.maps_descr = [ 'fiber volume fraction',
                                 'Isotropic free-water volume fraction']
-        
-        print '      %s settings for Freewater elimination... ' % self.type        
+
+        print '      %s settings for Freewater elimination... ' % self.type
         print '             -iso  compartments: ', self.d_isos
         print '             -perp compartments: ', self.d_perps
         print '             -para compartments: ', self.d_par
@@ -1108,18 +1108,16 @@ class FreeWater( BaseModel ) :
 
         # fit
         x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, **params ).todense().A1
-        
+
         # return estimates
         v = x[ :n1 ].sum() / ( x.sum() + 1e-16 )
-        
+
         # checking that there is more than 1 isotropic compartment
         if self.type == 'Mouse' :
             v_blood = x[ n1 ] / ( x.sum() + 1e-16 )
             v_csf = x[ n1+1 ] / ( x.sum() + 1e-16 )
-            
+
             return [ v, 1-v, v_blood, v_csf ], dirs, x, A
 
         else :
             return [ v, 1-v ], dirs, x, A
-        
-
