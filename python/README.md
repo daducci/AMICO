@@ -25,7 +25,7 @@ Please follow the corresponding [documentation](http://cmic.cs.ucl.ac.uk/camino/
 
 ### NODDI toolbox
 
-> This version of AMICO **doesn not require** the [NODDI MATLAB toolbox](http://mig.cs.ucl.ac.uk/index.php?n=Download.NODDI) to be present on your system; all the necessary MATLAB functions for generating the response functions of the NODDI model have in fact been ported to Python.
+> This version of AMICO **does not require** the [NODDI MATLAB toolbox](http://mig.cs.ucl.ac.uk/index.php?n=Download.NODDI) to be present on your system; all the necessary MATLAB functions for generating the response functions of the NODDI model have in fact been ported to Python.
 
 
 ## Install AMICO
@@ -42,7 +42,7 @@ AMICO is now available in your Python interpreter and can be imported as usual:
 import amico
 ```
 
-## Uninstall AMICO
+### Uninstall AMICO
 
 Open the system shell and run:
 
