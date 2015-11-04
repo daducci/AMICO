@@ -21,7 +21,7 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, bStep = 1.0
 
     if schemeFilename is None:
         schemeFilename = os.path.splitext(bvalsFilename)[0]+".scheme"
-        
+
     # load files and check size
     bvecs = np.loadtxt( bvecsFilename )
     bvals = np.loadtxt( bvalsFilename )
@@ -40,15 +40,14 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, bStep = 1.0
             diff = min(abs(bvals[i] - bStep))
             ind = np.argmin(abs(bvals[i] - bStep))
 
-            # warn if b > 99 is set to 0, possible error 
+            # warn if b > 99 is set to 0, possible error
             if (bStep[ind] == 0.0 and diff > 100) or (bStep[ind] > 0.0 and diff > bStep[ind] / 20.0):
                 # For non-zero shells, warn if actual b-value is off by more than 5%. For zero shells, warn above 50. Assuming s / mm^2
-	        print "   Warning: measurement %d has b-value %d, being forced to %d\n'" % i, bvals[i], bStep[ind]
+                print "   Warning: measurement %d has b-value %d, being forced to %d\n'" % i, bvals[i], bStep[ind]
 
             bvals[i] = bStep[ind]
 
     # write corresponding scheme file
-    np.savetxt( schemeFilename, np.c_[bvecs.T, bvals], fmt="%.06f", delimiter="\t", header="VERSION: BVECTOR")
+    np.savetxt( schemeFilename, np.c_[bvecs.T, bvals], fmt="%.06f", delimiter="\t", header="VERSION: BVECTOR", comments='' )
     print "-> Writing scheme file to [ %s ]" % schemeFilename
     return schemeFilename
-
