@@ -33,7 +33,7 @@ Please follow the corresponding [documentation](http://cmic.cs.ucl.ac.uk/camino/
 Open the system shell, go to the folder containing this file and run:
 
 ```bash
-python setup.py install
+pip install .
 ```
 
 AMICO is now available in your Python interpreter and can be imported as usual:
