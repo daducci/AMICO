@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(
     name='amico',
@@ -7,5 +7,5 @@ setup(
     author='Alessandro Daducci',
     author_email='alessandro.daducci@gmail.com',
     url='https://github.com/daducci/AMICO',
-    packages=['amico']
+    packages=find_packages()
 )

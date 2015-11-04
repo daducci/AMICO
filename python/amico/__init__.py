@@ -1,5 +1,10 @@
 from core import Evaluation
-__all__ = ['core','lut','scheme','models','progressbar']
+import core
+import scheme
+import lut
+import models
+import progressbar
+import util
 
 from pkg_resources import get_distribution
 __version__ = get_distribution('amico').version
