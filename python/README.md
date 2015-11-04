@@ -41,3 +41,11 @@ AMICO is now available in your Python interpreter and can be imported as usual:
 ```python
 import amico
 ```
+
+## Uninstall AMICO
+
+Open the system shell and run:
+
+```bash
+pip uninstall amico
+```
