@@ -1,12 +1,12 @@
-# Tutorial for python-AMICO/NODDI
+# Fitting the NODDI model
 
-Here you can learn how to run python-AMICO/NODII for sampel dateset.
+Here you can learn how to the NODDI model to a sample dataset.
 
 ## 1. Prepare dataset
 
 The sample dataset is available from [NODDI official website](http://mig.cs.ucl.ac.uk/index.php?n=Tutorial.NODDImatlab).
 
-After unzip, make the directory strucutre as followings:
+After unzip, make the directory structure as follows:
 
 ```
 └── Study01
@@ -23,12 +23,12 @@ After unzip, make the directory strucutre as followings:
 
 ## 2. DWI preprocess
 
-Usually you need some preprocesses for DWI images (e.g., eddy current correction, head movement correction, and skull stripping).
-You need do these preprocesses before performing python-AMICO/NODDI.
+Usually DWI images need some preprocessing (e.g., eddy current correction, head movement correction, and skull stripping).
+You need do these preprocessing before fitting the model.
 
-Assuming these preprocesses have been done for the sample dataset, we skip this step here.
+Assuming these preprocessing has been already done for this sample dataset, we skip this step here.
 
-## 3. Performe python-AMICO/NODDI
+## 3. Fitting the NODDI model
 
 Now, you are in the directory where `Study01` exists.
 
@@ -37,28 +37,43 @@ $ ls
 Study01
 ```
 
-Then, run python (of course, ipython is your best friend),
+Run the python interpreter (of course, ipython is your best friend),
 
 ```bash
 $ python
 ```
 
-Then, in python, you can perform python-AMICO/NODDI:
+Then, in python, you can fit the NODDI model. First, import AMICO:
 
 ```python
 >>> import amico
->>>
->>> # convert bval/bvec to scheme
+```
+
+If you don't have a scheme file, generate it from bval/bvec files:
+
+```python
 >>> amico.util.fsl2scheme("Study01/Subject01/NODDI_protocol.bval", "Study01/Subject01/NODDI_protocol.bvec")
+
 -> Writing scheme file to [ Study01/Subject01/NODDI_protocol.scheme ]
 'Study01/Subject01/NODDI_protocol.scheme'
+```
 
+Next, setup/initialize the AMICO framework. This generates a precomputed rotation matrix in `~/.dypy`.
+Note that this setup/initialize is necessary only once.
+
+```python
 >>> amico.core.setup()
->>>
->>> # set the study and subject directory
+```
+
+Tell the study and subject directory:
+
+```python
 >>> ae = amico.Evaluation("Study01", "Subject01")
->>>
->>> # load data
+```
+
+Load the data:
+
+```python
 >>> ae.load_data(dwi_filename = "NODDI_DWI.img", scheme_filename = "NODDI_protocol.scheme", mask_filename = "roi_mask.img", b0_thr = 0)
 
 -> Loading data:
@@ -73,29 +88,45 @@ Then, in python, you can perform python-AMICO/NODDI:
 		- pixdim = 1.875 x 1.875 x 2.500
 		- voxels = 5478
    [ 0.2 seconds ]
+```
 
->>> # set model for NODDI
+Set model for NODDI:
+
+```python
 >>> ae.set_model("NODDI")
->>>
->>> # generate kernels. You need this only once per study (i.e., same sheme file generates the same kernels).
+```
+
+Generate kernels. You need this only once per study (i.e., the same scheme files result in the same kernels).
+Note that `generate_kernels()` do nothing if the kernels already exists.
+
+```python
 >>> ae.generate_kernels(lmax = 12)
 
 -> Creating LUT for "NODDI" model:
-   [ 149.3 seconds ]                                           @
+   [ 149.3 seconds ]
+```
 
->>> # load kernels
+Load the kernels:
+
+```python
 >>> ae.load_kernels()
 
 -> Resampling LUT for subject "Subject01":
    [ 52.2 seconds ]
+```
 
->>> # fit the model
+Fit the model. It takes a little time depending on the number of voxels (but much much faster than the original NODDI).
+
+```python
 >>> ae.fit()
 
 -> Fitting "NODDI" model to 5478 voxels:
    [ 00h 00m 09s ]
+```
 
->>> # save the results
+Finally, save the results as NIfTI images:
+
+```python
 >>> ae.save_results()
 
 -> Saving output to "AMICO/NODDI/*":
@@ -111,7 +142,7 @@ Well done!!
 
 ## 4. View results
 
-Now you find ODI, , in the subject's subdirectory `AMICO/NODDI`.
+You will find the estimated parameters of the NODDI model, i.e. ODI, ICVF and ISOVF, in the subject's subdirectory `AMICO/NODDI`.
 
 
 ```bash
@@ -120,5 +151,5 @@ FIT_ICVF.nii.gz		FIT_OD.nii.gz		config.pickle
 FIT_ISOVF.nii.gz	FIT_dir.nii.gz
 ```
 
-Open them with your favorite viewer. Congraturations!!
+Open them with your favorite viewer. Congratulations!!
 
