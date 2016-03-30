@@ -50,7 +50,7 @@ In the Python shell, import the AMICO library and setup/initialize the framework
 >>> amico.core.setup()
 ```
 
-This step will precompute all the necessary rotation matrices and store them in `~/.dypy`. Note that this setup/initialization step is necessary only once.
+This step will precompute all the necessary rotation matrices and store them in `~/.dipy`. Note that this setup/initialization step is necessary only once.
 
 
 ### Load the data
