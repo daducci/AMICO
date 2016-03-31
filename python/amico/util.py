@@ -2,7 +2,7 @@ import numpy as np
 import os.path
 
 def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, bStep = 1.0):
-    """Create a scheme file from bavals+bvecs and write to file.
+    """Create a scheme file from bvals+bvecs and write to file.
 
     If required, b-values can be rounded up to a specific threshold (bStep parameter).
 
@@ -11,7 +11,7 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, bStep = 1.0
     :param str bvalsFilename: The path to bval file.
     :param str bvecsFilename: The path to bvec file.
     :param str schemeFilename: The path to output scheme file (optional).
-    :param float or list or np.bStep: If bStep is a scalar, round b-values to nearest integer multiple of bStep. If bStep is an list, it is treated as an array of shells in increasing order. B-values will be forced to the nearest shell value.
+    :param float or list or np.bStep: If bStep is a scalar, round b-values to nearest integer multiple of bStep. If bStep is a list, it is treated as an array of shells in increasing order. B-values will be forced to the nearest shell value.
     """
 
     if not os.path.exists(bvalsFilename):
