@@ -1,3 +1,4 @@
+from os import fstat
 from sys import stdout
 from math import ceil
 
@@ -24,8 +25,9 @@ class ProgressBar :
         self.nbars  = 0
         self.prefix = prefix
         self.erase  = erase
-        print '\r%s[%s] %5.1f%%' % ( prefix, ' ' * width, 0.0 ),
-        stdout.flush()
+        if fstat(0)==fstat(1): #only show progress bar if stdout, False if redirected
+            print '\r%s[%s] %5.1f%%' % ( prefix, ' ' * width, 0.0 ),
+            stdout.flush()
 
 
     def update( self ) :
@@ -36,8 +38,9 @@ class ProgressBar :
         nbars = int( ceil(ratio * self.width) )
         if self.i == 1 or self.i == self.n or self.i or nbars != self.nbars:
             self.nbars = nbars
-            print '\r%s[%s%s] %5.1f%%' % ( self.prefix, '=' * self.nbars, ' ' * (self.width-self.nbars), 100.0*ratio),
-            stdout.flush()
+            if fstat(0)==fstat(1): #only show progress bar if stdout
+                print '\r%s[%s%s] %5.1f%%' % ( self.prefix, '=' * self.nbars, ' ' * (self.width-self.nbars), 100.0*ratio),
+                stdout.flush()
         self.i += 1
 
         if self.i > self.n :
