@@ -24,7 +24,7 @@ class Evaluation :
     evaluation with the AMICO framework.
     """
 
-    def __init__( self, study_path, subject ) :
+    def __init__( self, study_path, subject, output_path=None ) :
         """Setup the data structure with default values.
 
         Parameters
@@ -33,6 +33,9 @@ class Evaluation :
             The path to the folder containing all the subjects from one study
         subject : string
             The path (relative to previous folder) to the subject folder
+        OUTPUT_path : string
+            Optionally sets a custom full path for the output. Leave as None 
+            for default behaviour - output in study_path/subject/AMICO/<MODEL>
         """
         self.niiDWI      = None # set by "load_data" method
         self.niiDWI_img  = None
@@ -49,6 +52,7 @@ class Evaluation :
         self.set_config('study_path', study_path)
         self.set_config('subject', subject)
         self.set_config('DATA_path', pjoin( study_path, subject ))
+        self.set_config('OUTPUT_path', output_path)
 
         self.set_config('peaks_filename', None)
         self.set_config('doNormalizeSignal', True)
@@ -349,15 +353,22 @@ class Evaluation :
         """
         if self.RESULTS is None :
             raise RuntimeError( 'Model not fitted to the data; call "fit()" first.' )
-
-        RESULTS_path = pjoin( 'AMICO', self.model.id )
-        if path_suffix :
-            RESULTS_path = RESULTS_path +'_'+ path_suffix
-        self.RESULTS['RESULTS_path'] = RESULTS_path
-        print '\n-> Saving output to "%s/*":' % RESULTS_path
-
-        # delete previous output
-        RESULTS_path = pjoin( self.get_config('DATA_path'), RESULTS_path )
+        if self.get_config('OUTPUT_path') is None:
+            RESULTS_path = pjoin( 'AMICO', self.model.id )
+            if path_suffix :
+                RESULTS_path = RESULTS_path +'_'+ path_suffix
+            self.RESULTS['RESULTS_path'] = RESULTS_path
+            print '\n-> Saving output to "%s/*":' % RESULTS_path
+    
+            # delete previous output
+            RESULTS_path = pjoin( self.get_config('DATA_path'), RESULTS_path )
+        else:
+            RESULTS_path = self.get_config('OUTPUT_path')
+            if path_suffix :
+                RESULTS_path = RESULTS_path +'_'+ path_suffix
+            self.RESULTS['RESULTS_path'] = RESULTS_path
+            print '\n-> Saving output to "%s/*":' % RESULTS_path
+            
         if not exists( RESULTS_path ) :
             makedirs( RESULTS_path )
         else :
