@@ -115,7 +115,7 @@ It takes a little time depending on the number of voxels (but much much faster t
 >>> ae.fit()
 
 —> Fitting "Cylinder-Zeppelin-Ball" model to 338 voxels:
-   [ 00h 00m 06s ]
+   [ 6.2 seconds ]
 ```
 
 Finally, save the results as NIfTI images:
