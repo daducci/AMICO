@@ -72,7 +72,7 @@ Load the data:
 ```python
 >>> ae.load_data(dwi_filename = "DWI.nii", scheme_filename = "ActiveAxG140_PM.scheme1", mask_filename = "ActiveAx_Tutorial_MidSagCC.nii", b0_thr = 0)
 
--> Loading data:
+—> Loading data:
 	* DWI signal...
 		- dim    = 128 x 256 x 3 x 372
 		- pixdim = 0.400 x 0.400 x 0.500
@@ -93,7 +93,7 @@ Set model for ACTIVEAX and generate the response functions for all the compartme
 >>> ae.set_model("CylinderZeppelinBall")
 >>> ae.generate_kernels()
 
--> Creating LUT for "Cylinder-Zeppelin-Ball" model:
+—> Creating LUT for "Cylinder-Zeppelin-Ball" model:
    [ 106.0 seconds ]
 ```
 
@@ -104,7 +104,7 @@ Load the precomputed kernels (at higher resolution) and adapt them to the actual
 ```python
 >>> ae.load_kernels()
 
--> Resampling LUT for subject "Subject01":
+—> Resampling LUT for subject "Subject01":
    [ 92.4 seconds ]
 ```
 
@@ -114,7 +114,7 @@ It takes a little time depending on the number of voxels (but much much faster t
 ```python
 >>> ae.fit()
 
--> Fitting "Cylinder-Zeppelin-Ball" model to 338 voxels:
+—> Fitting "Cylinder-Zeppelin-Ball" model to 338 voxels:
    [ 00h 00m 06s ]
 ```
 
@@ -123,7 +123,7 @@ Finally, save the results as NIfTI images:
 ```python
 >>> ae.save_results()
 
--> Saving output to "AMICO/CylinderZeppelinBall/*":
+—> Saving output to "AMICO/CylinderZeppelinBall/*":
 	- configuration  [OK]
 	- FIT_dir.nii.gz  [OK]
 	- FIT_v.nii.gz  [OK]
