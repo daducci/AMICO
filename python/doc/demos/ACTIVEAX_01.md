@@ -8,14 +8,14 @@ With this tutorial you can learn how to fit the [ActiveAx model](http://www.ncbi
 
 2. Merge the downloaded datasets into one:
 
-```bash
-        export FSLOUTPUTTYPE=NIFTI
-        fslmerge -t Study02/Subject01/DWI.nii \\
-        Study02/Subject01/DRCMR_ActiveAx4CCfit_E2503_Mbrain1_B13183_3B0_ELEC_N90_Scan1_DIG.nii \\
-        Study02/Subject01/DRCMR_ActiveAx4CCfit_E2503_Mbrain1_B1925_3B0_ELEC_N90_Scan1_DIG.nii \\
-        Study02/Subject01/DRCMR_ActiveAx4CCfit_E2503_Mbrain1_B1931_3B0_ELEC_N90_Scan1_DIG.nii \\
-        Study02/Subject01/DRCMR_ActiveAx4CCfit_E2503_Mbrain1_B3091_3B0_ELEC_N90_Scan1_DIG.nii
-```
+    ```bash
+    export FSLOUTPUTTYPE=NIFTI
+    fslmerge -t Study02/Subject01/DWI.nii \\
+    Study02/Subject01/DRCMR_ActiveAx4CCfit_E2503_Mbrain1_B13183_3B0_ELEC_N90_Scan1_DIG.nii \\
+    Study02/Subject01/DRCMR_ActiveAx4CCfit_E2503_Mbrain1_B1925_3B0_ELEC_N90_Scan1_DIG.nii \\
+    Study02/Subject01/DRCMR_ActiveAx4CCfit_E2503_Mbrain1_B1931_3B0_ELEC_N90_Scan1_DIG.nii \\
+    Study02/Subject01/DRCMR_ActiveAx4CCfit_E2503_Mbrain1_B3091_3B0_ELEC_N90_Scan1_DIG.nii
+    ```
 
 3. Download the scheme file from [here](http://cmic.cs.ucl.ac.uk/camino/uploads/Tutorials/ActiveAxG140_PM.scheme1) and save it into the same folder.
 
