@@ -7,6 +7,7 @@ With this tutorial you can learn how to fit the [ActiveAx model](http://www.ncbi
 1. Download the original DWI data from [here](http://dig.drcmr.dk/activeax-dataset/) and save it into a folder named Study02/Subject01.
 
 2. Merge the downloaded datasets into one:
+
 ```bash
 export FSLOUTPUTTYPE=NIFTI
 fslmerge -t Study02/Subject01/DWI.nii \\
