@@ -17,6 +17,7 @@ Study02/Subject01/DRCMR_ActiveAx4CCfit_E2503_Mbrain1_B3091_3B0_ELEC_N90_Scan1_DI
 ```
 
 3. Download the scheme file from [here](http://cmic.cs.ucl.ac.uk/camino/uploads/Tutorials/ActiveAxG140_PM.scheme1) and save it into the same folder.
+
 4. Download the binary mask of the corpus callosum from [here](http://hardi.epfl.ch/static/data/AMICO_demos/ActiveAx_Tutorial_MidSagCC.nii) to the same folder.
 
 5. You should have the following folder structure:
