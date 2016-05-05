@@ -289,6 +289,8 @@ class CylinderZeppelinBall( BaseModel ) :
         self.Rs     = np.concatenate( ([0.01],np.linspace(0.5,8.0,20.0)) ) * 1E-6    # Radii of the axons [meters]
         self.ICVFs  = np.arange(0.3,0.9,0.1)                                         # Intra-cellular volume fraction(s) [0..1]
         self.d_ISOs = np.array( [ 2.0E-3 ] )                                         # Isotropic diffusivitie(s) [mm^2/s]
+	self.isExvivo  = False                                                       # Add dot compartment to dictionary (exvivo data)
+	self.singleb0  = True                                                        # Merge b0 images into a single volume for fitting
 
 
     def set( self, d_par, Rs, ICVFs, d_ISOs ) :
@@ -413,6 +415,11 @@ class CylinderZeppelinBall( BaseModel ) :
             A[:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,:].T
             o += n2
         A[:,o:] = KERNELS['iso'].T
+	if self.isExvivo:
+		A = np.hstack((A,np.ones((A.shape[0],1))))
+	if self.singleb0:
+		A = np.vstack((np.ones((1,A.shape[1])),A[self.scheme.dwi_idx,:]))
+		y = np.concatenate((y[self.scheme.b0_idx].mean(),y[self.scheme.dwi_idx]))
 
         # empty dictionary
         if A.shape[1] == 0 :
