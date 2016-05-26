@@ -419,7 +419,7 @@ class CylinderZeppelinBall( BaseModel ) :
 		A = np.hstack((A,np.ones((A.shape[0],1))))
 	if self.singleb0:
 		A = np.vstack((np.ones((1,A.shape[1])),A[self.scheme.dwi_idx,:]))
-		y = np.concatenate((y[self.scheme.b0_idx].mean(),y[self.scheme.dwi_idx]))
+		y = np.hstack((y[self.scheme.b0_idx].mean(),y[self.scheme.dwi_idx]))
 
         # empty dictionary
         if A.shape[1] == 0 :
