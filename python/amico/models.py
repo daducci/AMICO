@@ -611,7 +611,7 @@ class NODDI( BaseModel ) :
         protocol['M'] = len(B)
         protocol['N'] = np.zeros((len(B)))
         for i in range(len(B)):
-            protocol['N'][i] = sum(bval==B[i])
+            protocol['N'][i] = np.sum(bval==B[i])
 
         # maximum b-value in the s/mm^2 unit
         maxB = np.max(B)
