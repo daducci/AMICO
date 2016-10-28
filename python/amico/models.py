@@ -402,24 +402,37 @@ class CylinderZeppelinBall( BaseModel ) :
         n1 = len(self.Rs)
         n2 = len(self.ICVFs)
         n3 = len(self.d_ISOs)
-
-        # prepare DICTIONARY from dirs and lookup tables
-        A = np.zeros( (len(y), nD*(n1+n2)+n3 ), dtype=np.float64, order='F' )
-        o = 0
-        for i in xrange(nD) :
-            i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
-            A[:,o:(o+n1)] = KERNELS['wmr'][:,i1,i2,:].T
-            o += n1
-        for i in xrange(nD) :
-            i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
-            A[:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,:].T
-            o += n2
-        A[:,o:] = KERNELS['iso'].T
         if self.isExvivo:
-            A = np.hstack((A,np.ones((A.shape[0],1))))
+            nATOMS = nD*(n1+n2)+n3+1
+        else:
+            nATOMS = nD*(n1+n2)+n3
         if self.singleb0:
-            A = np.vstack((np.ones((1,A.shape[1])),A[self.scheme.dwi_idx,:]))
+            # prepare DICTIONARY from dirs and lookup tables
+            A = np.ones( (1+self.scheme.dwi_count, nATOMS ), dtype=np.float64, order='F' )
+            o = 0
+            for i in xrange(nD) :
+                i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
+                A[1:,o:(o+n1)] = KERNELS['wmr'][:,i1,i2,self.scheme.dwi_idx].T
+                o += n1
+            for i in xrange(nD) :
+                i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
+                A[1:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,self.scheme.dwi_idx].T
+                o += n2
+            A[1:,o:o+n3] = KERNELS['iso'][:,self.scheme.dwi_idx].T
             y = np.hstack((y[self.scheme.b0_idx].mean(),y[self.scheme.dwi_idx]))
+        else:
+            # prepare DICTIONARY from dirs and lookup tables
+            A = np.ones( (self.scheme.nS, nATOMS ), dtype=np.float64, order='F' )
+            o = 0
+            for i in xrange(nD) :
+                i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
+                A[:,o:(o+n1)] = KERNELS['wmr'][:,i1,i2,:].T
+                o += n1
+            for i in xrange(nD) :
+                i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
+                A[:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,:].T
+                o += n2
+            A[:,o:] = KERNELS['iso'].T
 
         # empty dictionary
         if A.shape[1] == 0 :

@@ -305,6 +305,8 @@ class Evaluation :
 
                     # compute fitting error
                     if self.get_config('doComputeNRMSE') :
+                        if self.model.name == 'Cylinder-Zeppelin-Ball' and self.model.singleb0:
+                            y = np.hstack((y[self.scheme.b0_idx].mean(),y[self.scheme.dwi_idx]))
                         y_est = np.dot( A, x )
                         den = np.sum(y**2)
                         NRMSE[ix,iy,iz] = np.sqrt( np.sum((y-y_est)**2) / den ) if den > 1e-16 else 0
