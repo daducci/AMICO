@@ -128,7 +128,7 @@ class BaseModel( object ) :
 
 
     @abc.abstractmethod
-    def fit( self, y, dirs, KERNELS, params ) :
+    def fit( self, y, dirs, KERNELS, params, singleb0 ) :
         """For fitting the model to the data.
         NB: do not change the signature!
 
@@ -142,6 +142,8 @@ class BaseModel( object ) :
             Contains the LUT and all corresponding details
         params : dictionary
             Parameters to be used by the solver
+        singleb0 : bool
+            True if the y contains a single b0 value in y[0]
 
         Returns
         -------
@@ -252,7 +254,7 @@ class StickZeppelinBall( BaseModel ) :
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params ) :
+    def fit( self, y, dirs, KERNELS, params, singleb0 ) :
         raise NotImplementedError
 
 
@@ -290,7 +292,6 @@ class CylinderZeppelinBall( BaseModel ) :
         self.ICVFs  = np.arange(0.3,0.9,0.1)                                         # Intra-cellular volume fraction(s) [0..1]
         self.d_ISOs = np.array( [ 2.0E-3 ] )                                         # Isotropic diffusivitie(s) [mm^2/s]
         self.isExvivo  = False                                                       # Add dot compartment to dictionary (exvivo data)
-        self.singleb0  = True                                                        # Merge b0 images into a single volume for fitting
 
 
     def set( self, d_par, Rs, ICVFs, d_ISOs ) :
@@ -397,7 +398,7 @@ class CylinderZeppelinBall( BaseModel ) :
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params ) :
+    def fit( self, y, dirs, KERNELS, params, singleb0 ) :
         nD = dirs.shape[0]
         n1 = len(self.Rs)
         n2 = len(self.ICVFs)
@@ -406,7 +407,7 @@ class CylinderZeppelinBall( BaseModel ) :
             nATOMS = nD*(n1+n2)+n3+1
         else:
             nATOMS = nD*(n1+n2)+n3
-        if self.singleb0:
+        if singleb0:
             # prepare DICTIONARY from dirs and lookup tables
             A = np.ones( (1+self.scheme.dwi_count, nATOMS ), dtype=np.float64, order='F' )
             o = 0
@@ -419,7 +420,6 @@ class CylinderZeppelinBall( BaseModel ) :
                 A[1:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,self.scheme.dwi_idx].T
                 o += n2
             A[1:,o:o+n3] = KERNELS['iso'][:,self.scheme.dwi_idx].T
-            y = np.hstack((y[self.scheme.b0_idx].mean(),y[self.scheme.dwi_idx]))
         else:
             # prepare DICTIONARY from dirs and lookup tables
             A = np.ones( (self.scheme.nS, nATOMS ), dtype=np.float64, order='F' )
@@ -552,7 +552,7 @@ class NODDI( BaseModel ) :
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params ) :
+    def fit( self, y, dirs, KERNELS, params, singleb0 ) :
         nD = dirs.shape[0]
         if nD != 1 :
             raise RuntimeError( '"%s" model requires exactly 1 orientation' % self.name )
@@ -561,9 +561,13 @@ class NODDI( BaseModel ) :
         nATOMS = len(self.IC_ODs)*len(self.IC_VFs) + 1
         if self.isExvivo == True :
             nATOMS += 1
-        A = np.ones( (len(y), nATOMS), dtype=np.float64, order='F' )
         i1, i2 = amico.lut.dir_TO_lut_idx( dirs[0] )
-        A[:,:-1] = KERNELS['wm'][:,i1,i2,:].T
+        if singleb0:
+            A = np.ones( (1+self.scheme.dwi_count, nATOMS), dtype=np.float64, order='F' )
+            A[1:,:-1] = KERNELS['wm'][:,i1,i2,self.scheme.dwi_idx].T
+        else:
+            A = np.ones( (self.scheme.nS, nATOMS), dtype=np.float64, order='F' )
+            A[:,:-1] = KERNELS['wm'][:,i1,i2,:].T
         A[:,-1]  = KERNELS['iso']
 
         # estimate CSF partial volume (and isotropic restriction, if exvivo) and remove from signal
@@ -574,8 +578,12 @@ class NODDI( BaseModel ) :
         yy[ yy<0 ] = 0
 
         # estimate IC and EC compartments and promote sparsity
-        An = A[ self.scheme.dwi_idx, :-1 ] * KERNELS['norms']
-        yy = yy[ self.scheme.dwi_idx ].reshape(-1,1)
+        if singleb0:
+            An = A[1:, :-1] * KERNELS['norms']
+            yy = yy[1:].reshape(-1,1)
+        else:
+            An = A[ self.scheme.dwi_idx, :-1 ] * KERNELS['norms']
+            yy = yy[ self.scheme.dwi_idx ].reshape(-1,1)
         x = spams.lasso( np.asfortranarray(yy), D=np.asfortranarray(An), **params ).todense().A1
 
         # debias coefficients
@@ -1109,7 +1117,7 @@ class FreeWater( BaseModel ) :
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params ) :
+    def fit( self, y, dirs, KERNELS, params, singleb0 ) :
         nD = dirs.shape[0]
         if nD > 1 : # model works only with one direction
             raise RuntimeError( '"%s" model requires exactly 1 orientation' % self.name )
@@ -1122,9 +1130,14 @@ class FreeWater( BaseModel ) :
 
         # prepare DICTIONARY from dir and lookup tables
         i1, i2 = amico.lut.dir_TO_lut_idx( dirs[0] )
-        A = np.zeros( (len(y), nATOMS), dtype=np.float64, order='F' )
-        A[:,:(nD*n1)] = KERNELS['D'][:,i1,i2,:].T
-        A[:,(nD*n1):] = KERNELS['CSF'].T
+        if singleb0:
+            A = np.ones( (1+self.scheme.dwi_count, nATOMS), dtype=np.float64, order='F' )
+            A[1:,:(nD*n1)] = KERNELS['D'][:,i1,i2,self.scheme.dwi_idx].T
+            A[1:,(nD*n1):] = KERNELS['CSF'][:,self.scheme.dwi_idx].T
+        else:
+            A = np.zeros( (self.scheme.nS, nATOMS), dtype=np.float64, order='F' )
+            A[:,:(nD*n1)] = KERNELS['D'][:,i1,i2,:].T
+            A[:,(nD*n1):] = KERNELS['CSF'].T
 
         # fit
         x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, **params ).todense().A1

@@ -46,7 +46,7 @@ class Evaluation :
         self.KERNELS     = None # set by "load_kernels" method
         self.RESULTS     = None # set by "fit" method        
         self.niiDWI_corrected = None # set by doSaveCorrectedDWI
-
+        
         # store all the parameters of an evaluation with AMICO
         self.CONFIG = {}
         self.set_config('study_path', study_path)
@@ -59,6 +59,7 @@ class Evaluation :
         self.set_config('doKeepb0Intact', False)  # does change b0 images in the predicted signal
         self.set_config('doComputeNRMSE', False)
         self.set_config('doSaveCorrectedDWI', False)
+        self.set_config('doMergeb0s', True) # Merge b0 volumes
 
     def set_config( self, key, value ) :
         self.CONFIG[ key ] = value
@@ -251,8 +252,12 @@ class Evaluation :
         if peaks_filename is None :
             DIRs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], 3], dtype=np.float32 )
             nDIR = 1
-            gtab = gradient_table( self.scheme.b, self.scheme.raw[:,:3] )
-            DTI = dti.TensorModel( gtab )
+            if self.get_config('doMergeb0s'):
+                gtab = gradient_table( np.hstack((0,self.scheme.b[self.scheme.dwi_idx])), np.vstack((np.zeros((1,3)),self.scheme.raw[self.scheme.dwi_idx,:3])) )
+                DTI = dti.TensorModel( gtab )
+            else:
+                gtab = gradient_table( self.scheme.b, self.scheme.raw[:,:3] )
+                DTI = dti.TensorModel( gtab )
         else :
             niiPEAKS = nibabel.load( pjoin( self.get_config('DATA_path'), peaks_filename) )
             DIRs = niiPEAKS.get_data().astype(np.float32)
@@ -294,6 +299,9 @@ class Evaluation :
                         if b0 > 1e-3 :
                             y = y / b0
 
+                    if self.get_config('doMergeb0s') and self.scheme.b0_count > 0:
+                        y = np.hstack((b0,y[self.scheme.dwi_idx]))
+
                     # fitting directions
                     if peaks_filename is None :
                         dirs = DTI.fit( y ).directions[0]
@@ -301,12 +309,10 @@ class Evaluation :
                         dirs = DIRs[ix,iy,iz,:]
 
                     # dispatch to the right handler for each model
-                    MAPs[ix,iy,iz,:], DIRs[ix,iy,iz,:], x, A = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, self.get_config('solver_params') )
+                    MAPs[ix,iy,iz,:], DIRs[ix,iy,iz,:], x, A = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, self.get_config('solver_params'), self.get_config('doMergeb0s') )
 
                     # compute fitting error
                     if self.get_config('doComputeNRMSE') :
-                        if self.model.name == 'Cylinder-Zeppelin-Ball' and self.model.singleb0:
-                            y = np.hstack((y[self.scheme.b0_idx].mean(),y[self.scheme.dwi_idx]))
                         y_est = np.dot( A, x )
                         den = np.sum(y**2)
                         NRMSE[ix,iy,iz] = np.sqrt( np.sum((y-y_est)**2) / den ) if den > 1e-16 else 0
@@ -324,10 +330,17 @@ class Evaluation :
                                 y_fw_corrected = np.dot( A, x )
 
                             if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
-                                # put original b0 data back in. 
-                                y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*b0
+                                if self.get_config('doMergeb0s'):
+                                    y_fw_corrected[0] = y[0]*b0
+                                else:
+                                    # put original b0 data back in. 
+                                    y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*b0
 
-                            DWI_corrected[ix,iy,iz,:] = y_fw_corrected
+                            if self.get_config('doMergeb0s'):
+                                DWI_corrected[ix,iy,iz,self.scheme.b0_idx] = y_fw_corrected[0]
+                                DWI_corrected[ix,iy,iz,self.scheme.dwi_idx] = y_fw_corrected[1:]
+                            else:
+                                DWI_corrected[ix,iy,iz,:] = y_fw_corrected
 
                             
                     progress.update()
