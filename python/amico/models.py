@@ -566,10 +566,12 @@ class NODDI( BaseModel ) :
         if singleb0:
             A = np.ones( (1+self.scheme.dwi_count, nATOMS), dtype=np.float64, order='F' )
             A[1:,:nWM] = KERNELS['wm'][:,i1,i2,self.scheme.dwi_idx].T
+            A[1:,-1]  = KERNELS['iso'][self.scheme.dwi_idx]
         else:
             A = np.ones( (self.scheme.nS, nATOMS), dtype=np.float64, order='F' )
             A[:,:nWM] = KERNELS['wm'][:,i1,i2,:].T
-        A[:,-1]  = KERNELS['iso']
+            A[:,-1]  = KERNELS['iso']
+        
 
         # estimate CSF partial volume (and isotropic restriction, if exvivo) and remove from signal
         x, _ = scipy.optimize.nnls( A, y )
