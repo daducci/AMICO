@@ -300,7 +300,7 @@ class Evaluation :
                             y = y / b0
 
                     if self.get_config('doMergeb0s') and self.scheme.b0_count > 0:
-                        y = np.hstack((b0,y[self.scheme.dwi_idx]))
+                        y = np.hstack((1.0,y[self.scheme.dwi_idx]))
 
                     # fitting directions
                     if peaks_filename is None :
