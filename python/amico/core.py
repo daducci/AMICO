@@ -59,7 +59,7 @@ class Evaluation :
         self.set_config('doKeepb0Intact', False)  # does change b0 images in the predicted signal
         self.set_config('doComputeNRMSE', False)
         self.set_config('doSaveCorrectedDWI', False)
-        self.set_config('doMergeb0s', True) # Merge b0 volumes
+        self.set_config('doMergeB0', True) # Merge b0 volumes
 
     def set_config( self, key, value ) :
         self.CONFIG[ key ] = value
@@ -252,7 +252,7 @@ class Evaluation :
         if peaks_filename is None :
             DIRs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], 3], dtype=np.float32 )
             nDIR = 1
-            if self.get_config('doMergeb0s'):
+            if self.get_config('doMergeB0'):
                 gtab = gradient_table( np.hstack((0,self.scheme.b[self.scheme.dwi_idx])), np.vstack((np.zeros((1,3)),self.scheme.raw[self.scheme.dwi_idx,:3])) )
                 DTI = dti.TensorModel( gtab )
             else:
@@ -299,7 +299,7 @@ class Evaluation :
                         if b0 > 1e-3 :
                             y = y / b0
 
-                    if self.get_config('doMergeb0s') and self.scheme.b0_count > 0:
+                    if self.get_config('doMergeB0') and self.scheme.b0_count > 0:
                         y = np.hstack((1.0,y[self.scheme.dwi_idx]))
 
                     # fitting directions
@@ -309,7 +309,7 @@ class Evaluation :
                         dirs = DIRs[ix,iy,iz,:]
 
                     # dispatch to the right handler for each model
-                    MAPs[ix,iy,iz,:], DIRs[ix,iy,iz,:], x, A = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, self.get_config('solver_params'), self.get_config('doMergeb0s') )
+                    MAPs[ix,iy,iz,:], DIRs[ix,iy,iz,:], x, A = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, self.get_config('solver_params'), self.get_config('doMergeB0') )
 
                     # compute fitting error
                     if self.get_config('doComputeNRMSE') :
@@ -330,13 +330,13 @@ class Evaluation :
                                 y_fw_corrected = np.dot( A, x )
 
                             if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
-                                if self.get_config('doMergeb0s'):
+                                if self.get_config('doMergeB0'):
                                     y_fw_corrected[0] = y[0]*b0
                                 else:
                                     # put original b0 data back in. 
                                     y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*b0
 
-                            if self.get_config('doMergeb0s'):
+                            if self.get_config('doMergeB0'):
                                 DWI_corrected[ix,iy,iz,self.scheme.b0_idx] = y_fw_corrected[0]
                                 DWI_corrected[ix,iy,iz,self.scheme.dwi_idx] = y_fw_corrected[1:]
                             else:
