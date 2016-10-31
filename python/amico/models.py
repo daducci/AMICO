@@ -558,16 +558,17 @@ class NODDI( BaseModel ) :
             raise RuntimeError( '"%s" model requires exactly 1 orientation' % self.name )
 
         # prepare DICTIONARY from dir and lookup tables
-        nATOMS = len(self.IC_ODs)*len(self.IC_VFs) + 1
+        nWM = len(self.IC_ODs)*len(self.IC_VFs)
+        nATOMS = nWM + 1
         if self.isExvivo == True :
             nATOMS += 1
         i1, i2 = amico.lut.dir_TO_lut_idx( dirs[0] )
         if singleb0:
             A = np.ones( (1+self.scheme.dwi_count, nATOMS), dtype=np.float64, order='F' )
-            A[1:,:-1] = KERNELS['wm'][:,i1,i2,self.scheme.dwi_idx].T
+            A[1:,:nWM] = KERNELS['wm'][:,i1,i2,self.scheme.dwi_idx].T
         else:
             A = np.ones( (self.scheme.nS, nATOMS), dtype=np.float64, order='F' )
-            A[:,:-1] = KERNELS['wm'][:,i1,i2,:].T
+            A[:,:nWM] = KERNELS['wm'][:,i1,i2,:].T
         A[:,-1]  = KERNELS['iso']
 
         # estimate CSF partial volume (and isotropic restriction, if exvivo) and remove from signal
@@ -579,10 +580,10 @@ class NODDI( BaseModel ) :
 
         # estimate IC and EC compartments and promote sparsity
         if singleb0:
-            An = A[1:, :-1] * KERNELS['norms']
+            An = A[1:, :nWM] * KERNELS['norms']
             yy = yy[1:].reshape(-1,1)
         else:
-            An = A[ self.scheme.dwi_idx, :-1 ] * KERNELS['norms']
+            An = A[ self.scheme.dwi_idx, :nWM ] * KERNELS['norms']
             yy = yy[ self.scheme.dwi_idx ].reshape(-1,1)
         x = spams.lasso( np.asfortranarray(yy), D=np.asfortranarray(An), **params ).todense().A1
 
@@ -595,11 +596,10 @@ class NODDI( BaseModel ) :
 
         # return estimates
         xx = x / ( x.sum() + 1e-16 )
+        xWM  = xx[:nWM]
         if self.isExvivo == True :
-            xWM  = xx[:-2]
             fISO = xx[-2]
         else :
-            xWM  = xx[:-1]
             fISO = xx[-1]
         xWM = xWM / ( xWM.sum() + 1e-16 )
         f1 = np.dot( KERNELS['icvf'], xWM )
