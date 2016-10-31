@@ -309,7 +309,7 @@ class Evaluation :
                         dirs = DIRs[ix,iy,iz,:]
 
                     # dispatch to the right handler for each model
-                    MAPs[ix,iy,iz,:], DIRs[ix,iy,iz,:], x, A = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, self.get_config('solver_params'), self.get_config('doMergeB0') )
+                    MAPs[ix,iy,iz,:], DIRs[ix,iy,iz,:], x, A = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, self.get_config('solver_params') )
 
                     # compute fitting error
                     if self.get_config('doComputeNRMSE') :

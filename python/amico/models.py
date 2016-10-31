@@ -128,7 +128,7 @@ class BaseModel( object ) :
 
 
     @abc.abstractmethod
-    def fit( self, y, dirs, KERNELS, params, singleb0 ) :
+    def fit( self, y, dirs, KERNELS, params ) :
         """For fitting the model to the data.
         NB: do not change the signature!
 
@@ -142,8 +142,6 @@ class BaseModel( object ) :
             Contains the LUT and all corresponding details
         params : dictionary
             Parameters to be used by the solver
-        singleb0 : bool
-            True if the y contains a single b0 value in y[0]
 
         Returns
         -------
@@ -254,7 +252,7 @@ class StickZeppelinBall( BaseModel ) :
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params, singleb0 ) :
+    def fit( self, y, dirs, KERNELS, params ) :
         raise NotImplementedError
 
 
@@ -398,7 +396,8 @@ class CylinderZeppelinBall( BaseModel ) :
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params, singleb0 ) :
+    def fit( self, y, dirs, KERNELS, params ) :
+        singleb0 = True if len(y) == (1+self.scheme.dwi_count) else False
         nD = dirs.shape[0]
         n1 = len(self.Rs)
         n2 = len(self.ICVFs)
@@ -552,7 +551,8 @@ class NODDI( BaseModel ) :
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params, singleb0 ) :
+    def fit( self, y, dirs, KERNELS, params ) :
+        singleb0 = True if len(y) == (1+self.scheme.dwi_count) else False
         nD = dirs.shape[0]
         if nD != 1 :
             raise RuntimeError( '"%s" model requires exactly 1 orientation' % self.name )
@@ -1119,7 +1119,7 @@ class FreeWater( BaseModel ) :
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params, singleb0 ) :
+    def fit( self, y, dirs, KERNELS, params ) :
         nD = dirs.shape[0]
         if nD > 1 : # model works only with one direction
             raise RuntimeError( '"%s" model requires exactly 1 orientation' % self.name )
@@ -1132,7 +1132,7 @@ class FreeWater( BaseModel ) :
 
         # prepare DICTIONARY from dir and lookup tables
         i1, i2 = amico.lut.dir_TO_lut_idx( dirs[0] )
-        if singleb0:
+        if len(y) == (1+self.scheme.dwi_count):
             A = np.ones( (1+self.scheme.dwi_count, nATOMS), dtype=np.float64, order='F' )
             A[1:,:(nD*n1)] = KERNELS['D'][:,i1,i2,self.scheme.dwi_idx].T
             A[1:,(nD*n1):] = KERNELS['CSF'][:,self.scheme.dwi_idx].T
