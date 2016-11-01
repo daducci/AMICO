@@ -132,6 +132,28 @@ class Evaluation :
             print '\t\t- not specified'
         print '\t\t- voxels = %d' % np.count_nonzero(self.niiMASK_img)
 
+        # Preprocessing
+        print '\n-> Preprocessing:'
+
+        if self.get_config('doNormalizeSignal') :
+            print '\t* Normalizing to b0...',
+            sys.stdout.flush()
+            mean = np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 )
+            idx = mean <= 0
+            mean[ idx ] = 1
+            mean = 1 / mean
+            mean[ idx ] = 0
+            for i in xrange(self.scheme.nS) :
+                self.niiDWI_img[:,:,:,i] *= mean
+            print '[ min=%.2f,  mean=%.2f, max=%.2f ]' % ( self.niiDWI_img.min(), self.niiDWI_img.mean(), self.niiDWI_img.max() )
+
+        if self.get_config('doMergeB0') :
+            print '\t* Merging multiple b0 volume(s)...',
+            mean = np.expand_dims( np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 ), axis=3 )
+            self.niiDWI_img = np.concatenate( (mean, self.niiDWI_img[:,:,:,self.scheme.dwi_idx]), axis=3 )
+        else :
+            print '\t* Keeping all b0 volume(s)...'
+
         print '   [ %.1f seconds ]' % ( time.time() - tic )
 
 
@@ -225,7 +247,7 @@ class Evaluation :
         idx_OUT, Ylm_OUT = amico.lut.aux_structures_resample( self.scheme, self.get_config('lmax') )
 
         # Dispatch to the right handler for each model
-        self.KERNELS = self.model.resample( self.get_config('ATOMS_path'), idx_OUT, Ylm_OUT )
+        self.KERNELS = self.model.resample( self.get_config('ATOMS_path'), idx_OUT, Ylm_OUT, self.get_config('doMergeB0') )
 
         print '   [ %.1f seconds ]' % ( time.time() - tic )
 
@@ -294,13 +316,6 @@ class Evaluation :
                     if self.scheme.b0_count > 0 :
                         b0 = np.mean( y[self.scheme.b0_idx] )
 
-                        if self.get_config('doNormalizeSignal') :
-                            if b0 > 1e-3 :
-                                y = y / b0
-
-                        if self.get_config('doMergeB0') :
-                            y = np.hstack((np.mean( y[self.scheme.b0_idx] ),y[self.scheme.dwi_idx]))
-
                     # fitting directions
                     if peaks_filename is None :
                         dirs = DTI.fit( y ).directions[0]
@@ -329,17 +344,10 @@ class Evaluation :
                                 y_fw_corrected = np.dot( A, x )
 
                             if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
-                                if self.get_config('doMergeB0'):
-                                    y_fw_corrected[0] = y[0]*b0
-                                else:
-                                    # put original b0 data back in. 
-                                    y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*b0
+                                # put original b0 data back in. 
+                                y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*b0
 
-                            if self.get_config('doMergeB0'):
-                                DWI_corrected[ix,iy,iz,self.scheme.b0_idx] = y_fw_corrected[0]
-                                DWI_corrected[ix,iy,iz,self.scheme.dwi_idx] = y_fw_corrected[1:]
-                            else:
-                                DWI_corrected[ix,iy,iz,:] = y_fw_corrected
+                            DWI_corrected[ix,iy,iz,:] = y_fw_corrected
 
                             
                     progress.update()

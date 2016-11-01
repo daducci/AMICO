@@ -100,7 +100,7 @@ class BaseModel( object ) :
 
 
     @abc.abstractmethod
-    def resample( self, in_path, idx_out, Ylm_out ) :
+    def resample( self, in_path, idx_out, Ylm_out, doMergeB0 ) :
         """For projecting the LUT to the subject space.
         NB: do not change the signature!
 
@@ -112,6 +112,8 @@ class BaseModel( object ) :
             Indices of the samples belonging to each shell
         Ylm_out : array
             SH bases to project back each shell to signal space
+        doMergeB0: bool
+            Merge b0-volumes into a single volume if True
 
         Returns
         -------
@@ -119,10 +121,14 @@ class BaseModel( object ) :
             Contains the LUT and all corresponding details. In particular, it is
             required to have a field 'model' set to "self.if".
         """
+        # if doMergeB0:
+        #     nS = 1+self.scheme.dwi_count
+        # else:
+        #     nS = self.scheme.nS
         # KERNELS = {}
         # KERNELS['model'] = self.id
-        # KERNELS['IC']    = np.zeros( (len(self.Rs),181,181,self.scheme.nS), dtype=np.float32 )
-        # KERNELS['EC']    = np.zeros( (len(self.ICVFs),181,181,self.scheme.nS), dtype=np.float32 )
+        # KERNELS['IC']    = np.zeros( (len(self.Rs),181,181,nS), dtype=np.float32 )
+        # KERNELS['EC']    = np.zeros( (len(self.ICVFs),181,181,nS), dtype=np.float32 )
         # ...
         return
 
@@ -222,31 +228,37 @@ class StickZeppelinBall( BaseModel ) :
             progress.update()
 
 
-    def resample( self, in_path, idx_out, Ylm_out ) :
+    def resample( self, in_path, idx_out, Ylm_out, doMergeB0 ) :
         KERNELS = {}
         KERNELS['model'] = self.id
-        KERNELS['wmr']   = np.zeros( (1,181,181,self.scheme.nS), dtype=np.float32 )
-        KERNELS['wmh']   = np.zeros( (len(self.ICVFs),181,181,self.scheme.nS), dtype=np.float32 )
-        KERNELS['iso']   = np.zeros( (len(self.d_ISOs),self.scheme.nS), dtype=np.float32 )
+        if doMergeB0:
+            nS = 1+self.scheme.dwi_count
+            merge_idx = np.hstack((self.scheme.b0_idx[0],self.scheme.dwi_idx))
+        else:
+            nS = self.scheme.nS
+            merge_idx = np.arange(nS)
+        KERNELS['wmr']   = np.zeros( (1,181,181,nS), dtype=np.float32 )
+        KERNELS['wmh']   = np.zeros( (len(self.ICVFs),181,181,nS), dtype=np.float32 )
+        KERNELS['iso']   = np.zeros( (len(self.d_ISOs),nS), dtype=np.float32 )
 
         nATOMS = 1 + len(self.ICVFs) + len(self.d_ISOs)
         progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
 
         # Stick
         lm = np.load( pjoin( in_path, 'A_001.npy' ) )
-        KERNELS['wmr'][0,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
+        KERNELS['wmr'][0,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
         progress.update()
 
         # Zeppelin(s)
         for i in xrange(len(self.ICVFs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['wmh'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
+            KERNELS['wmh'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
             progress.update()
 
         # Ball(s)
         for i in xrange(len(self.d_ISOs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['iso'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )
+            KERNELS['iso'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )[merge_idx]
             progress.update()
 
         return KERNELS
@@ -365,12 +377,18 @@ class CylinderZeppelinBall( BaseModel ) :
             progress.update()
 
 
-    def resample( self, in_path, idx_out, Ylm_out ) :
+    def resample( self, in_path, idx_out, Ylm_out, doMergeB0 ) :
+        if doMergeB0:
+            nS = 1+self.scheme.dwi_count
+            merge_idx = np.hstack((self.scheme.b0_idx[0],self.scheme.dwi_idx))
+        else:
+            nS = self.scheme.nS
+            merge_idx = np.arange(nS)
         KERNELS = {}
         KERNELS['model'] = self.id
-        KERNELS['wmr'] = np.zeros( (len(self.Rs),181,181,self.scheme.nS,), dtype=np.float32 )
-        KERNELS['wmh'] = np.zeros( (len(self.ICVFs),181,181,self.scheme.nS,), dtype=np.float32 )
-        KERNELS['iso'] = np.zeros( (len(self.d_ISOs),self.scheme.nS,), dtype=np.float32 )
+        KERNELS['wmr'] = np.zeros( (len(self.Rs),181,181,nS,), dtype=np.float32 )
+        KERNELS['wmh'] = np.zeros( (len(self.ICVFs),181,181,nS,), dtype=np.float32 )
+        KERNELS['iso'] = np.zeros( (len(self.d_ISOs),nS,), dtype=np.float32 )
 
         nATOMS = len(self.Rs) + len(self.ICVFs) + len(self.d_ISOs)
         progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
@@ -378,26 +396,25 @@ class CylinderZeppelinBall( BaseModel ) :
         # Cylinder(s)
         for i in xrange(len(self.Rs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['wmr'][i,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
+            KERNELS['wmr'][i,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
             progress.update()
 
         # Zeppelin(s)
         for i in xrange(len(self.ICVFs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['wmh'][i,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
+            KERNELS['wmh'][i,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
             progress.update()
 
         # Ball(s)
         for i in xrange(len(self.d_ISOs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['iso'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )
+            KERNELS['iso'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )[merge_idx]
             progress.update()
 
         return KERNELS
 
 
     def fit( self, y, dirs, KERNELS, params ) :
-        singleb0 = True if len(y) == (1+self.scheme.dwi_count) else False
         nD = dirs.shape[0]
         n1 = len(self.Rs)
         n2 = len(self.ICVFs)
@@ -406,32 +423,18 @@ class CylinderZeppelinBall( BaseModel ) :
             nATOMS = nD*(n1+n2)+n3+1
         else:
             nATOMS = nD*(n1+n2)+n3
-        if singleb0:
-            # prepare DICTIONARY from dirs and lookup tables
-            A = np.ones( (1+self.scheme.dwi_count, nATOMS ), dtype=np.float64, order='F' )
-            o = 0
-            for i in xrange(nD) :
-                i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
-                A[1:,o:(o+n1)] = KERNELS['wmr'][:,i1,i2,self.scheme.dwi_idx].T
-                o += n1
-            for i in xrange(nD) :
-                i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
-                A[1:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,self.scheme.dwi_idx].T
-                o += n2
-            A[1:,o:o+n3] = KERNELS['iso'][:,self.scheme.dwi_idx].T
-        else:
-            # prepare DICTIONARY from dirs and lookup tables
-            A = np.ones( (self.scheme.nS, nATOMS ), dtype=np.float64, order='F' )
-            o = 0
-            for i in xrange(nD) :
-                i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
-                A[:,o:(o+n1)] = KERNELS['wmr'][:,i1,i2,:].T
-                o += n1
-            for i in xrange(nD) :
-                i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
-                A[:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,:].T
-                o += n2
-            A[:,o:] = KERNELS['iso'].T
+        # prepare DICTIONARY from dirs and lookup tables
+        A = np.ones( (len(y), nATOMS ), dtype=np.float64, order='F' )
+        o = 0
+        for i in xrange(nD) :
+            i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
+            A[:,o:(o+n1)] = KERNELS['wmr'][:,i1,i2,:].T
+            o += n1
+        for i in xrange(nD) :
+            i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
+            A[:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,:].T
+            o += n2
+        A[:,o:] = KERNELS['iso'].T
 
         # empty dictionary
         if A.shape[1] == 0 :
@@ -519,13 +522,18 @@ class NODDI( BaseModel ) :
         progress.update()
 
 
-    def resample( self, in_path, idx_out, Ylm_out ):
+    def resample( self, in_path, idx_out, Ylm_out, doMergeB0 ):
         nATOMS = len(self.IC_ODs)*len(self.IC_VFs) + 1
-
+        if doMergeB0:
+            nS = 1+self.scheme.dwi_count
+            merge_idx = np.hstack((self.scheme.b0_idx[0],self.scheme.dwi_idx))
+        else:
+            nS = self.scheme.nS
+            merge_idx = np.arange(nS)
         KERNELS = {}
         KERNELS['model'] = self.id
-        KERNELS['wm']    = np.zeros( (nATOMS-1,181,181,self.scheme.nS), dtype=np.float32 )
-        KERNELS['iso']   = np.zeros( self.scheme.nS, dtype=np.float32 )
+        KERNELS['wm']    = np.zeros( (nATOMS-1,181,181,nS), dtype=np.float32 )
+        KERNELS['iso']   = np.zeros( nS, dtype=np.float32 )
         KERNELS['kappa'] = np.zeros( nATOMS-1, dtype=np.float32 )
         KERNELS['icvf']  = np.zeros( nATOMS-1, dtype=np.float32 )
         KERNELS['norms'] = np.zeros( (self.scheme.dwi_count, nATOMS-1) )
@@ -537,15 +545,18 @@ class NODDI( BaseModel ) :
             for j in xrange( len(self.IC_VFs) ):
                 lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
                 idx = progress.i - 1
-                KERNELS['wm'][idx,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
+                KERNELS['wm'][idx,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
                 KERNELS['kappa'][idx] = 1.0 / np.tan( self.IC_ODs[i]*np.pi/2.0 )
                 KERNELS['icvf'][idx]  = self.IC_VFs[j]
-                KERNELS['norms'][:,idx] = 1 / np.linalg.norm( KERNELS['wm'][idx,0,0,self.scheme.dwi_idx] ) # norm of coupled atoms (for l1 minimization)
+                if doMergeB0:
+                    KERNELS['norms'][:,idx] = 1 / np.linalg.norm( KERNELS['wm'][idx,0,0,1:] ) # norm of coupled atoms (for l1 minimization)
+                else:
+                    KERNELS['norms'][:,idx] = 1 / np.linalg.norm( KERNELS['wm'][idx,0,0,self.scheme.dwi_idx] ) # norm of coupled atoms (for l1 minimization)
                 progress.update()
 
         # Isotropic
         lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-        KERNELS['iso'] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )
+        KERNELS['iso'] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )[merge_idx]
         progress.update()
 
         return KERNELS
@@ -563,14 +574,9 @@ class NODDI( BaseModel ) :
         if self.isExvivo == True :
             nATOMS += 1
         i1, i2 = amico.lut.dir_TO_lut_idx( dirs[0] )
-        if singleb0:
-            A = np.ones( (1+self.scheme.dwi_count, nATOMS), dtype=np.float64, order='F' )
-            A[1:,:nWM] = KERNELS['wm'][:,i1,i2,self.scheme.dwi_idx].T
-            A[1:,-1]  = KERNELS['iso'][self.scheme.dwi_idx]
-        else:
-            A = np.ones( (self.scheme.nS, nATOMS), dtype=np.float64, order='F' )
-            A[:,:nWM] = KERNELS['wm'][:,i1,i2,:].T
-            A[:,-1]  = KERNELS['iso']
+        A = np.ones( (len(y), nATOMS), dtype=np.float64, order='F' )
+        A[:,:nWM] = KERNELS['wm'][:,i1,i2,:].T
+        A[:,-1]  = KERNELS['iso']
         
 
         # estimate CSF partial volume (and isotropic restriction, if exvivo) and remove from signal
@@ -1095,11 +1101,17 @@ class FreeWater( BaseModel ) :
             progress.update()
 
 
-    def resample( self, in_path, idx_out, Ylm_out ) :
+    def resample( self, in_path, idx_out, Ylm_out, doMergeB0 ) :
+        if doMergeB0:
+            nS = 1+self.scheme.dwi_count
+            merge_idx = np.hstack((self.scheme.b0_idx[0],self.scheme.dwi_idx))
+        else:
+            nS = self.scheme.nS
+            merge_idx = np.arange(nS)
         KERNELS = {}
         KERNELS['model'] = self.id
-        KERNELS['D']     = np.zeros( (len(self.d_perps),181,181,self.scheme.nS), dtype=np.float32 )
-        KERNELS['CSF']   = np.zeros( (len(self.d_isos),self.scheme.nS), dtype=np.float32 )
+        KERNELS['D']     = np.zeros( (len(self.d_perps),181,181,nS), dtype=np.float32 )
+        KERNELS['CSF']   = np.zeros( (len(self.d_isos),nS), dtype=np.float32 )
 
         nATOMS = len(self.d_perps) + len(self.d_isos)
         progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
@@ -1107,13 +1119,13 @@ class FreeWater( BaseModel ) :
         # Tensor compartment(s)
         for i in xrange(len(self.d_perps)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['D'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )
+            KERNELS['D'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
             progress.update()
 
         # Isotropic compartment(s)
         for i in xrange(len(self.d_isos)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['CSF'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )
+            KERNELS['CSF'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )[merge_idx]
             progress.update()
 
         return KERNELS
@@ -1132,14 +1144,9 @@ class FreeWater( BaseModel ) :
 
         # prepare DICTIONARY from dir and lookup tables
         i1, i2 = amico.lut.dir_TO_lut_idx( dirs[0] )
-        if len(y) == (1+self.scheme.dwi_count):
-            A = np.ones( (1+self.scheme.dwi_count, nATOMS), dtype=np.float64, order='F' )
-            A[1:,:(nD*n1)] = KERNELS['D'][:,i1,i2,self.scheme.dwi_idx].T
-            A[1:,(nD*n1):] = KERNELS['CSF'][:,self.scheme.dwi_idx].T
-        else:
-            A = np.zeros( (self.scheme.nS, nATOMS), dtype=np.float64, order='F' )
-            A[:,:(nD*n1)] = KERNELS['D'][:,i1,i2,:].T
-            A[:,(nD*n1):] = KERNELS['CSF'].T
+        A = np.zeros( (len(y), nATOMS), dtype=np.float64, order='F' )
+        A[:,:(nD*n1)] = KERNELS['D'][:,i1,i2,:].T
+        A[:,(nD*n1):] = KERNELS['CSF'].T
 
         # fit
         x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, **params ).todense().A1
