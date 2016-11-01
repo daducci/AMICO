@@ -254,10 +254,9 @@ class Evaluation :
             nDIR = 1
             if self.get_config('doMergeB0'):
                 gtab = gradient_table( np.hstack((0,self.scheme.b[self.scheme.dwi_idx])), np.vstack((np.zeros((1,3)),self.scheme.raw[self.scheme.dwi_idx,:3])) )
-                DTI = dti.TensorModel( gtab )
             else:
                 gtab = gradient_table( self.scheme.b, self.scheme.raw[:,:3] )
-                DTI = dti.TensorModel( gtab )
+            DTI = dti.TensorModel( gtab )
         else :
             niiPEAKS = nibabel.load( pjoin( self.get_config('DATA_path'), peaks_filename) )
             DIRs = niiPEAKS.get_data().astype(np.float32)
@@ -295,12 +294,12 @@ class Evaluation :
                     if self.scheme.b0_count > 0 :
                         b0 = np.mean( y[self.scheme.b0_idx] )
 
-                    if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :                        
-                        if b0 > 1e-3 :
-                            y = y / b0
+                        if self.get_config('doNormalizeSignal') :
+                            if b0 > 1e-3 :
+                                y = y / b0
 
-                    if self.get_config('doMergeB0') and self.scheme.b0_count > 0:
-                        y = np.hstack((np.mean( y[self.scheme.b0_idx] ),y[self.scheme.dwi_idx]))
+                        if self.get_config('doMergeB0') :
+                            y = np.hstack((np.mean( y[self.scheme.b0_idx] ),y[self.scheme.dwi_idx]))
 
                     # fitting directions
                     if peaks_filename is None :
