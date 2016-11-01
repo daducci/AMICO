@@ -46,7 +46,7 @@ class Evaluation :
         self.KERNELS     = None # set by "load_kernels" method
         self.RESULTS     = None # set by "fit" method        
         self.niiDWI_corrected = None # set by doSaveCorrectedDWI
-
+        
         # store all the parameters of an evaluation with AMICO
         self.CONFIG = {}
         self.set_config('study_path', study_path)
@@ -59,6 +59,7 @@ class Evaluation :
         self.set_config('doKeepb0Intact', False)  # does change b0 images in the predicted signal
         self.set_config('doComputeNRMSE', False)
         self.set_config('doSaveCorrectedDWI', False)
+        self.set_config('doMergeB0', True) # Merge b0 volumes
 
     def set_config( self, key, value ) :
         self.CONFIG[ key ] = value
@@ -251,7 +252,10 @@ class Evaluation :
         if peaks_filename is None :
             DIRs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], 3], dtype=np.float32 )
             nDIR = 1
-            gtab = gradient_table( self.scheme.b, self.scheme.raw[:,:3] )
+            if self.get_config('doMergeB0'):
+                gtab = gradient_table( np.hstack((0,self.scheme.b[self.scheme.dwi_idx])), np.vstack((np.zeros((1,3)),self.scheme.raw[self.scheme.dwi_idx,:3])) )
+            else:
+                gtab = gradient_table( self.scheme.b, self.scheme.raw[:,:3] )
             DTI = dti.TensorModel( gtab )
         else :
             niiPEAKS = nibabel.load( pjoin( self.get_config('DATA_path'), peaks_filename) )
@@ -290,9 +294,12 @@ class Evaluation :
                     if self.scheme.b0_count > 0 :
                         b0 = np.mean( y[self.scheme.b0_idx] )
 
-                    if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :                        
-                        if b0 > 1e-3 :
-                            y = y / b0
+                        if self.get_config('doNormalizeSignal') :
+                            if b0 > 1e-3 :
+                                y = y / b0
+
+                        if self.get_config('doMergeB0') :
+                            y = np.hstack((np.mean( y[self.scheme.b0_idx] ),y[self.scheme.dwi_idx]))
 
                     # fitting directions
                     if peaks_filename is None :
@@ -322,10 +329,17 @@ class Evaluation :
                                 y_fw_corrected = np.dot( A, x )
 
                             if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
-                                # put original b0 data back in. 
-                                y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*b0
+                                if self.get_config('doMergeB0'):
+                                    y_fw_corrected[0] = y[0]*b0
+                                else:
+                                    # put original b0 data back in. 
+                                    y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*b0
 
-                            DWI_corrected[ix,iy,iz,:] = y_fw_corrected
+                            if self.get_config('doMergeB0'):
+                                DWI_corrected[ix,iy,iz,self.scheme.b0_idx] = y_fw_corrected[0]
+                                DWI_corrected[ix,iy,iz,self.scheme.dwi_idx] = y_fw_corrected[1:]
+                            else:
+                                DWI_corrected[ix,iy,iz,:] = y_fw_corrected
 
                             
                     progress.update()

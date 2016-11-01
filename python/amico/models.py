@@ -290,7 +290,6 @@ class CylinderZeppelinBall( BaseModel ) :
         self.ICVFs  = np.arange(0.3,0.9,0.1)                                         # Intra-cellular volume fraction(s) [0..1]
         self.d_ISOs = np.array( [ 2.0E-3 ] )                                         # Isotropic diffusivitie(s) [mm^2/s]
         self.isExvivo  = False                                                       # Add dot compartment to dictionary (exvivo data)
-        self.singleb0  = True                                                        # Merge b0 images into a single volume for fitting
 
 
     def set( self, d_par, Rs, ICVFs, d_ISOs ) :
@@ -398,28 +397,41 @@ class CylinderZeppelinBall( BaseModel ) :
 
 
     def fit( self, y, dirs, KERNELS, params ) :
+        singleb0 = True if len(y) == (1+self.scheme.dwi_count) else False
         nD = dirs.shape[0]
         n1 = len(self.Rs)
         n2 = len(self.ICVFs)
         n3 = len(self.d_ISOs)
-
-        # prepare DICTIONARY from dirs and lookup tables
-        A = np.zeros( (len(y), nD*(n1+n2)+n3 ), dtype=np.float64, order='F' )
-        o = 0
-        for i in xrange(nD) :
-            i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
-            A[:,o:(o+n1)] = KERNELS['wmr'][:,i1,i2,:].T
-            o += n1
-        for i in xrange(nD) :
-            i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
-            A[:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,:].T
-            o += n2
-        A[:,o:] = KERNELS['iso'].T
         if self.isExvivo:
-            A = np.hstack((A,np.ones((A.shape[0],1))))
-        if self.singleb0:
-            A = np.vstack((np.ones((1,A.shape[1])),A[self.scheme.dwi_idx,:]))
-            y = np.hstack((y[self.scheme.b0_idx].mean(),y[self.scheme.dwi_idx]))
+            nATOMS = nD*(n1+n2)+n3+1
+        else:
+            nATOMS = nD*(n1+n2)+n3
+        if singleb0:
+            # prepare DICTIONARY from dirs and lookup tables
+            A = np.ones( (1+self.scheme.dwi_count, nATOMS ), dtype=np.float64, order='F' )
+            o = 0
+            for i in xrange(nD) :
+                i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
+                A[1:,o:(o+n1)] = KERNELS['wmr'][:,i1,i2,self.scheme.dwi_idx].T
+                o += n1
+            for i in xrange(nD) :
+                i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
+                A[1:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,self.scheme.dwi_idx].T
+                o += n2
+            A[1:,o:o+n3] = KERNELS['iso'][:,self.scheme.dwi_idx].T
+        else:
+            # prepare DICTIONARY from dirs and lookup tables
+            A = np.ones( (self.scheme.nS, nATOMS ), dtype=np.float64, order='F' )
+            o = 0
+            for i in xrange(nD) :
+                i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
+                A[:,o:(o+n1)] = KERNELS['wmr'][:,i1,i2,:].T
+                o += n1
+            for i in xrange(nD) :
+                i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
+                A[:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,:].T
+                o += n2
+            A[:,o:] = KERNELS['iso'].T
 
         # empty dictionary
         if A.shape[1] == 0 :
@@ -540,18 +552,26 @@ class NODDI( BaseModel ) :
 
 
     def fit( self, y, dirs, KERNELS, params ) :
+        singleb0 = True if len(y) == (1+self.scheme.dwi_count) else False
         nD = dirs.shape[0]
         if nD != 1 :
             raise RuntimeError( '"%s" model requires exactly 1 orientation' % self.name )
 
         # prepare DICTIONARY from dir and lookup tables
-        nATOMS = len(self.IC_ODs)*len(self.IC_VFs) + 1
+        nWM = len(self.IC_ODs)*len(self.IC_VFs)
+        nATOMS = nWM + 1
         if self.isExvivo == True :
             nATOMS += 1
-        A = np.ones( (len(y), nATOMS), dtype=np.float64, order='F' )
         i1, i2 = amico.lut.dir_TO_lut_idx( dirs[0] )
-        A[:,:-1] = KERNELS['wm'][:,i1,i2,:].T
-        A[:,-1]  = KERNELS['iso']
+        if singleb0:
+            A = np.ones( (1+self.scheme.dwi_count, nATOMS), dtype=np.float64, order='F' )
+            A[1:,:nWM] = KERNELS['wm'][:,i1,i2,self.scheme.dwi_idx].T
+            A[1:,-1]  = KERNELS['iso'][self.scheme.dwi_idx]
+        else:
+            A = np.ones( (self.scheme.nS, nATOMS), dtype=np.float64, order='F' )
+            A[:,:nWM] = KERNELS['wm'][:,i1,i2,:].T
+            A[:,-1]  = KERNELS['iso']
+        
 
         # estimate CSF partial volume (and isotropic restriction, if exvivo) and remove from signal
         x, _ = scipy.optimize.nnls( A, y )
@@ -561,8 +581,12 @@ class NODDI( BaseModel ) :
         yy[ yy<0 ] = 0
 
         # estimate IC and EC compartments and promote sparsity
-        An = A[ self.scheme.dwi_idx, :-1 ] * KERNELS['norms']
-        yy = yy[ self.scheme.dwi_idx ].reshape(-1,1)
+        if singleb0:
+            An = A[1:, :nWM] * KERNELS['norms']
+            yy = yy[1:].reshape(-1,1)
+        else:
+            An = A[ self.scheme.dwi_idx, :nWM ] * KERNELS['norms']
+            yy = yy[ self.scheme.dwi_idx ].reshape(-1,1)
         x = spams.lasso( np.asfortranarray(yy), D=np.asfortranarray(An), **params ).todense().A1
 
         # debias coefficients
@@ -574,11 +598,10 @@ class NODDI( BaseModel ) :
 
         # return estimates
         xx = x / ( x.sum() + 1e-16 )
+        xWM  = xx[:nWM]
         if self.isExvivo == True :
-            xWM  = xx[:-2]
             fISO = xx[-2]
         else :
-            xWM  = xx[:-1]
             fISO = xx[-1]
         xWM = xWM / ( xWM.sum() + 1e-16 )
         f1 = np.dot( KERNELS['icvf'], xWM )
@@ -1109,9 +1132,14 @@ class FreeWater( BaseModel ) :
 
         # prepare DICTIONARY from dir and lookup tables
         i1, i2 = amico.lut.dir_TO_lut_idx( dirs[0] )
-        A = np.zeros( (len(y), nATOMS), dtype=np.float64, order='F' )
-        A[:,:(nD*n1)] = KERNELS['D'][:,i1,i2,:].T
-        A[:,(nD*n1):] = KERNELS['CSF'].T
+        if len(y) == (1+self.scheme.dwi_count):
+            A = np.ones( (1+self.scheme.dwi_count, nATOMS), dtype=np.float64, order='F' )
+            A[1:,:(nD*n1)] = KERNELS['D'][:,i1,i2,self.scheme.dwi_idx].T
+            A[1:,(nD*n1):] = KERNELS['CSF'][:,self.scheme.dwi_idx].T
+        else:
+            A = np.zeros( (self.scheme.nS, nATOMS), dtype=np.float64, order='F' )
+            A[:,:(nD*n1)] = KERNELS['D'][:,i1,i2,:].T
+            A[:,(nD*n1):] = KERNELS['CSF'].T
 
         # fit
         x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, **params ).todense().A1
