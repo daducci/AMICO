@@ -1,8 +1,14 @@
-# AMICO - python porting
+# AMICO
 
-This code implements the AMICO framework in the Python language.
+Implementation of the linear framework for Accelerated Microstructure Imaging via Convex Optimization (AMICO) described here:
 
-> This is a **work-in-progress** project!
+> **Accelerated Microstructure Imaging via Convex Optimization (AMICO) from diffusion MRI data**  
+> *Alessandro Daducci, Erick Canales-Rodriguez, Hui Zhang, Tim Dyrby, Daniel Alexander, Jean-Philippe Thiran*  
+> NeuroImage 105, pp. 32-44 (2015)
+
+## Code implementation
+
+This is the current implementation of the AMICO framework and it is written in **python**.
 
 # Installation
 
@@ -49,3 +55,4 @@ Open the system shell and run:
 ```bash
 pip uninstall amico
 ```
+
