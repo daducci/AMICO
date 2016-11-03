@@ -45,8 +45,8 @@ class Evaluation :
         self.model       = None # set by "set_model" method
         self.KERNELS     = None # set by "load_kernels" method
         self.RESULTS     = None # set by "fit" method        
-        self.niiDWI_corrected = None # set by doSaveCorrectedDWI
-
+        self.mean_b0s    = None # set by "load_data" method
+        
         # store all the parameters of an evaluation with AMICO
         self.CONFIG = {}
         self.set_config('study_path', study_path)
@@ -59,6 +59,7 @@ class Evaluation :
         self.set_config('doKeepb0Intact', False)  # does change b0 images in the predicted signal
         self.set_config('doComputeNRMSE', False)
         self.set_config('doSaveCorrectedDWI', False)
+        self.set_config('doMergeB0', False) # Merge b0 volumes
 
     def set_config( self, key, value ) :
         self.CONFIG[ key ] = value
@@ -130,6 +131,32 @@ class Evaluation :
             self.niiMASK_img = np.ones( self.get_config('dim') )
             print '\t\t- not specified'
         print '\t\t- voxels = %d' % np.count_nonzero(self.niiMASK_img)
+
+        # Preprocessing
+        print '\n-> Preprocessing:'
+
+        if self.get_config('doNormalizeSignal') :
+            print '\t* Normalizing to b0...',
+            sys.stdout.flush()
+            if self.scheme.b0_count > 0 :
+                self.mean_b0s = np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 )
+            else:
+                raise ValueError( 'No b0 volume to normalize signal with' )
+            norm_factor = self.mean_b0s.copy()
+            idx = self.mean_b0s <= 0
+            norm_factor[ idx ] = 1
+            norm_factor = 1 / norm_factor
+            norm_factor[ idx ] = 0
+            for i in xrange(self.scheme.nS) :
+                self.niiDWI_img[:,:,:,i] *= norm_factor
+            print '[ min=%.2f,  mean=%.2f, max=%.2f ]' % ( self.niiDWI_img.min(), self.niiDWI_img.mean(), self.niiDWI_img.max() )
+
+        if self.get_config('doMergeB0') :
+            print '\t* Merging multiple b0 volume(s)...',
+            mean = np.expand_dims( np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 ), axis=3 )
+            self.niiDWI_img = np.concatenate( (mean, self.niiDWI_img[:,:,:,self.scheme.dwi_idx]), axis=3 )
+        else :
+            print '\t* Keeping all b0 volume(s)...'
 
         print '   [ %.1f seconds ]' % ( time.time() - tic )
 
@@ -224,7 +251,7 @@ class Evaluation :
         idx_OUT, Ylm_OUT = amico.lut.aux_structures_resample( self.scheme, self.get_config('lmax') )
 
         # Dispatch to the right handler for each model
-        self.KERNELS = self.model.resample( self.get_config('ATOMS_path'), idx_OUT, Ylm_OUT )
+        self.KERNELS = self.model.resample( self.get_config('ATOMS_path'), idx_OUT, Ylm_OUT, self.get_config('doMergeB0') )
 
         print '   [ %.1f seconds ]' % ( time.time() - tic )
 
@@ -251,7 +278,10 @@ class Evaluation :
         if peaks_filename is None :
             DIRs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], 3], dtype=np.float32 )
             nDIR = 1
-            gtab = gradient_table( self.scheme.b, self.scheme.raw[:,:3] )
+            if self.get_config('doMergeB0'):
+                gtab = gradient_table( np.hstack((0,self.scheme.b[self.scheme.dwi_idx])), np.vstack((np.zeros((1,3)),self.scheme.raw[self.scheme.dwi_idx,:3])) )
+            else:
+                gtab = gradient_table( self.scheme.b, self.scheme.raw[:,:3] )
             DTI = dti.TensorModel( gtab )
         else :
             niiPEAKS = nibabel.load( pjoin( self.get_config('DATA_path'), peaks_filename) )
@@ -287,13 +317,6 @@ class Evaluation :
                     y = self.niiDWI_img[ix,iy,iz,:].astype(np.float64)
                     y[ y < 0 ] = 0 # [NOTE] this should not happen!
 
-                    if self.scheme.b0_count > 0 :
-                        b0 = np.mean( y[self.scheme.b0_idx] )
-
-                    if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :                        
-                        if b0 > 1e-3 :
-                            y = y / b0
-
                     # fitting directions
                     if peaks_filename is None :
                         dirs = DTI.fit( y ).directions[0]
@@ -317,13 +340,13 @@ class Evaluation :
 
                             #print(y, x, b0, A.shape)
                             if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
-                                y_fw_corrected = np.dot( A, x ) * b0
+                                y_fw_corrected = np.dot( A, x ) * self.mean_b0s[ix,iy,iz]
                             else :
                                 y_fw_corrected = np.dot( A, x )
 
                             if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
                                 # put original b0 data back in. 
-                                y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*b0
+                                y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*self.mean_b0s[ix,iy,iz]
 
                             DWI_corrected[ix,iy,iz,:] = y_fw_corrected
 
