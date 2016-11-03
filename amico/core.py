@@ -45,7 +45,7 @@ class Evaluation :
         self.model       = None # set by "set_model" method
         self.KERNELS     = None # set by "load_kernels" method
         self.RESULTS     = None # set by "fit" method        
-        self.niiDWI_corrected = None # set by doSaveCorrectedDWI
+        self.mean_b0s    = None # set by "load_data" method
         
         # store all the parameters of an evaluation with AMICO
         self.CONFIG = {}
@@ -138,13 +138,17 @@ class Evaluation :
         if self.get_config('doNormalizeSignal') :
             print '\t* Normalizing to b0...',
             sys.stdout.flush()
-            mean = np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 )
-            idx = mean <= 0
-            mean[ idx ] = 1
-            mean = 1 / mean
-            mean[ idx ] = 0
+            if self.scheme.b0_count > 0 :
+                self.mean_b0s = np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 )
+            else:
+                raise ValueError( 'No b0 volume to normalize signal with' )
+            norm_factor = self.mean_b0s.copy()
+            idx = self.mean_b0s <= 0
+            norm_factor[ idx ] = 1
+            norm_factor = 1 / norm_factor
+            norm_factor[ idx ] = 0
             for i in xrange(self.scheme.nS) :
-                self.niiDWI_img[:,:,:,i] *= mean
+                self.niiDWI_img[:,:,:,i] *= norm_factor
             print '[ min=%.2f,  mean=%.2f, max=%.2f ]' % ( self.niiDWI_img.min(), self.niiDWI_img.mean(), self.niiDWI_img.max() )
 
         if self.get_config('doMergeB0') :
@@ -313,9 +317,6 @@ class Evaluation :
                     y = self.niiDWI_img[ix,iy,iz,:].astype(np.float64)
                     y[ y < 0 ] = 0 # [NOTE] this should not happen!
 
-                    if self.scheme.b0_count > 0 :
-                        b0 = np.mean( y[self.scheme.b0_idx] )
-
                     # fitting directions
                     if peaks_filename is None :
                         dirs = DTI.fit( y ).directions[0]
@@ -339,13 +340,13 @@ class Evaluation :
 
                             #print(y, x, b0, A.shape)
                             if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
-                                y_fw_corrected = np.dot( A, x ) * b0
+                                y_fw_corrected = np.dot( A, x ) * self.mean_b0s[ix,iy,iz]
                             else :
                                 y_fw_corrected = np.dot( A, x )
 
                             if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
                                 # put original b0 data back in. 
-                                y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*b0
+                                y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*self.mean_b0s[ix,iy,iz]
 
                             DWI_corrected[ix,iy,iz,:] = y_fw_corrected
 
