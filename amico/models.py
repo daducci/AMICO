@@ -119,7 +119,7 @@ class BaseModel( object ) :
         -------
         KERNELS : dictionary
             Contains the LUT and all corresponding details. In particular, it is
-            required to have a field 'model' set to "self.if".
+            required to have a field 'model' set to "self.id".
         """
         # if doMergeB0:
         #     nS = 1+self.scheme.dwi_count
