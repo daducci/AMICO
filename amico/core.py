@@ -59,7 +59,7 @@ class Evaluation :
         self.set_config('doKeepb0Intact', False)  # does change b0 images in the predicted signal
         self.set_config('doComputeNRMSE', False)
         self.set_config('doSaveCorrectedDWI', False)
-        self.set_config('doMergeB0', True) # Merge b0 volumes
+        self.set_config('doMergeB0', False) # Merge b0 volumes
 
     def set_config( self, key, value ) :
         self.CONFIG[ key ] = value
