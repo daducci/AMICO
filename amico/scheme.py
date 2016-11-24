@@ -58,6 +58,8 @@ class Scheme :
         b0_thr : float
             The threshold on the b-values to identify the b0 images (default: 0)
         """
+        if data.ndim == 1 :
+            data = np.expand_dims( data, axis=0 )
         self.raw = data
 
         # number of samples
