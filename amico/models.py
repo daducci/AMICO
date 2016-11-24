@@ -163,6 +163,7 @@ class BaseModel( object ) :
         return
 
 
+
 class StickZeppelinBall( BaseModel ) :
     """Implements the Stick-Zeppelin-Ball model [1].
 
@@ -266,6 +267,7 @@ class StickZeppelinBall( BaseModel ) :
 
     def fit( self, y, dirs, KERNELS, params ) :
         raise NotImplementedError
+
 
 
 class CylinderZeppelinBall( BaseModel ) :
@@ -453,6 +455,7 @@ class CylinderZeppelinBall( BaseModel ) :
         return [v, a, d], dirs, x, A
 
 
+
 class NODDI( BaseModel ) :
     """Implements the NODDI model [2].
 
@@ -577,7 +580,7 @@ class NODDI( BaseModel ) :
         A = np.ones( (len(y), nATOMS), dtype=np.float64, order='F' )
         A[:,:nWM] = KERNELS['wm'][:,i1,i2,:].T
         A[:,-1]  = KERNELS['iso']
-        
+
 
         # estimate CSF partial volume (and isotropic restriction, if exvivo) and remove from signal
         x, _ = scipy.optimize.nnls( A, y )
@@ -1012,6 +1015,7 @@ class NODDI( BaseModel ) :
         return np.exp(-difftime*modQ_Sq*d)
 
 
+
 class FreeWater( BaseModel ) :
     """Implements the Free-Water model.
     """
@@ -1062,7 +1066,6 @@ class FreeWater( BaseModel ) :
         print '             -iso  compartments: ', self.d_isos
         print '             -perp compartments: ', self.d_perps
         print '             -para compartments: ', self.d_par
-
 
 
     def set_solver( self, lambda1 = 0.0, lambda2 = 1e-3 ):
@@ -1164,3 +1167,53 @@ class FreeWater( BaseModel ) :
         else :
             return [ v, 1-v ], dirs, x, A
 
+
+
+class VolumeFractions( BaseModel ) :
+    """Implements a simple model where each compartment contributes only with
+       its own volume fraction. This model has been created to test there
+       ability to remove false positive fibers with COMMIT.
+    """
+
+    def __init__( self ) :
+        self.id         = 'VolumeFractions'
+        self.name       = 'Volume fractions'
+        self.maps_name  = [ ]
+        self.maps_descr = [ ]
+
+        self.hasEC  = True                    # Simulate extra-cellular compartment?
+        self.hasISO = False                   # Simulate free water compartment?
+
+
+    def set( self, hasEC, hasISO ) :
+        self.hasEC  = hasEC
+        self.hasISO = hasISO
+
+
+    def set_solver( self ) :
+        raise NotImplementedError
+
+
+    def generate( self, out_path, aux, idx_in, idx_out ) :
+        return
+
+
+    def resample( self, in_path, idx_out, Ylm_out, doMergeB0 ) :
+        if doMergeB0:
+            nS = 1+self.scheme.dwi_count
+            merge_idx = np.hstack((self.scheme.b0_idx[0],self.scheme.dwi_idx))
+        else:
+            nS = self.scheme.nS
+            merge_idx = np.arange(nS)
+
+        KERNELS = {}
+        KERNELS['model'] = self.id
+        KERNELS['wmr']   = np.ones( (1,181,181,nS), dtype=np.float32 )
+        KERNELS['wmh']   = np.ones( (1 if self.hasEC else 0,181,181,nS), dtype=np.float32 )
+        KERNELS['iso']   = np.ones( (1 if self.hasISO else 0,nS), dtype=np.float32 )
+
+        return KERNELS
+
+
+    def fit( self, y, dirs, KERNELS, params ) :
+        raise NotImplementedError
