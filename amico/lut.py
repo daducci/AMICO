@@ -234,8 +234,8 @@ def dir_TO_lut_idx( direction ) :
     else :
         i1 = np.arctan2( np.sqrt( direction[0]*direction[0] + direction[1]*direction[1] ), direction[2] );
 
-    i1 = np.round( i1/np.pi*180.0 )
-    i2 = np.round( i2/np.pi*180.0 )
+    i1 = np.round( i1/np.pi*180.0 ).astype(int)
+    i2 = np.round( i2/np.pi*180.0 ).astype(int)
     if i1<0 or i1>180 or i2<0 or i2>180 :
         raise Exception( '[amico.lut.dir_TO_lut_idx] index out of bounds (%d,%d)' % (i1,i2) )
 
