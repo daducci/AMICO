@@ -486,6 +486,12 @@ class NODDI( BaseModel ) :
         self.IC_VFs    = np.array( IC_VFs )
         self.IC_ODs    = np.array( IC_ODs )
         self.isExvivo  = isExvivo
+        if isExvivo:
+            self.maps_name  = [ 'ICVF', 'OD', 'ISOVF', 'dot' ]
+            self.maps_descr = [ 'Intra-cellular volume fraction', 'Orientation dispersion', 'Isotropic volume fraction', 'Dot volume fraction' ]
+        else:
+            self.maps_name  = [ 'ICVF', 'OD', 'ISOVF']
+            self.maps_descr = [ 'Intra-cellular volume fraction', 'Orientation dispersion', 'Isotropic volume fraction']
 
 
     def set_solver( self, lambda1 = 5e-1, lambda2 = 1e-3 ):
@@ -608,10 +614,7 @@ class NODDI( BaseModel ) :
         # return estimates
         xx = x / ( x.sum() + 1e-16 )
         xWM  = xx[:nWM]
-        if self.isExvivo == True :
-            fISO = xx[-2]
-        else :
-            fISO = xx[-1]
+        fISO = xx[-1]
         xWM = xWM / ( xWM.sum() + 1e-16 )
         f1 = np.dot( KERNELS['icvf'], xWM )
         f2 = np.dot( (1.0-KERNELS['icvf']), xWM )
@@ -619,7 +622,10 @@ class NODDI( BaseModel ) :
         k = np.dot( KERNELS['kappa'], xWM )
         od = 2.0/np.pi * np.arctan2(1.0,k)
 
-        return [v, od, fISO], dirs, x, A
+        if self.isExvivo:
+            return [v, od, fISO, xx[-2]], dirs, x, A
+        else:
+            return [v, od, fISO], dirs, x, A
 
 
     def scheme2noddi( self, scheme ):
