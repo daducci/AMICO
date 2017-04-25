@@ -1,7 +1,7 @@
 import numpy as np
 import os.path
 
-def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, bStep = 1.0):
+def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, bStep = 1.0, **kwargs):
     """Create a scheme file from bvals+bvecs and write to file.
 
     If required, b-values can be rounded up to a specific threshold (bStep parameter).
@@ -12,6 +12,7 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, bStep = 1.0
     :param str bvecsFilename: The path to bvec file.
     :param str schemeFilename: The path to output scheme file (optional).
     :param float or list or np.bStep: If bStep is a scalar, round b-values to nearest integer multiple of bStep. If bStep is a list, it is treated as an array of shells in increasing order. B-values will be forced to the nearest shell value.
+    :param str delimiter: Optional delimiter fed to np.loadtxt.
     """
 
     if not os.path.exists(bvalsFilename):
@@ -22,9 +23,14 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, bStep = 1.0
     if schemeFilename is None:
         schemeFilename = os.path.splitext(bvalsFilename)[0]+".scheme"
 
+    if kwargs and 'delmimiter' in kwargs:
+        delimiter = kwargs['delimiter']
+    else:
+        delimiter = None
+
     # load files and check size
-    bvecs = np.loadtxt( bvecsFilename )
-    bvals = np.loadtxt( bvalsFilename )
+    bvecs = np.loadtxt( bvecsFilename, delimiter=delimiter)
+    bvals = np.loadtxt( bvalsFilename, delimiter=delimiter )
 
     if bvecs.ndim !=2 or bvals.ndim != 1 or bvecs.shape[0] != 3 or bvecs.shape[1] != bvals.shape[0]:
         raise RuntimeError( 'incorrect/incompatible bval/bvecs files' )
