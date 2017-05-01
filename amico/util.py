@@ -23,10 +23,8 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, bStep = 1.0
     if schemeFilename is None:
         schemeFilename = os.path.splitext(bvalsFilename)[0]+".scheme"
 
-    if kwargs and 'delmimiter' in kwargs:
-        delimiter = kwargs['delimiter']
-    else:
-        delimiter = None
+    if kwargs:
+        delimiter = kwargs.get('delimiter')
 
     # load files and check size
     bvecs = np.loadtxt( bvecsFilename, delimiter=delimiter)
