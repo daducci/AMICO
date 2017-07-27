@@ -110,7 +110,7 @@ class Scheme :
                 shell['delta'] = schemeUnique[i][2]
                 shell['TE']    = schemeUnique[i][3]
 
-            shell['idx']  = np.where( self.b==bUnique[i] )[0]
+            shell['idx']  = np.where((tmp == schemeUnique[i]).all(axis=1))[0]
             shell['grad'] = self.raw[shell['idx'],0:3]
             self.shells.append( shell )
 
