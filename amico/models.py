@@ -1187,12 +1187,10 @@ class VolumeFractions( BaseModel ) :
         self.maps_name  = [ ]
         self.maps_descr = [ ]
 
-        self.hasEC  = True                    # Simulate extra-cellular compartment?
         self.hasISO = False                   # Simulate free water compartment?
 
 
-    def set( self, hasEC, hasISO ) :
-        self.hasEC  = hasEC
+    def set( self, hasISO ) :
         self.hasISO = hasISO
 
 
@@ -1215,7 +1213,7 @@ class VolumeFractions( BaseModel ) :
         KERNELS = {}
         KERNELS['model'] = self.id
         KERNELS['wmr']   = np.ones( (1,181,181,nS), dtype=np.float32 )
-        KERNELS['wmh']   = np.ones( (1 if self.hasEC else 0,181,181,nS), dtype=np.float32 )
+        KERNELS['wmh']   = np.ones( (0,181,181,nS), dtype=np.float32 )
         KERNELS['iso']   = np.ones( (1 if self.hasISO else 0,nS), dtype=np.float32 )
 
         return KERNELS
