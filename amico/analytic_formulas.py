@@ -39,28 +39,28 @@ def CylinderGPD(diff,theta,phi,R,scheme):
     """
     n_samples = scheme.nS
     dir = scheme.raw[:,:3].copy()
-    for k in range(scheme.nS):
+    for k in range(n_samples):
         dir[k,:] /= np.linalg.norm(dir[k,:])
-    G = dir*np.tile(scheme.raw[:,3],(3,1)).T
-    S = np.zeros(n_samples)
+    modG = scheme.raw[:,3].copy()
+    DELTA = scheme.raw[:,4].copy()
+    delta = scheme.raw[:,5].copy()
+    G = dir*np.tile(modG,(3,1)).T
     GAMMA = 2.6751525E8
-    t = scheme.raw[:,4]-scheme.raw[:,5]/3.
+    t = DELTA-delta/3.
     unitGn = np.zeros(n_samples)
-    idx = (scheme.raw[:,3] > 0)
+    idx = (modG > 0)
     cyl_vector = np.array([np.cos(phi) * np.sin(theta), np.sin(phi) * np.sin(theta), np.cos(theta)])
-    unitGn[idx] = np.dot(cyl_vector[None,:],G[idx].T) / (scheme.raw[:,3][idx] * np.linalg.norm(cyl_vector))
+    unitGn[idx] = np.dot(cyl_vector[None,:],G[idx].T) / (modG[idx] * np.linalg.norm(cyl_vector))
     alpha = np.arccos(unitGn)
     lambda_ = (_am_/R)**2
     beta_factor = 2*(R/_am_)**2 / (_am_**2-1)
     this_sum = np.zeros(n_samples)
     for i in range(n_samples):
         if this_sum[i] == 0:
-            idx = (scheme.raw[:,5] == scheme.raw[i,5]) * (scheme.raw[:,4] == scheme.raw[i,4])
-            this_sum[idx] = compute_PGSE_Sum(lambda_,beta_factor,scheme.raw[i,5],scheme.raw[i,4],diff)
-    Sperp = np.exp(-2 * GAMMA**2 * scheme.raw[:,3]**2 * np.sin(alpha)**2 * this_sum)
-    # the restricted parallel signal
-    Spar = np.exp(-t  * GAMMA**2 * scheme.raw[i,5]**2 * scheme.raw[:,3]**2 * np.cos(alpha)**2 * diff)
-    # the restricted signal
+            idx = (delta == delta[i]) * (DELTA == DELTA[i])
+            this_sum[idx] = compute_PGSE_Sum(lambda_,beta_factor,delta[i],DELTA[i],diff)
+    Sperp = np.exp(-2 * GAMMA**2 * modG**2 * np.sin(alpha)**2 * this_sum)
+    Spar = np.exp(-t  * GAMMA**2 * delta**2 * modG**2 * np.cos(alpha)**2 * diff)
     return Sperp * Spar
 
 def Zeppelin(diffPar,theta,phi,diffPerp,scheme):
