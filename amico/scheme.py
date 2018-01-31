@@ -1,6 +1,9 @@
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
 from re import match as re_match
-import os.path
+from dipy.utils.six.moves import xrange # see http://nipy.org/dipy/devel/python3.html
+#import os.path
 
 class Scheme :
     """A class to hold information about an acquisition scheme.
@@ -34,9 +37,12 @@ class Scheme :
                         if re_match( r'[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?', line.strip() ) :
                             break
                         n += 1
+
                 tmp = np.loadtxt( data, skiprows=n )
+
             except :
                 raise IOError( 'Unable to open scheme file' )
+
             self.load_from_table( tmp, b0_thr )
         else :
             # try loading from matrix
@@ -62,8 +68,9 @@ class Scheme :
             data = np.expand_dims( data, axis=0 )
         self.raw = data
 
+
         # number of samples
-        self.nS = self.raw.shape[0]
+        # self.nS = self.raw.shape[0] JL: incomplete getter/setter incompatible with 3.6; this is never used any as getter always returns derived value
 
         # set/calculate the b-values
         if self.raw.shape[1] == 4 :
@@ -118,3 +125,5 @@ class Scheme :
     @property
     def nS( self ) :
         return self.b0_count + self.dwi_count
+
+

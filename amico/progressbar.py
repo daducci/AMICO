@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function
+
 from os import fstat
 from sys import stdout
 from math import ceil
@@ -26,7 +28,7 @@ class ProgressBar :
         self.prefix = prefix
         self.erase  = erase
         if fstat(0)==fstat(1): #only show progress bar if stdout, False if redirected
-            print '\r%s[%s] %5.1f%%' % ( prefix, ' ' * width, 0.0 ),
+            print('\r%s[%s] %5.1f%%' % ( prefix, ' ' * width, 0.0 ), end=' ')
             stdout.flush()
 
 
@@ -39,13 +41,13 @@ class ProgressBar :
         if self.i == 1 or self.i == self.n or self.i or nbars != self.nbars:
             self.nbars = nbars
             if fstat(0)==fstat(1): #only show progress bar if stdout
-                print '\r%s[%s%s] %5.1f%%' % ( self.prefix, '=' * self.nbars, ' ' * (self.width-self.nbars), 100.0*ratio),
+                print('\r%s[%s%s] %5.1f%%' % ( self.prefix, '=' * self.nbars, ' ' * (self.width-self.nbars), 100.0*ratio), end=' ')
                 stdout.flush()
         self.i += 1
 
         if self.i > self.n :
             if self.erase :
-                print '\r' + ' ' * ( len(self.prefix) + self.width + 9 ) + '\r',
+                print('\r' + ' ' * ( len(self.prefix) + self.width + 9 ) + '\r', end=' ')
             else:
-                print
+                print()
             stdout.flush()
