@@ -17,11 +17,14 @@ This is the current implementation of the AMICO framework and it is written in *
 ### Python and DIPY
 
 This version of AMICO is written in [Python](https://www.python.org/) and, internally, it makes use of the [DIPY](http://dipy.org) library.
-Please install and configure both Python and DIPY by following the guidelines on the corresponding websites.
 
 ### SPArse Modeling Software (SPAMS)
 
-- [Download](http://spams-devel.gforge.inria.fr/downloads.html) the *python interfaces* of the software and follow the instructions provided [here](http://spams-devel.gforge.inria.fr/doc-python/html/doc_spams003.html) to install it.
+SPAMS is on test.pypi.org and can be installed with:
+
+```
+pip install --index-url https://test.pypi.org/simple/ spams
+```
 
 ### Camino toolkit
 
