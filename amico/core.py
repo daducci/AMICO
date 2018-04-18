@@ -7,12 +7,12 @@ from os.path import exists, join as pjoin
 import nibabel
 import cPickle
 import amico.scheme
+from amico.preproc import debiasRician
 import amico.lut
 import amico.models
 from amico.progressbar import ProgressBar
 from dipy.core.gradients import gradient_table
 import dipy.reconst.dti as dti
-
 
 def setup( lmax = 12 ) :
     """General setup/initialization of the AMICO framework."""
@@ -56,10 +56,12 @@ class Evaluation :
 
         self.set_config('peaks_filename', None)
         self.set_config('doNormalizeSignal', True)
-        self.set_config('doKeepb0Intact', False)  # does change b0 images in the predicted signal
+        self.set_config('doKeepb0Intact', False)     # does change b0 images in the predicted signal
         self.set_config('doComputeNRMSE', False)
         self.set_config('doSaveCorrectedDWI', False)
-        self.set_config('doMergeB0', False) # Merge b0 volumes
+        self.set_config('doMergeB0', False)          # Merge b0 volumes
+        self.set_config('doDebiasSignal', False)     # Flag to remove Rician bias
+        self.set_config('DWI-SNR', None)             # SNR of DWI image: SNR = b0/sigma
 
     def set_config( self, key, value ) :
         self.CONFIG[ key ] = value
@@ -134,6 +136,13 @@ class Evaluation :
 
         # Preprocessing
         print '\n-> Preprocessing:'
+
+        if self.get_config('doDebiasSignal') :
+            print '\t* Debiasing signal...\n',
+            sys.stdout.flush()
+            if self.get_config('DWI-SNR') == None:
+                raise ValueError( "Set noise variance for debiasing (eg. ae.set_config('RicianNoiseSigma', sigma))" )
+            self.niiDWI_img = debiasRician(self.niiDWI_img,self.get_config('DWI-SNR'),self.niiMASK_img,self.scheme)
 
         if self.get_config('doNormalizeSignal') :
             print '\t* Normalizing to b0...',
