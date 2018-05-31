@@ -50,7 +50,7 @@ def CylinderGPD(diff,theta,phi,R,scheme):
     unitGn = np.zeros(n_samples)
     idx = (modG > 0)
     cyl_vector = np.array([np.cos(phi) * np.sin(theta), np.sin(phi) * np.sin(theta), np.cos(theta)])
-    unitGn[idx] = np.dot(cyl_vector[None,:],G[idx].T) / (modG[idx] * np.linalg.norm(cyl_vector))
+    unitGn[idx] = np.dot(cyl_vector[None,:],G[idx].T)[0,:] / (modG[idx] * np.linalg.norm(cyl_vector))
     alpha = np.arccos(unitGn)
     lambda_ = (_am_/R)**2
     beta_factor = 2*(R/_am_)**2 / (_am_**2-1)
@@ -91,7 +91,7 @@ def Zeppelin(diffPar,theta,phi,diffPerp,scheme):
             gd = scheme.raw[i,:3]
         #dot product of the cylinder orientation n and the wavenumber q
         dotqn= np.dot(n,gd)
-        zepSignal[i] = np.exp(-scheme.b*1E6*((diffPar-diffPerp)*dotqn**2 + diffPerp))
+        zepSignal[i] = np.exp(-scheme.b[i]*1E6*((diffPar-diffPerp)*dotqn**2 + diffPerp))
     return zepSignal
 
 def Ball(diff,scheme):
