@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
 import numpy.matlib as matlib
 import scipy
@@ -9,6 +11,7 @@ import amico.lut
 from amico.progressbar import ProgressBar
 from dipy.core.gradients import gradient_table
 from dipy.sims.voxel import single_tensor
+from dipy.utils.six.moves import xrange # see http://nipy.org/dipy/devel/python3.html
 import abc
 
 import warnings
@@ -25,6 +28,7 @@ except ImportError:
 
 
 class BaseModel( object ) :
+#class BaseModel( object, metaclass=abc.ABCMeta ) :
     """Basic class to build a model; new models should inherit from this class.
     All the methods need to be overloaded to account for the specific needs of the model.
     Each method will then be called by a dispatcher when needed.
@@ -1068,10 +1072,10 @@ class FreeWater( BaseModel ) :
             self.maps_descr = [ 'fiber volume fraction',
                                 'Isotropic free-water volume fraction']
 
-        print '      %s settings for Freewater elimination... ' % self.type
-        print '             -iso  compartments: ', self.d_isos
-        print '             -perp compartments: ', self.d_perps
-        print '             -para compartments: ', self.d_par
+        print('      %s settings for Freewater elimination... ' % self.type)
+        print('             -iso  compartments: ', self.d_isos)
+        print('             -perp compartments: ', self.d_perps)
+        print('             -para compartments: ', self.d_par)
 
 
     def set_solver( self, lambda1 = 0.0, lambda2 = 1e-3 ):

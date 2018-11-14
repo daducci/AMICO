@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
 import os.path
 
@@ -45,10 +47,10 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = 
     # if requested, round the b-values
     bStep = np.array(bStep, dtype = np.float)
     if bStep.size == 1 and bStep > 1.0:
-        print "-> Rounding b-values to nearest multiple of %s" % np.array_str(bStep)
+        print("-> Rounding b-values to nearest multiple of %s" % np.array_str(bStep))
         bvals = np.round(bvals/bStep) * bStep
     elif bStep.size > 1:
-        print "-> Setting b-values to the closest shell in %s" % np.array_str(bStep)
+        print("-> Setting b-values to the closest shell in %s" % np.array_str(bStep))
         for i in range(0, bvals.size):
             diff = min(abs(bvals[i] - bStep))
             ind = np.argmin(abs(bvals[i] - bStep))
@@ -56,11 +58,11 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = 
             # warn if b > 99 is set to 0, possible error
             if (bStep[ind] == 0.0 and diff > 100) or (bStep[ind] > 0.0 and diff > bStep[ind] / 20.0):
                 # For non-zero shells, warn if actual b-value is off by more than 5%. For zero shells, warn above 50. Assuming s / mm^2
-                print "   Warning: measurement %d has b-value %d, being forced to %d\n'" % i, bvals[i], bStep[ind]
+                print("   Warning: measurement %d has b-value %d, being forced to %d\n'" % i, bvals[i], bStep[ind])
 
             bvals[i] = bStep[ind]
 
     # write corresponding scheme file
     np.savetxt( schemeFilename, np.c_[bvecs.T, bvals], fmt="%.06f", delimiter="\t", header="VERSION: BVECTOR", comments='' )
-    print "-> Writing scheme file to [ %s ]" % schemeFilename
+    print("-> Writing scheme file to [ %s ]" % schemeFilename)
     return schemeFilename

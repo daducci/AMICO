@@ -1,10 +1,13 @@
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
 from os import makedirs
 from os.path import isdir, isfile, join as pjoin
-import cPickle
+import pickle
 from dipy.data.fetcher import dipy_home
 from dipy.core.geometry import cart2sphere
 from dipy.reconst.shm import real_sym_sh_basis
+from dipy.utils.six.moves import xrange # see http://nipy.org/dipy/devel/python3.html
 import amico.scheme
 
 
@@ -22,7 +25,7 @@ def precompute_rotation_matrices( lmax = 12 ) :
     if isfile( filename ) :
         return
 
-    print '\n-> Precomputing rotation matrices for l_max=%d:' % lmax
+    print('\n-> Precomputing rotation matrices for l_max=%d:' % lmax)
     AUX = {}
     AUX['lmax'] = lmax
 
@@ -51,9 +54,9 @@ def precompute_rotation_matrices( lmax = 12 ) :
             i += 1
 
     with open( filename, 'wb+' ) as fid :
-        cPickle.dump( AUX, fid, protocol=2 )
+        pickle.dump( AUX, fid, protocol=2 )
 
-    print '   [ DONE ]'
+    print('   [ DONE ]')
 
 
 def load_precomputed_rotation_matrices( lmax = 12 ) :
@@ -67,7 +70,7 @@ def load_precomputed_rotation_matrices( lmax = 12 ) :
     filename = pjoin( dipy_home, 'AMICO_aux_matrices_lmax=%d.pickle'%lmax )
     if not isfile( filename ) :
         raise RuntimeError( 'Auxiliary matrices not found; call "lut.precompute_rotation_matrices()" first.' )
-    return cPickle.load( open(filename,'rb') )
+    return pickle.load( open(filename,'rb') )
 
 
 def aux_structures_generate( scheme, lmax = 12 ) :
@@ -87,7 +90,7 @@ def aux_structures_generate( scheme, lmax = 12 ) :
     idx_OUT : numpy array
         Indices of the SH corresponding to each shell
     """
-    nSH = (lmax+1)*(lmax+2)/2
+    nSH = (lmax+1)*(lmax+2)//2
     idx_IN  = []
     idx_OUT = []
     for s in xrange( len(scheme.shells) ) :
@@ -113,7 +116,7 @@ def aux_structures_resample( scheme, lmax = 12 ) :
     Ylm_OUT : numpy array
         Operator to transform each shell from Spherical harmonics to original signal space
     """
-    nSH = (lmax+1)*(lmax+2)/2
+    nSH = (lmax+1)*(lmax+2)//2
     idx_OUT = np.zeros( scheme.dwi_count, dtype=np.int32 )
     Ylm_OUT = np.zeros( (scheme.dwi_count,nSH*len(scheme.shells)), dtype=np.float32 ) # matrix from SH to real space
     idx = 0
