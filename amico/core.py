@@ -141,7 +141,7 @@ class Evaluation :
         print('\n-> Preprocessing:')
 
         if self.get_config('doDebiasSignal') :
-            print '\t* Debiasing signal...\n',
+            print('\t* Debiasing signal...\n')
             sys.stdout.flush()
             if self.get_config('DWI-SNR') == None:
                 raise ValueError( "Set noise variance for debiasing (eg. ae.set_config('RicianNoiseSigma', sigma))" )
