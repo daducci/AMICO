@@ -34,7 +34,7 @@ def debiasRician(DWI,SNR,mask,scheme):
                     tmp = minimize(F_norm_Diff_K, init_guess, args=(init_guess,sigma_diff), method = 'L-BFGS-B', jac=der_Diff)
                     debiased_DWI[ix,iy,iz] = tmp.x
                     progress.update()
-    print '   [ %s ]' % ( time.strftime("%Hh %Mm %Ss", time.gmtime(time.time()-t) ) )
+    print('   [ %s ]' % ( time.strftime("%Hh %Mm %Ss", time.gmtime(time.time()-t) ) ))
     return debiased_DWI
 
 
