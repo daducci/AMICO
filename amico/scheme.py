@@ -95,30 +95,27 @@ class Scheme :
 
         # store information about each shell in a dictionary
         self.shells = []
-
-        tmp = np.ascontiguousarray( self.raw[:,3:] )
-        schemeUnique, schemeUniqueInd = np.unique( tmp.view([('', tmp.dtype)]*tmp.shape[1]), return_index=True )
-        schemeUnique = schemeUnique.view(tmp.dtype).reshape((schemeUnique.shape[0], tmp.shape[1]))
-        schemeUnique = [tmp[index] for index in sorted(schemeUniqueInd)]
-        bUnique = [self.b[index] for index in sorted(schemeUniqueInd)]
-        for i in xrange(len(schemeUnique)) :
-            if bUnique[i] <= b0_thr :
-                continue
+        
+        tmp1,tmp2 = np.unique(self.raw[:,3:],axis=0,return_index=True) # Find unique b-values or combinations of G, Delta, delta and TE (and the 1st index of each of those shells)
+        tmp1 = tmp1[self.b[tmp2] > 0,:] # Remove b0
+        tmp2 = tmp2[self.b[tmp2] > 0] # Remove b0
+        # For each shell, find its indexes, grad, b-value and shell parameters
+        for tmp3 in np.argsort(tmp2):
+            shell_features = tmp1[tmp3,:]
             shell = {}
-            shell['b'] = bUnique[i]
-            if self.version == 0 :
+            shell['idx'] = np.where((self.raw[:,3:] == shell_features).all(axis=1))
+            shell['grad'] = self.raw[shell['idx'],:3]
+            shell['b'] = np.unique(self.b[shell['idx']])[0]
+            if self.version == 0:
                 shell['G']     = None
                 shell['Delta'] = None
                 shell['delta'] = None
                 shell['TE']    = None
             else :
-                shell['G']     = schemeUnique[i][0]
-                shell['Delta'] = schemeUnique[i][1]
-                shell['delta'] = schemeUnique[i][2]
-                shell['TE']    = schemeUnique[i][3]
-
-            shell['idx']  = np.where((tmp == schemeUnique[i]).all(axis=1))[0]
-            shell['grad'] = self.raw[shell['idx'],0:3]
+                shell['G']     = shell_features[0]
+                shell['Delta'] = shell_features[1]
+                shell['delta'] = shell_features[2]
+                shell['TE']    = shell_features[3]
             self.shells.append( shell )
 
 
