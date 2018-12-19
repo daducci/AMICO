@@ -103,7 +103,7 @@ class Scheme :
         for tmp3 in np.argsort(tmp2):
             shell_features = tmp1[tmp3,:]
             shell = {}
-            shell['idx'] = np.where((self.raw[:,3:] == shell_features).all(axis=1))
+            shell['idx'] = np.where((self.raw[:,3:] == shell_features).all(axis=1))[0]
             shell['grad'] = self.raw[shell['idx'],:3]
             shell['b'] = np.unique(self.b[shell['idx']])[0]
             if self.version == 0:
