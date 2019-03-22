@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 from os import makedirs
+import sys
 from os.path import isdir, isfile, join as pjoin
 import pickle
 from dipy.data.fetcher import dipy_home
