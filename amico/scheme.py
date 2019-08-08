@@ -2,7 +2,6 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 from re import match as re_match
-from dipy.utils.six.moves import xrange # see http://nipy.org/dipy/devel/python3.html
 #import os.path
 
 class Scheme :
@@ -101,7 +100,7 @@ class Scheme :
         schemeUnique = schemeUnique.view(tmp.dtype).reshape((schemeUnique.shape[0], tmp.shape[1]))
         schemeUnique = [tmp[index] for index in sorted(schemeUniqueInd)]
         bUnique = [self.b[index] for index in sorted(schemeUniqueInd)]
-        for i in xrange(len(schemeUnique)) :
+        for i in range(len(schemeUnique)) :
             if bUnique[i] <= b0_thr :
                 continue
             shell = {}
@@ -125,5 +124,3 @@ class Scheme :
     @property
     def nS( self ) :
         return self.b0_count + self.dwi_count
-
-

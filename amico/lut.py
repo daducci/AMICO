@@ -8,7 +8,6 @@ import pickle
 from dipy.data.fetcher import dipy_home
 from dipy.core.geometry import cart2sphere
 from dipy.reconst.shm import real_sym_sh_basis
-from dipy.utils.six.moves import xrange # see http://nipy.org/dipy/devel/python3.html
 import amico.scheme
 
 
@@ -37,8 +36,8 @@ def precompute_rotation_matrices( lmax = 12 ) :
 
     # matrices to rotate the functions in SH space
     AUX['Ylm_rot'] = np.zeros( (181,181), dtype=np.object )
-    for ox in xrange(181) :
-        for oy in xrange(181) :
+    for ox in range(181) :
+        for oy in range(181) :
             tmp, _, _ = real_sym_sh_basis( lmax, ox/180.0*np.pi, oy/180.0*np.pi )
             AUX['Ylm_rot'][ox,oy] = tmp.reshape(-1)
 
@@ -46,10 +45,10 @@ def precompute_rotation_matrices( lmax = 12 ) :
     AUX['const'] = np.zeros( AUX['fit'].shape[0], dtype=np.float64 )
     AUX['idx_m0'] = np.zeros( AUX['fit'].shape[0], dtype=np.int32 )
     i = 0
-    for l in xrange(0,AUX['lmax']+1,2) :
+    for l in range(0,AUX['lmax']+1,2) :
         const  = np.sqrt(4.0*np.pi/(2.0*l+1.0))
         idx_m0 = (l*l + l + 2.0)/2.0 - 1
-        for m in xrange(-l,l+1) :
+        for m in range(-l,l+1) :
             AUX['const'][i]  = const
             AUX['idx_m0'][i] = idx_m0
             i += 1
@@ -100,7 +99,7 @@ def aux_structures_generate( scheme, lmax = 12 ) :
     nSH = (lmax+1)*(lmax+2)//2
     idx_IN  = []
     idx_OUT = []
-    for s in xrange( len(scheme.shells) ) :
+    for s in range( len(scheme.shells) ) :
         idx_IN.append( range(500*s,500*(s+1)) )
         idx_OUT.append( range(nSH*s,nSH*(s+1)) )
     return ( idx_IN, idx_OUT )
@@ -127,7 +126,7 @@ def aux_structures_resample( scheme, lmax = 12 ) :
     idx_OUT = np.zeros( scheme.dwi_count, dtype=np.int32 )
     Ylm_OUT = np.zeros( (scheme.dwi_count,nSH*len(scheme.shells)), dtype=np.float32 ) # matrix from SH to real space
     idx = 0
-    for s in xrange( len(scheme.shells) ) :
+    for s in range( len(scheme.shells) ) :
         nS = len( scheme.shells[s]['idx'] )
         idx_OUT[ idx:idx+nS ] = scheme.shells[s]['idx']
         _, theta, phi = cart2sphere( scheme.shells[s]['grad'][:,0], scheme.shells[s]['grad'][:,1], scheme.shells[s]['grad'][:,2] )
@@ -161,7 +160,7 @@ def rotate_kernel( K, AUX, idx_IN, idx_OUT, is_isotropic ) :
     """
     # project kernel K to SH space
     Klm = []
-    for s in xrange(len(idx_IN)) :
+    for s in range(len(idx_IN)) :
         Klm.append( np.dot( AUX['fit'], K[ idx_IN[s] ] ) )
 
     n = len(idx_IN)*AUX['fit'].shape[0]
@@ -169,15 +168,15 @@ def rotate_kernel( K, AUX, idx_IN, idx_OUT, is_isotropic ) :
     if is_isotropic == False :
         # fit SH and rotate kernel to 181*181 directions
         KRlm = np.zeros( (181,181,n), dtype=np.float32 )
-        for ox in xrange(181) :
-            for oy in xrange(181) :
+        for ox in range(181) :
+            for oy in range(181) :
                 Ylm_rot = AUX['Ylm_rot'][ox,oy]
-                for s in xrange(len(idx_IN)) :
+                for s in range(len(idx_IN)) :
                     KRlm[ox,oy,idx_OUT[s]] = AUX['const'] * Klm[s][AUX['idx_m0']] * Ylm_rot
     else :
         # simply fit SH
         KRlm = np.zeros( n, dtype=np.float32 )
-        for s in xrange(len(idx_IN)) :
+        for s in range(len(idx_IN)) :
             KRlm[idx_OUT[s]] = Klm[s].astype(np.float32)
 
     return KRlm
@@ -206,8 +205,8 @@ def resample_kernel( KRlm, nS, idx_out, Ylm_out, is_isotropic ) :
     """
     if is_isotropic == False :
         KR = np.ones( (181,181,nS), dtype=np.float32 )
-        for ox in xrange(181) :
-            for oy in xrange(181) :
+        for ox in range(181) :
+            for oy in range(181) :
                 KR[ox,oy,idx_out] = np.dot( Ylm_out, KRlm[ox,oy,:] ).astype(np.float32)
     else :
         KR = np.ones( nS, dtype=np.float32 )
@@ -266,7 +265,7 @@ def create_high_resolution_scheme( scheme, b_scale = 1 ) :
     n = len( scheme.shells )
     raw = np.zeros( (500*n, 4 if scheme.version==0 else 7) )
     row = 0
-    for i in xrange(n) :
+    for i in range(n) :
         raw[row:row+500,0:3] = grad
         if scheme.version == 0 :
             raw[row:row+500,3] = scheme.shells[i]['b'] * b_scale
