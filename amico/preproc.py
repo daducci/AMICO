@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy as np
 from scipy.optimize import minimize
 import scipy.special
@@ -36,5 +38,3 @@ def debiasRician(DWI,SNR,mask,scheme):
                     progress.update()
     print('   [ %s ]' % ( time.strftime("%Hh %Mm %Ss", time.gmtime(time.time()-t) ) ))
     return debiased_DWI
-
-

@@ -11,7 +11,6 @@ import amico.lut
 from amico.progressbar import ProgressBar
 from dipy.core.gradients import gradient_table
 from dipy.sims.voxel import single_tensor
-from dipy.utils.six.moves import xrange # see http://nipy.org/dipy/devel/python3.html
 import abc
 
 import warnings
@@ -255,13 +254,13 @@ class StickZeppelinBall( BaseModel ) :
         progress.update()
 
         # Zeppelin(s)
-        for i in xrange(len(self.ICVFs)) :
+        for i in range(len(self.ICVFs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             KERNELS['wmh'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
             progress.update()
 
         # Ball(s)
-        for i in xrange(len(self.d_ISOs)) :
+        for i in range(len(self.d_ISOs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             KERNELS['iso'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )[merge_idx]
             progress.update()
@@ -400,19 +399,19 @@ class CylinderZeppelinBall( BaseModel ) :
         progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
 
         # Cylinder(s)
-        for i in xrange(len(self.Rs)) :
+        for i in range(len(self.Rs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             KERNELS['wmr'][i,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
             progress.update()
 
         # Zeppelin(s)
-        for i in xrange(len(self.ICVFs)) :
+        for i in range(len(self.ICVFs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             KERNELS['wmh'][i,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
             progress.update()
 
         # Ball(s)
-        for i in xrange(len(self.d_ISOs)) :
+        for i in range(len(self.d_ISOs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             KERNELS['iso'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )[merge_idx]
             progress.update()
@@ -432,11 +431,11 @@ class CylinderZeppelinBall( BaseModel ) :
         # prepare DICTIONARY from dirs and lookup tables
         A = np.ones( (len(y), nATOMS ), dtype=np.float64, order='F' )
         o = 0
-        for i in xrange(nD) :
+        for i in range(nD) :
             i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
             A[:,o:(o+n1)] = KERNELS['wmr'][:,i1,i2,:].T
             o += n1
-        for i in xrange(nD) :
+        for i in range(nD) :
             i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
             A[:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,:].T
             o += n2
@@ -554,8 +553,8 @@ class NODDI( BaseModel ) :
         progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
 
         # Coupled contributions
-        for i in xrange( len(self.IC_ODs) ):
-            for j in xrange( len(self.IC_VFs) ):
+        for i in range( len(self.IC_ODs) ):
+            for j in range( len(self.IC_VFs) ):
                 lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
                 idx = progress.i - 1
                 KERNELS['wm'][idx,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
@@ -1130,13 +1129,13 @@ class FreeWater( BaseModel ) :
         progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
 
         # Tensor compartment(s)
-        for i in xrange(len(self.d_perps)) :
+        for i in range(len(self.d_perps)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             KERNELS['D'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
             progress.update()
 
         # Isotropic compartment(s)
-        for i in xrange(len(self.d_isos)) :
+        for i in range(len(self.d_isos)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             KERNELS['CSF'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )[merge_idx]
             progress.update()

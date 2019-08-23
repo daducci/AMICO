@@ -15,7 +15,7 @@ import amico.models
 from amico.progressbar import ProgressBar
 from dipy.core.gradients import gradient_table
 import dipy.reconst.dti as dti
-from dipy.utils.six.moves import xrange # see http://nipy.org/dipy/devel/python3.html
+
 
 def setup( lmax = 12 ) :
     """General setup/initialization of the AMICO framework."""
@@ -37,7 +37,7 @@ class Evaluation :
         subject : string
             The path (relative to previous folder) to the subject folder
         OUTPUT_path : string
-            Optionally sets a custom full path for the output. Leave as None 
+            Optionally sets a custom full path for the output. Leave as None
             for default behaviour - output in study_path/subject/AMICO/<MODEL>
         """
         self.niiDWI      = None # set by "load_data" method
@@ -73,7 +73,7 @@ class Evaluation :
         return self.CONFIG.get( key )
 
 
-    def load_data( self, dwi_filename = 'DWI.nii', 
+    def load_data( self, dwi_filename = 'DWI.nii',
                    scheme_filename = 'DWI.scheme', mask_filename = None, b0_thr = 0 ) :
         """Load the diffusion signal and its corresponding acquisition scheme.
 
@@ -115,7 +115,7 @@ class Evaluation :
         self.scheme = amico.scheme.Scheme( pjoin( self.get_config('DATA_path'), scheme_filename), b0_thr )
         print('\t\t- %d samples, %d shells' % ( self.scheme.nS, len(self.scheme.shells) ))
         print('\t\t- %d @ b=0' % ( self.scheme.b0_count ), end=' ')
-        for i in xrange(len(self.scheme.shells)) :
+        for i in range(len(self.scheme.shells)) :
             print(', %d @ b=%.1f' % ( len(self.scheme.shells[i]['idx']), self.scheme.shells[i]['b'] ), end=' ')
         print()
 
@@ -159,7 +159,7 @@ class Evaluation :
             norm_factor[ idx ] = 1
             norm_factor = 1 / norm_factor
             norm_factor[ idx ] = 0
-            for i in xrange(self.scheme.nS) :
+            for i in range(self.scheme.nS) :
                 self.niiDWI_img[:,:,:,i] *= norm_factor
             print('[ min=%.2f,  mean=%.2f, max=%.2f ]' % ( self.niiDWI_img.min(), self.niiDWI_img.mean(), self.niiDWI_img.max() ))
 
@@ -303,11 +303,11 @@ class Evaluation :
                 raise ValueError( 'PEAKS geometry does not match with DWI data' )
 
         # setup other output files
-        MAPs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], 
+        MAPs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1],
                           self.get_config('dim')[2], len(self.model.maps_name)], dtype=np.float32 )
 
         if self.get_config('doComputeNRMSE') :
-            NRMSE = np.zeros( [self.get_config('dim')[0], 
+            NRMSE = np.zeros( [self.get_config('dim')[0],
                                self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32 )
 
         if self.get_config('doSaveCorrectedDWI') :
@@ -318,9 +318,9 @@ class Evaluation :
         # =========================
         t = time.time()
         progress = ProgressBar( n=totVoxels, prefix="   ", erase=True )
-        for iz in xrange(self.niiMASK_img.shape[2]) :
-            for iy in xrange(self.niiMASK_img.shape[1]) :
-                for ix in xrange(self.niiMASK_img.shape[0]) :
+        for iz in range(self.niiMASK_img.shape[2]) :
+            for iy in range(self.niiMASK_img.shape[1]) :
+                for ix in range(self.niiMASK_img.shape[0]) :
                     if self.niiMASK_img[ix,iy,iz]==0 :
                         continue
 
@@ -356,7 +356,7 @@ class Evaluation :
                                 y_fw_corrected = np.dot( A, x )
 
                             if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
-                                # put original b0 data back in. 
+                                # put original b0 data back in.
                                 y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*self.mean_b0s[ix,iy,iz]
 
                             DWI_corrected[ix,iy,iz,:] = y_fw_corrected
@@ -455,7 +455,7 @@ class Evaluation :
                 print('          doSaveCorrectedDWI option not supported for %s model' % self.model.name)
 
         # voxelwise maps
-        for i in xrange( len(self.model.maps_name) ) :
+        for i in range( len(self.model.maps_name) ) :
             print('\t- FIT_%s.nii.gz' % self.model.maps_name[i], end=' ')
             niiMAP_img = self.RESULTS['MAPs'][:,:,:,i]
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine )
