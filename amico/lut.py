@@ -73,7 +73,11 @@ def load_precomputed_rotation_matrices( lmax = 12 ) :
     with open( filename, 'rb' ) as rotation_matrices_file:
         if sys.version_info.major == 3:
             aux = pickle.load( rotation_matrices_file, fix_imports=True, encoding='bytes' )
-            result_aux = {k.decode(): v for k, v in aux.items()}
+            # Pickle files written by Python 2 are loaded with byte
+            # keys, whereas those written by Python 3 are loaded with
+            # str keys, even when both are written using protocol=2 as
+            # in precompute_rotation_matrices
+            result_aux = {(k.decode() if hasattr(k,"decode") else k): v for k, v in aux.items()}
             return result_aux
         else:
             return pickle.load( rotation_matrices_file )
