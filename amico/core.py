@@ -249,7 +249,7 @@ class Evaluation :
 
         # Dispatch to the right handler for each model
         tic = time.time()
-        self.model.generate( self.get_config('ATOMS_path'), aux, idx_IN, idx_OUT )
+        self.model.generate( self.get_config('ATOMS_path'), aux, idx_IN, idx_OUT, self.ndirs )
         print('   [ %.1f seconds ]' % ( time.time() - tic ))
 
 
