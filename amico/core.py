@@ -17,9 +17,9 @@ from dipy.core.gradients import gradient_table
 import dipy.reconst.dti as dti
 
 
-def setup( lmax = 12 ) :
+def setup( lmax = 12, ndirs = 32761 ) :
     """General setup/initialization of the AMICO framework."""
-    amico.lut.precompute_rotation_matrices( lmax )
+    amico.lut.precompute_rotation_matrices( lmax, ndirs )
 
 
 class Evaluation :
@@ -27,7 +27,7 @@ class Evaluation :
     evaluation with the AMICO framework.
     """
 
-    def __init__( self, study_path, subject, output_path=None ) :
+    def __init__( self, study_path, subject, ndirs = 32761, output_path=None ) :
         """Setup the data structure with default values.
 
         Parameters
@@ -39,7 +39,14 @@ class Evaluation :
         OUTPUT_path : string
             Optionally sets a custom full path for the output. Leave as None
             for default behaviour - output in study_path/subject/AMICO/<MODEL>
+        lmax : int
+            Maximum SH order to use for the rotation procedure (default : 12)
+        ndirs : int
+            Number of directions in the half of the sphere (default : 32761)
         """
+        self.ndirs = ndirs
+        self.htable = None
+
         self.niiDWI      = None # set by "load_data" method
         self.niiDWI_img  = None
         self.scheme      = None
@@ -237,7 +244,7 @@ class Evaluation :
                 remove( f )
 
         # auxiliary data structures
-        aux = amico.lut.load_precomputed_rotation_matrices( lmax )
+        aux = amico.lut.load_precomputed_rotation_matrices( lmax, self.ndirs )
         idx_IN, idx_OUT = amico.lut.aux_structures_generate( self.scheme, lmax )
 
         # Dispatch to the right handler for each model
@@ -261,8 +268,11 @@ class Evaluation :
         # auxiliary data structures
         idx_OUT, Ylm_OUT = amico.lut.aux_structures_resample( self.scheme, self.get_config('lmax') )
 
+        # hash table
+        self.htable = amico.lut.load_precomputed_hash_table(self.ndirs)
+
         # Dispatch to the right handler for each model
-        self.KERNELS = self.model.resample( self.get_config('ATOMS_path'), idx_OUT, Ylm_OUT, self.get_config('doMergeB0') )
+        self.KERNELS = self.model.resample( self.get_config('ATOMS_path'), idx_OUT, Ylm_OUT, self.get_config('doMergeB0'), self.ndirs )
 
         print('   [ %.1f seconds ]' % ( time.time() - tic ))
 
