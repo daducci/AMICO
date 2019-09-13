@@ -11,8 +11,18 @@ from dipy.reconst.shm import real_sym_sh_basis
 import amico.scheme
 
 def load_directions(ndirs):
-    """ndirs : int
-        Number of directions in the sample on the half of the sphere (default : 32761)"""
+    """Load the directions on the half of the sphere
+
+    Parameters
+    ----------
+    ndirs : int
+        Number of directions in the sample
+
+    Returns
+    -------
+    directions : np.array(shape=(ndirs, 3))
+        Array with the 3D directions
+    """
     amicopath = amico.__file__
     amicopath = amicopath[0 : len(amicopath)-12] + 'directions/'
 
@@ -22,6 +32,29 @@ def load_directions(ndirs):
     directions = np.reshape(directions, (ndirs, 3))
 
     return directions
+
+def load_precomputed_hash_table(ndirs):
+    """Load the pre-computed hash table to map high resolution directions into low resolution directions
+
+    Parameters
+    ----------
+    ndirs : int
+        Number of low resolution directions
+
+    Returns
+    -------
+    hash_table : np.array(shape=ndirs)
+        Array with the indexes for every high resolution direction
+    """
+    amicopath = amico.__file__
+    amicopath = amicopath[0 : len(amicopath)-12] + 'directions/'
+
+    filename = 'htable_ndirs=%d.bin' % ndirs
+
+    print(amicopath + filename)
+    hash_table = np.fromfile(amicopath + filename, dtype=np.int16)
+
+    return hash_table
 
 def precompute_rotation_matrices( lmax = 12 ) :
     """Precompute the rotation matrices to rotate the high-resolution kernels (500 directions/shell).
