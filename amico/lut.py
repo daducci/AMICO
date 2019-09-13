@@ -10,6 +10,18 @@ from dipy.core.geometry import cart2sphere
 from dipy.reconst.shm import real_sym_sh_basis
 import amico.scheme
 
+def load_directions(ndirs):
+    """ndirs : int
+        Number of directions in the sample on the half of the sphere (default : 32761)"""
+    amicopath = amico.__file__
+    amicopath = amicopath[0 : len(amicopath)-12] + 'directions/'
+
+    filename = 'ndirs=%d.bin' % ndirs
+
+    directions = np.fromfile(amicopath + filename, dtype=np.float64)
+    directions = np.reshape(directions, (ndirs, 3))
+
+    return directions
 
 def precompute_rotation_matrices( lmax = 12 ) :
     """Precompute the rotation matrices to rotate the high-resolution kernels (500 directions/shell).
