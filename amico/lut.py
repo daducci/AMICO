@@ -223,7 +223,7 @@ def rotate_kernel( K, AUX, idx_IN, idx_OUT, is_isotropic, ndirs ) :
         # fit SH and rotate kernel to 181*181 directions
         KRlm = np.zeros( (ndirs,n), dtype=np.float32 )
         for i in range(ndirs) :
-            Ylm_rot = AUX['Ylm_rot'][ox,oy]
+            Ylm_rot = AUX['Ylm_rot'][i]
             for s in range(len(idx_IN)) :
                 KRlm[i,idx_OUT[s]] = AUX['const'] * Klm[s][AUX['idx_m0']] * Ylm_rot
     else :
