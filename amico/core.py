@@ -347,17 +347,25 @@ class Evaluation :
 
                         if self.model.name == 'Free-Water' :
                             n_iso = len(self.model.d_isos)
-                            x[-1*n_iso:] = 0
+                            
+                            # keep only FW components of the estimate
+                            x[0:x.shape[0]-n_iso] = 0
+                            
+                            # y_fw_corrected below is the predicted signal by the anisotropic part (no iso part)
+                            y_fw_part = np.dot( A, x )
+                            
+                            # y is the original signal
+                            y_fw_corrected = y - y_fw_part
+                            y_fw_corrected[ y_fw_corrected < 0 ] = 0 # [NOTE] this should not happen!
 
                             #print(y, x, b0, A.shape)
                             if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
-                                y_fw_corrected = np.dot( A, x ) * self.mean_b0s[ix,iy,iz]
-                            else :
-                                y_fw_corrected = np.dot( A, x )
-
+                                y_fw_corrected = y_fw_corrected * self.mean_b0s[ix,iy,iz]
+                                
                             if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
                                 # put original b0 data back in.
                                 y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*self.mean_b0s[ix,iy,iz]
+                            
 
                             DWI_corrected[ix,iy,iz,:] = y_fw_corrected
 
