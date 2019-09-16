@@ -27,7 +27,7 @@ class Evaluation :
     evaluation with the AMICO framework.
     """
 
-    def __init__( self, study_path, subject, ndirs = 32761, output_path=None ) :
+    def __init__( self, study_path, subject, output_path=None ) :
         """Setup the data structure with default values.
 
         Parameters
@@ -36,15 +36,10 @@ class Evaluation :
             The path to the folder containing all the subjects from one study
         subject : string
             The path (relative to previous folder) to the subject folder
-        OUTPUT_path : string
+        output_path : string
             Optionally sets a custom full path for the output. Leave as None
             for default behaviour - output in study_path/subject/AMICO/<MODEL>
-        lmax : int
-            Maximum SH order to use for the rotation procedure (default : 12)
-        ndirs : int
-            Number of directions in the half of the sphere (default : 32761)
         """
-        self.ndirs = ndirs
         self.htable = None
 
         self.niiDWI      = None # set by "load_data" method
@@ -209,7 +204,7 @@ class Evaluation :
         self.set_config('solver_params', self.model.set_solver( **params ))
 
 
-    def generate_kernels( self, regenerate = False, lmax = 12 ) :
+    def generate_kernels( self, regenerate = False, lmax = 12, ndirs = 32761 ) :
         """Generate the high-resolution response functions for each compartment.
         Dispatch to the proper function, depending on the model.
 
@@ -219,7 +214,9 @@ class Evaluation :
             Regenerate kernels if they already exist (default : False)
         lmax : int
             Maximum SH order to use for the rotation procedure (default : 12)
-        """
+        ndirs : int
+            Number of directions in the half of the sphere (default : 32761)
+         """
         if self.scheme is None :
             raise RuntimeError( 'Scheme not loaded; call "load_data()" first.' )
         if self.model is None :
@@ -227,6 +224,7 @@ class Evaluation :
 
         # store some values for later use
         self.set_config('lmax', lmax)
+        self.set_config('ndirs', ndirs)
         self.model.scheme = self.scheme
         print('\n-> Creating LUT for "%s" model:' % self.model.name)
 
@@ -244,12 +242,12 @@ class Evaluation :
                 remove( f )
 
         # auxiliary data structures
-        aux = amico.lut.load_precomputed_rotation_matrices( lmax, self.ndirs )
+        aux = amico.lut.load_precomputed_rotation_matrices( lmax, ndirs )
         idx_IN, idx_OUT = amico.lut.aux_structures_generate( self.scheme, lmax )
 
         # Dispatch to the right handler for each model
         tic = time.time()
-        self.model.generate( self.get_config('ATOMS_path'), aux, idx_IN, idx_OUT, self.ndirs )
+        self.model.generate( self.get_config('ATOMS_path'), aux, idx_IN, idx_OUT, ndirs )
         print('   [ %.1f seconds ]' % ( time.time() - tic ))
 
 
@@ -269,10 +267,10 @@ class Evaluation :
         idx_OUT, Ylm_OUT = amico.lut.aux_structures_resample( self.scheme, self.get_config('lmax') )
 
         # hash table
-        self.htable = amico.lut.load_precomputed_hash_table(self.ndirs)
+        self.htable = amico.lut.load_precomputed_hash_table( self.get_config('ndirs') )
 
         # Dispatch to the right handler for each model
-        self.KERNELS = self.model.resample( self.get_config('ATOMS_path'), idx_OUT, Ylm_OUT, self.get_config('doMergeB0'), self.ndirs )
+        self.KERNELS = self.model.resample( self.get_config('ATOMS_path'), idx_OUT, Ylm_OUT, self.get_config('doMergeB0'), self.get_config('ndirs') )
 
         print('   [ %.1f seconds ]' % ( time.time() - tic ))
 
@@ -345,7 +343,7 @@ class Evaluation :
                         dirs = DIRs[ix,iy,iz,:]
 
                     # dispatch to the right handler for each model
-                    MAPs[ix,iy,iz,:], DIRs[ix,iy,iz,:], x, A = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, self.get_config('solver_params') )
+                    MAPs[ix,iy,iz,:], DIRs[ix,iy,iz,:], x, A = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, self.get_config('solver_params'), self.htable )
 
                     # compute fitting error
                     if self.get_config('doComputeNRMSE') :
@@ -370,7 +368,6 @@ class Evaluation :
                                 y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*self.mean_b0s[ix,iy,iz]
 
                             DWI_corrected[ix,iy,iz,:] = y_fw_corrected
-
 
                     progress.update()
 

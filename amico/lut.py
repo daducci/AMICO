@@ -68,8 +68,8 @@ def precompute_rotation_matrices( lmax = 12, ndirs = 32761 ) :
     if not isdir(dipy_home) :
         makedirs(dipy_home)
     filename = pjoin( dipy_home, 'AMICO_aux_matrices_lmax=%d_ndirs=%d.pickle' % (lmax,ndirs) )
-    if isfile( filename ) :
-        return
+    """if isfile( filename ) :
+        return"""
 
     directions = load_directions(ndirs)
 
@@ -83,7 +83,7 @@ def precompute_rotation_matrices( lmax = 12, ndirs = 32761 ) :
     AUX['fit'] = np.dot( np.linalg.pinv( np.dot(tmp.T,tmp) ), tmp.T )
 
     # matrices to rotate the functions in SH space
-    AUX['Ylm_rot'] = np.zeros( (181,181), dtype=np.object )
+    AUX['Ylm_rot'] = np.zeros( ndirs, dtype=np.object )
     for i in range(ndirs):
         _, theta, phi = cart2sphere(directions[i][0], directions[i][1], directions[i][2])
         tmp, _, _ = real_sym_sh_basis( lmax, theta, phi )
@@ -304,7 +304,7 @@ def dir_TO_lut_idx( direction, htable ) :
     if i1<0 or i1>180 or i2<0 or i2>180 :
         raise Exception( '[amico.lut.dir_TO_lut_idx] index out of bounds (%d,%d)' % (i1,i2) )
 
-    return htable[i1, i2]
+    return htable[i1*181 + i2]
 
 
 def create_high_resolution_scheme( scheme, b_scale = 1 ) :
