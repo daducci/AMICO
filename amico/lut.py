@@ -21,7 +21,7 @@ def load_directions(ndirs):
     Returns
     -------
     directions : np.array(shape=(ndirs, 3))
-        Array with the 3D directions
+        Array with the 3D directions in cartesian coordinates
     """
     amicopath = amico.__file__
     amicopath = amicopath[0 : len(amicopath)-12] + 'directions/'
@@ -68,14 +68,15 @@ def precompute_rotation_matrices( lmax = 12, ndirs = 32761 ) :
     if not isdir(dipy_home) :
         makedirs(dipy_home)
     filename = pjoin( dipy_home, 'AMICO_aux_matrices_lmax=%d_ndirs=%d.pickle' % (lmax,ndirs) )
-    """if isfile( filename ) :
-        return"""
+    if isfile( filename ) :
+        return
 
     directions = load_directions(ndirs)
 
     print('\n-> Precomputing rotation matrices for l_max=%d:' % lmax)
     AUX = {}
     AUX['lmax'] = lmax
+    AUX['ndirs'] = ndirs
 
     # matrix to fit the SH coefficients
     _, theta, phi = cart2sphere( grad[:,0], grad[:,1], grad[:,2] )

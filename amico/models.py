@@ -98,6 +98,8 @@ class BaseModel( object ) :
             Indices of the samples belonging to each shell
         idx_out : array
             Indices of the SH coefficients corresponding to each shell
+        ndirs : int
+            Number of directions on the half of the sphere
         """
         return
 
