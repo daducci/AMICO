@@ -105,7 +105,7 @@ class BaseModel( object ) :
 
 
     @abc.abstractmethod
-    def resample( self, in_path, idx_out, Ylm_out, doMergeB0 ) :
+    def resample( self, in_path, idx_out, Ylm_out, doMergeB0, ndirs ) :
         """For projecting the LUT to the subject space.
         NB: do not change the signature!
 
