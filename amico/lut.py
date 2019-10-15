@@ -10,6 +10,26 @@ from dipy.core.geometry import cart2sphere
 from dipy.reconst.shm import real_sym_sh_basis
 import amico.scheme
 
+def is_valid(ndirs):
+    """Check if the given ndirs value is supported by AMICO
+
+    Parameters
+    ----------
+    ndirs : int
+        Number of directions
+
+    Returns
+    -------
+    A bool value which indicates if the number of directions is supported
+    """
+    valid_values = np.arange(start=500, stop=10500, step=500).tolist() + [32761]
+
+    for value in valid_values:
+        if ndirs == value:
+            return True
+
+    return False
+
 def load_directions(ndirs):
     """Load the directions on the half of the sphere
 
@@ -55,7 +75,7 @@ def load_precomputed_hash_table(ndirs):
 
     return hash_table
 
-def precompute_rotation_matrices( lmax = 12, ndirs = 32761 ) :
+def precompute_rotation_matrices( lmax, ndirs ) :
     """Precompute the rotation matrices to rotate the high-resolution kernels (500 directions/shell).
 
     Parameters
@@ -108,7 +128,7 @@ def precompute_rotation_matrices( lmax = 12, ndirs = 32761 ) :
     print('   [ DONE ]')
 
 
-def load_precomputed_rotation_matrices( lmax = 12, ndirs = 32761 ) :
+def load_precomputed_rotation_matrices( lmax, ndirs ) :
     """Load precomputed the rotation matrices to rotate the high-resolution kernels.
 
     Parameters
