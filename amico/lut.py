@@ -44,7 +44,11 @@ def load_directions(ndirs):
         Array with the 3D directions in cartesian coordinates
     """
     amicopath = amico.__file__
-    amicopath = amicopath[0 : len(amicopath)-12] + 'directions/'
+    pos = len(amicopath) - 1
+    while(amicopath[pos] != '/'):
+        pos = pos - 1
+
+    amicopath = amicopath[0 : pos] + '/directions/'
 
     filename = 'ndirs=%d.bin' % ndirs
 
@@ -67,7 +71,11 @@ def load_precomputed_hash_table(ndirs):
         Array with the indexes for every high resolution direction
     """
     amicopath = amico.__file__
-    amicopath = amicopath[0 : len(amicopath)-12] + 'directions/'
+    pos = len(amicopath) - 1
+    while(amicopath[pos] != '/'):
+        pos = pos - 1
+
+    amicopath = amicopath[0 : pos] + '/directions/'
 
     filename = 'htable_ndirs=%d.bin' % ndirs
 
