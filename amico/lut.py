@@ -289,11 +289,18 @@ def resample_kernel( KRlm, nS, idx_out, Ylm_out, is_isotropic, ndirs ) :
     """
     if is_isotropic == False :
         KR = np.ones( (ndirs,nS), dtype=np.float32 )
-        for i in range(ndirs) :
-            KR[i,idx_out] = np.dot( Ylm_out, KRlm[i,:] ).astype(np.float32)
+        try:
+            for i in range(ndirs) :
+                KR[i,idx_out] = np.dot( Ylm_out, KRlm[i,:] ).astype(np.float32)
+        except:
+            raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
     else :
         KR = np.ones( nS, dtype=np.float32 )
-        KR[idx_out] = np.dot( Ylm_out, KRlm ).astype(np.float32)
+        try:
+            for i in range(ndirs) :
+                KR[idx_out] = np.dot( Ylm_out, KRlm ).astype(np.float32)
+        except:
+            raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
     return KR
 
 

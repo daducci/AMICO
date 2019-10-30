@@ -252,12 +252,16 @@ class StickZeppelinBall( BaseModel ) :
 
         # Stick
         lm = np.load( pjoin( in_path, 'A_001.npy' ) )
+        if lm.shape[0] != ndirs:
+            raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
         KERNELS['wmr'][0,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
         progress.update()
 
         # Zeppelin(s)
         for i in range(len(self.ICVFs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
+            if lm.shape[0] != ndirs:
+                raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
             KERNELS['wmh'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
             progress.update()
 
@@ -403,12 +407,16 @@ class CylinderZeppelinBall( BaseModel ) :
         # Cylinder(s)
         for i in range(len(self.Rs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
+            if lm.shape[0] != ndirs:
+                raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
             KERNELS['wmr'][i,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
             progress.update()
 
         # Zeppelin(s)
         for i in range(len(self.ICVFs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
+            if lm.shape[0] != ndirs:
+                raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
             KERNELS['wmh'][i,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
             progress.update()
 
@@ -558,6 +566,8 @@ class NODDI( BaseModel ) :
         for i in range( len(self.IC_ODs) ):
             for j in range( len(self.IC_VFs) ):
                 lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
+                if lm.shape[0] != ndirs:
+                    raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
                 idx = progress.i - 1
                 KERNELS['wm'][idx,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
                 KERNELS['kappa'][idx] = 1.0 / np.tan( self.IC_ODs[i]*np.pi/2.0 )
@@ -1133,6 +1143,8 @@ class FreeWater( BaseModel ) :
         # Tensor compartment(s)
         for i in range(len(self.d_perps)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
+            if lm.shape[0] != ndirs:
+                raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
             KERNELS['D'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
             progress.update()
 

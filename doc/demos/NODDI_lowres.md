@@ -15,7 +15,7 @@ ae = amico.Evaluation("Study01", "Subject01")
 
 amico.util.fsl2scheme("Study01/Subject01/NODDI_protocol.bval", "Study01/Subject01/NODDI_protocol.bvec")
 
-ae.load_data(dwi_filename = "NODDI_DWI.img", scheme_filename = "NODDI_protocol.scheme", mask_filename = "brain_mask.img", b0_thr = 0)
+ae.load_data(dwi_filename = "NODDI_DWI.img", scheme_filename = "NODDI_protocol.scheme", mask_filename = "roi_mask.img", b0_thr = 0)
 
 ae.set_model("NODDI")
 ae.generate_kernels()
