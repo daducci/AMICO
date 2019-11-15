@@ -10,7 +10,7 @@ This version of AMICO *is not compatible* with [COMMIT](https://github.com/daduc
 - Changelog file to keep tracking of the AMICO versions.
  
 ### Changed
-- New feature how allows to decrease the LUT resolution. [Example here.](https://github.com/ErickHernandezGutierrez/AMICO/blob/lowresLUT/doc/demos/NODDI_lowres.md)
+- New feature that allows to decrease the LUT resolution. [Example here.](https://github.com/ErickHernandezGutierrez/AMICO/blob/lowresLUT/doc/demos/NODDI_lowres.md)
  
 ### Fixed
 - Nothing.
