@@ -19,7 +19,16 @@ import dipy.reconst.dti as dti
 
 
 def setup( lmax = 12, ndirs = 32761 ) :
-    """General setup/initialization of the AMICO framework."""
+    """General setup/initialization of the AMICO framework.
+    
+    Parameters
+    ----------
+    lmax : int
+        Maximum SH order to use for the rotation phase (default : 12)
+    ndirs : int
+        Number of directions on the half of the sphere (default : 32761)
+    
+    """
     if not is_valid(ndirs):
         raise RuntimeError( 'Unsupported value for ndirs.\nNote: Supported values for ndirs are [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 32761 (default)]' )
     

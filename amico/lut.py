@@ -142,11 +142,22 @@ def load_precomputed_rotation_matrices( lmax, ndirs ) :
     Parameters
     ----------
     lmax : int
-        Maximum SH order to use for the rotation phase (default : 12)
+        Maximum SH order to use for the rotation phase
+    ndirs : int
+        Number of directions on the half of the sphere
     """
     filename = pjoin( dipy_home, 'AMICO_aux_matrices_lmax=%d_ndirs=%d.pickle' % (lmax,ndirs) )
     if not isfile( filename ) :
-        raise RuntimeError( 'Auxiliary matrices not found; call "lut.precompute_rotation_matrices()" first.' )
+        str_lmax = ''
+        str_ndirs = ''
+        str_sep = ''
+        if lmax != 12:
+            str_lmax = 'lmax={}'.format(lmax)
+        if ndirs != 32761:
+            str_ndirs = 'ndirs={}'.format(ndirs)
+        if str_lmax != '' and str_ndirs != '':
+            str_sep = ' , '
+        raise RuntimeError( 'Auxiliary matrices not found; call "amico.core.setup({}{}{})" first.'.format(str_lmax, str_sep, str_ndirs) )
     with open( filename, 'rb' ) as rotation_matrices_file:
         if sys.version_info.major == 3:
             aux = pickle.load( rotation_matrices_file, fix_imports=True, encoding='bytes' )
