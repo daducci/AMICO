@@ -16,7 +16,7 @@ def is_valid(ndirs):
     Parameters
     ----------
     ndirs : int
-        Number of directions
+        Number of directions on the half of the sphere representing the possible orientations of the response functions
 
     Returns
     -------
@@ -36,7 +36,7 @@ def load_directions(ndirs):
     Parameters
     ----------
     ndirs : int
-        Number of directions in the sample
+        Number of directions on the half of the sphere representing the possible orientations of the response functions
 
     Returns
     -------
@@ -63,7 +63,7 @@ def load_precomputed_hash_table(ndirs):
     Parameters
     ----------
     ndirs : int
-        Number of low resolution directions
+        Number of directions on the half of the sphere representing the possible orientations of the response functions
 
     Returns
     -------
@@ -91,7 +91,7 @@ def precompute_rotation_matrices( lmax, ndirs ) :
     lmax : int
         Maximum SH order to use for the rotation phase (default : 12)
     ndirs : int
-        Number of directions on the half of the sphere (default : 32761)
+        Number of directions on the half of the sphere representing the possible orientations of the response functions (default : 32761)
     """
     if not isdir(dipy_home) :
         makedirs(dipy_home)
@@ -144,7 +144,7 @@ def load_precomputed_rotation_matrices( lmax, ndirs ) :
     lmax : int
         Maximum SH order to use for the rotation phase
     ndirs : int
-        Number of directions on the half of the sphere
+        Number of directions on the half of the sphere representing the possible orientations of the response functions
     """
     filename = pjoin( dipy_home, 'AMICO_aux_matrices_lmax=%d_ndirs=%d.pickle' % (lmax,ndirs) )
     if not isfile( filename ) :
@@ -244,7 +244,7 @@ def rotate_kernel( K, AUX, idx_IN, idx_OUT, is_isotropic, ndirs ) :
     is_isotropic : boolean
         Indentifies whether K is an isotropic function or not
     ndirs : int
-        Number of directions on the half of the sphere
+        Number of directions on the half of the sphere representing the possible orientations of the response functions
 
     Returns
     -------
@@ -291,7 +291,7 @@ def resample_kernel( KRlm, nS, idx_out, Ylm_out, is_isotropic, ndirs ) :
     is_isotropic : boolean
         Indentifies whether Klm is an isotropic function or not
     ndirs : int
-        Number of directions on the half of the sphere
+        Number of directions on the half of the sphere representing the possible orientations of the response functions
 
     Returns
     -------

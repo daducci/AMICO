@@ -99,7 +99,7 @@ class BaseModel( object ) :
         idx_out : array
             Indices of the SH coefficients corresponding to each shell
         ndirs : int
-            Number of directions on the half of the sphere
+            Number of directions on the half of the sphere representing the possible orientations of the response functions
         """
         return
 
@@ -119,6 +119,8 @@ class BaseModel( object ) :
             SH bases to project back each shell to signal space
         doMergeB0: bool
             Merge b0-volumes into a single volume if True
+        ndirs : int
+            Number of directions on the half of the sphere representing the possible orientations of the response functions
 
         Returns
         -------
