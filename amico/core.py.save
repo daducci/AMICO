@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, print_function
+xfrom __future__ import absolute_import, division, print_function
 
 import numpy as np
 import time
@@ -26,7 +26,8 @@ def setup( lmax = 12, ndirs = 32761 ) :
     lmax : int
         Maximum SH order to use for the rotation phase (default : 12)
     ndirs : int
-        Number of directions on the half of the sphere representing the possible orientations of the response functions (default : 32761)
+        Number of directions on the half of the sphere (default : 32761)
+    
     """
     if not is_valid(ndirs):
         raise RuntimeError( 'Unsupported value for ndirs.\nNote: Supported values for ndirs are [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 32761 (default)]' )
@@ -227,7 +228,7 @@ class Evaluation :
         lmax : int
             Maximum SH order to use for the rotation procedure (default : 12)
         ndirs : int
-            Number of directions on the half of the sphere representing the possible orientations of the response functions (default : 32761)
+            Number of directions in the half of the sphere (default : 32761)
          """
         if self.scheme is None :
             raise RuntimeError( 'Scheme not loaded; call "load_data()" first.' )
@@ -369,25 +370,17 @@ class Evaluation :
 
                         if self.model.name == 'Free-Water' :
                             n_iso = len(self.model.d_isos)
-                            
-                            # keep only FW components of the estimate
-                            x[0:x.shape[0]-n_iso] = 0
-                            
-                            # y_fw_corrected below is the predicted signal by the anisotropic part (no iso part)
-                            y_fw_part = np.dot( A, x )
-                            
-                            # y is the original signal
-                            y_fw_corrected = y - y_fw_part
-                            y_fw_corrected[ y_fw_corrected < 0 ] = 0 # [NOTE] this should not happen!
+                            x[-1*n_iso:] = 0
 
                             #print(y, x, b0, A.shape)
                             if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
-                                y_fw_corrected = y_fw_corrected * self.mean_b0s[ix,iy,iz]
-                                
+                                y_fw_corrected = np.dot( A, x ) * self.mean_b0s[ix,iy,iz]
+                            else :
+                                y_fw_corrected = np.dot( A, x )
+
                             if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
                                 # put original b0 data back in.
                                 y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*self.mean_b0s[ix,iy,iz]
-                            
 
                             DWI_corrected[ix,iy,iz,:] = y_fw_corrected
 

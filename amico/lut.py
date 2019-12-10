@@ -10,24 +10,101 @@ from dipy.core.geometry import cart2sphere
 from dipy.reconst.shm import real_sym_sh_basis
 import amico.scheme
 
+def is_valid(ndirs):
+    """Check if the given ndirs value is supported by AMICO
 
-def precompute_rotation_matrices( lmax = 12 ) :
+    Parameters
+    ----------
+    ndirs : int
+        Number of directions on the half of the sphere representing the possible orientations of the response functions
+
+    Returns
+    -------
+    A bool value which indicates if the number of directions is supported
+    """
+    valid_values = np.arange(start=500, stop=10500, step=500).tolist() + [32761]
+
+    for value in valid_values:
+        if ndirs == value:
+            return True
+
+    return False
+
+def load_directions(ndirs):
+    """Load the directions on the half of the sphere
+
+    Parameters
+    ----------
+    ndirs : int
+        Number of directions on the half of the sphere representing the possible orientations of the response functions
+
+    Returns
+    -------
+    directions : np.array(shape=(ndirs, 3))
+        Array with the 3D directions in cartesian coordinates
+    """
+    amicopath = amico.__file__
+    pos = len(amicopath) - 1
+    while(amicopath[pos] != '/'):
+        pos = pos - 1
+
+    amicopath = amicopath[0 : pos] + '/directions/'
+
+    filename = 'ndirs=%d.bin' % ndirs
+
+    directions = np.fromfile(amicopath + filename, dtype=np.float64)
+    directions = np.reshape(directions, (ndirs, 3))
+
+    return directions
+
+def load_precomputed_hash_table(ndirs):
+    """Load the pre-computed hash table to map high resolution directions into low resolution directions
+
+    Parameters
+    ----------
+    ndirs : int
+        Number of directions on the half of the sphere representing the possible orientations of the response functions
+
+    Returns
+    -------
+    hash_table : np.array(shape=ndirs)
+        Array with the indexes for every high resolution direction
+    """
+    amicopath = amico.__file__
+    pos = len(amicopath) - 1
+    while(amicopath[pos] != '/'):
+        pos = pos - 1
+
+    amicopath = amicopath[0 : pos] + '/directions/'
+
+    filename = 'htable_ndirs=%d.bin' % ndirs
+
+    hash_table = np.fromfile(amicopath + filename, dtype=np.int16)
+
+    return hash_table
+
+def precompute_rotation_matrices( lmax, ndirs ) :
     """Precompute the rotation matrices to rotate the high-resolution kernels (500 directions/shell).
 
     Parameters
     ----------
     lmax : int
         Maximum SH order to use for the rotation phase (default : 12)
+    ndirs : int
+        Number of directions on the half of the sphere representing the possible orientations of the response functions (default : 32761)
     """
     if not isdir(dipy_home) :
         makedirs(dipy_home)
-    filename = pjoin( dipy_home, 'AMICO_aux_matrices_lmax=%d.pickle'%lmax )
+    filename = pjoin( dipy_home, 'AMICO_aux_matrices_lmax=%d_ndirs=%d.pickle' % (lmax,ndirs) )
     if isfile( filename ) :
         return
+
+    directions = load_directions(ndirs)
 
     print('\n-> Precomputing rotation matrices for l_max=%d:' % lmax)
     AUX = {}
     AUX['lmax'] = lmax
+    AUX['ndirs'] = ndirs
 
     # matrix to fit the SH coefficients
     _, theta, phi = cart2sphere( grad[:,0], grad[:,1], grad[:,2] )
@@ -35,11 +112,11 @@ def precompute_rotation_matrices( lmax = 12 ) :
     AUX['fit'] = np.dot( np.linalg.pinv( np.dot(tmp.T,tmp) ), tmp.T )
 
     # matrices to rotate the functions in SH space
-    AUX['Ylm_rot'] = np.zeros( (181,181), dtype=np.object )
-    for ox in range(181) :
-        for oy in range(181) :
-            tmp, _, _ = real_sym_sh_basis( lmax, ox/180.0*np.pi, oy/180.0*np.pi )
-            AUX['Ylm_rot'][ox,oy] = tmp.reshape(-1)
+    AUX['Ylm_rot'] = np.zeros( ndirs, dtype=np.object )
+    for i in range(ndirs):
+        _, theta, phi = cart2sphere(directions[i][0], directions[i][1], directions[i][2])
+        tmp, _, _ = real_sym_sh_basis( lmax, theta, phi )
+        AUX['Ylm_rot'][i] = tmp.reshape(-1)
 
     # auxiliary data to perform rotations
     AUX['const'] = np.zeros( AUX['fit'].shape[0], dtype=np.float64 )
@@ -59,17 +136,28 @@ def precompute_rotation_matrices( lmax = 12 ) :
     print('   [ DONE ]')
 
 
-def load_precomputed_rotation_matrices( lmax = 12 ) :
+def load_precomputed_rotation_matrices( lmax, ndirs ) :
     """Load precomputed the rotation matrices to rotate the high-resolution kernels.
 
     Parameters
     ----------
     lmax : int
-        Maximum SH order to use for the rotation phase (default : 12)
+        Maximum SH order to use for the rotation phase
+    ndirs : int
+        Number of directions on the half of the sphere representing the possible orientations of the response functions
     """
-    filename = pjoin( dipy_home, 'AMICO_aux_matrices_lmax=%d.pickle'%lmax )
+    filename = pjoin( dipy_home, 'AMICO_aux_matrices_lmax=%d_ndirs=%d.pickle' % (lmax,ndirs) )
     if not isfile( filename ) :
-        raise RuntimeError( 'Auxiliary matrices not found; call "lut.precompute_rotation_matrices()" first.' )
+        str_lmax = ''
+        str_ndirs = ''
+        str_sep = ''
+        if lmax != 12:
+            str_lmax = 'lmax={}'.format(lmax)
+        if ndirs != 32761:
+            str_ndirs = 'ndirs={}'.format(ndirs)
+        if str_lmax != '' and str_ndirs != '':
+            str_sep = ' , '
+        raise RuntimeError( 'Auxiliary matrices not found; call "amico.core.setup({}{}{})" first.'.format(str_lmax, str_sep, str_ndirs) )
     with open( filename, 'rb' ) as rotation_matrices_file:
         if sys.version_info.major == 3:
             aux = pickle.load( rotation_matrices_file, fix_imports=True, encoding='bytes' )
@@ -140,7 +228,7 @@ def aux_structures_resample( scheme, lmax = 12 ) :
     return ( idx_OUT, Ylm_OUT )
 
 
-def rotate_kernel( K, AUX, idx_IN, idx_OUT, is_isotropic ) :
+def rotate_kernel( K, AUX, idx_IN, idx_OUT, is_isotropic, ndirs ) :
     """Rotate a response function (symmetric about z-axis).
 
     Parameters
@@ -155,6 +243,8 @@ def rotate_kernel( K, AUX, idx_IN, idx_OUT, is_isotropic ) :
         Index of samples in output kernel (K) belonging to each shell
     is_isotropic : boolean
         Indentifies whether K is an isotropic function or not
+    ndirs : int
+        Number of directions on the half of the sphere representing the possible orientations of the response functions
 
     Returns
     -------
@@ -171,12 +261,11 @@ def rotate_kernel( K, AUX, idx_IN, idx_OUT, is_isotropic ) :
 
     if is_isotropic == False :
         # fit SH and rotate kernel to 181*181 directions
-        KRlm = np.zeros( (181,181,n), dtype=np.float32 )
-        for ox in range(181) :
-            for oy in range(181) :
-                Ylm_rot = AUX['Ylm_rot'][ox,oy]
-                for s in range(len(idx_IN)) :
-                    KRlm[ox,oy,idx_OUT[s]] = AUX['const'] * Klm[s][AUX['idx_m0']] * Ylm_rot
+        KRlm = np.zeros( (ndirs,n), dtype=np.float32 )
+        for i in range(ndirs) :
+            Ylm_rot = AUX['Ylm_rot'][i]
+            for s in range(len(idx_IN)) :
+                KRlm[i,idx_OUT[s]] = AUX['const'] * Klm[s][AUX['idx_m0']] * Ylm_rot
     else :
         # simply fit SH
         KRlm = np.zeros( n, dtype=np.float32 )
@@ -186,7 +275,7 @@ def rotate_kernel( K, AUX, idx_IN, idx_OUT, is_isotropic ) :
     return KRlm
 
 
-def resample_kernel( KRlm, nS, idx_out, Ylm_out, is_isotropic ) :
+def resample_kernel( KRlm, nS, idx_out, Ylm_out, is_isotropic, ndirs ) :
     """Project/resample a spherical function to signal space.
 
     Parameters
@@ -201,6 +290,8 @@ def resample_kernel( KRlm, nS, idx_out, Ylm_out, is_isotropic ) :
         Matrix to project back all shells from SH space to signal space (of the subject)
     is_isotropic : boolean
         Indentifies whether Klm is an isotropic function or not
+    ndirs : int
+        Number of directions on the half of the sphere representing the possible orientations of the response functions
 
     Returns
     -------
@@ -208,23 +299,31 @@ def resample_kernel( KRlm, nS, idx_out, Ylm_out, is_isotropic ) :
         Rotated spherical functions projected to signal space of the subject
     """
     if is_isotropic == False :
-        KR = np.ones( (181,181,nS), dtype=np.float32 )
-        for ox in range(181) :
-            for oy in range(181) :
-                KR[ox,oy,idx_out] = np.dot( Ylm_out, KRlm[ox,oy,:] ).astype(np.float32)
+        KR = np.ones( (ndirs,nS), dtype=np.float32 )
+        try:
+            for i in range(ndirs) :
+                KR[i,idx_out] = np.dot( Ylm_out, KRlm[i,:] ).astype(np.float32)
+        except:
+            raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
     else :
         KR = np.ones( nS, dtype=np.float32 )
-        KR[idx_out] = np.dot( Ylm_out, KRlm ).astype(np.float32)
+        try:
+            for i in range(ndirs) :
+                KR[idx_out] = np.dot( Ylm_out, KRlm ).astype(np.float32)
+        except:
+            raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
     return KR
 
 
-def dir_TO_lut_idx( direction ) :
+def dir_TO_lut_idx( direction, htable ) :
     """Compute the index in the kernel LUT corresponding to the estimated direction.
 
     Parameters
     ----------
     direction : float array
         Orientation in 3D space
+    htable : np.array(shape=32761)
+        Hash table to map a high resolution 3D direction into a low resolution direction
 
     Returns
     -------
@@ -252,7 +351,7 @@ def dir_TO_lut_idx( direction ) :
     if i1<0 or i1>180 or i2<0 or i2>180 :
         raise Exception( '[amico.lut.dir_TO_lut_idx] index out of bounds (%d,%d)' % (i1,i2) )
 
-    return i1, i2
+    return htable[i1*181 + i2]
 
 
 def create_high_resolution_scheme( scheme, b_scale = 1 ) :

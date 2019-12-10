@@ -84,7 +84,7 @@ class BaseModel( object ) :
 
 
     @abc.abstractmethod
-    def generate( self, out_path, aux, idx_in, idx_out ) :
+    def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
         """For generating the signal response-functions and createing the LUT.
         NB: do not change the signature!
 
@@ -98,12 +98,14 @@ class BaseModel( object ) :
             Indices of the samples belonging to each shell
         idx_out : array
             Indices of the SH coefficients corresponding to each shell
+        ndirs : int
+            Number of directions on the half of the sphere representing the possible orientations of the response functions
         """
         return
 
 
     @abc.abstractmethod
-    def resample( self, in_path, idx_out, Ylm_out, doMergeB0 ) :
+    def resample( self, in_path, idx_out, Ylm_out, doMergeB0, ndirs ) :
         """For projecting the LUT to the subject space.
         NB: do not change the signature!
 
@@ -117,6 +119,8 @@ class BaseModel( object ) :
             SH bases to project back each shell to signal space
         doMergeB0: bool
             Merge b0-volumes into a single volume if True
+        ndirs : int
+            Number of directions on the half of the sphere representing the possible orientations of the response functions
 
         Returns
         -------
@@ -204,7 +208,7 @@ class StickZeppelinBall( BaseModel ) :
         raise NotImplementedError
 
 
-    def generate( self, out_path, aux, idx_in, idx_out ) :
+    def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
         scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1 )
         gtab = gradient_table( scheme_high.b, scheme_high.raw[:,0:3] )
 
@@ -213,26 +217,26 @@ class StickZeppelinBall( BaseModel ) :
 
         # Stick
         signal = single_tensor( gtab, evals=[0, 0, self.d_par] )
-        lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False )
+        lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
         np.save( pjoin( out_path, 'A_001.npy' ), lm )
         progress.update()
 
         # Zeppelin(s)
         for d in [ self.d_par*(1.0-ICVF) for ICVF in self.ICVFs] :
             signal = single_tensor( gtab, evals=[d, d, self.d_par] )
-            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False )
+            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
             np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
             progress.update()
 
         # Ball(s)
         for d in self.d_ISOs :
             signal = single_tensor( gtab, evals=[d, d, d] )
-            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True )
+            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
             np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
             progress.update()
 
 
-    def resample( self, in_path, idx_out, Ylm_out, doMergeB0 ) :
+    def resample( self, in_path, idx_out, Ylm_out, doMergeB0, ndirs ) :
         KERNELS = {}
         KERNELS['model'] = self.id
         if doMergeB0:
@@ -241,8 +245,8 @@ class StickZeppelinBall( BaseModel ) :
         else:
             nS = self.scheme.nS
             merge_idx = np.arange(nS)
-        KERNELS['wmr']   = np.zeros( (1,181,181,nS), dtype=np.float32 )
-        KERNELS['wmh']   = np.zeros( (len(self.ICVFs),181,181,nS), dtype=np.float32 )
+        KERNELS['wmr']   = np.zeros( (1,ndirs,nS), dtype=np.float32 )
+        KERNELS['wmh']   = np.zeros( (len(self.ICVFs),ndirs,nS), dtype=np.float32 )
         KERNELS['iso']   = np.zeros( (len(self.d_ISOs),nS), dtype=np.float32 )
 
         nATOMS = 1 + len(self.ICVFs) + len(self.d_ISOs)
@@ -250,19 +254,23 @@ class StickZeppelinBall( BaseModel ) :
 
         # Stick
         lm = np.load( pjoin( in_path, 'A_001.npy' ) )
-        KERNELS['wmr'][0,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
+        if lm.shape[0] != ndirs:
+            raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
+        KERNELS['wmr'][0,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
         progress.update()
 
         # Zeppelin(s)
         for i in range(len(self.ICVFs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['wmh'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
+            if lm.shape[0] != ndirs:
+                raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
+            KERNELS['wmh'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
             progress.update()
 
         # Ball(s)
         for i in range(len(self.d_ISOs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['iso'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )[merge_idx]
+            KERNELS['iso'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
             progress.update()
 
         return KERNELS
@@ -325,7 +333,7 @@ class CylinderZeppelinBall( BaseModel ) :
         return params
 
 
-    def generate( self, out_path, aux, idx_in, idx_out ) :
+    def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
         if self.scheme.version != 1 :
             raise RuntimeError( 'This model requires a "VERSION: STEJSKALTANNER" scheme.' )
 
@@ -349,7 +357,7 @@ class CylinderZeppelinBall( BaseModel ) :
             if exists( filename_signal ) :
                 remove( filename_signal )
 
-            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False )
+            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
             np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
             progress.update()
 
@@ -363,7 +371,7 @@ class CylinderZeppelinBall( BaseModel ) :
             if exists( filename_signal ) :
                 remove( filename_signal )
 
-            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False )
+            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
             np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
             progress.update()
 
@@ -377,12 +385,12 @@ class CylinderZeppelinBall( BaseModel ) :
             if exists( filename_signal ) :
                 remove( filename_signal )
 
-            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True )
+            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
             np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
             progress.update()
 
 
-    def resample( self, in_path, idx_out, Ylm_out, doMergeB0 ) :
+    def resample( self, in_path, idx_out, Ylm_out, doMergeB0, ndirs ) :
         if doMergeB0:
             nS = 1+self.scheme.dwi_count
             merge_idx = np.hstack((self.scheme.b0_idx[0],self.scheme.dwi_idx))
@@ -391,8 +399,8 @@ class CylinderZeppelinBall( BaseModel ) :
             merge_idx = np.arange(nS)
         KERNELS = {}
         KERNELS['model'] = self.id
-        KERNELS['wmr'] = np.zeros( (len(self.Rs),181,181,nS,), dtype=np.float32 )
-        KERNELS['wmh'] = np.zeros( (len(self.ICVFs),181,181,nS,), dtype=np.float32 )
+        KERNELS['wmr'] = np.zeros( (len(self.Rs),ndirs,nS,), dtype=np.float32 )
+        KERNELS['wmh'] = np.zeros( (len(self.ICVFs),ndirs,nS,), dtype=np.float32 )
         KERNELS['iso'] = np.zeros( (len(self.d_ISOs),nS,), dtype=np.float32 )
 
         nATOMS = len(self.Rs) + len(self.ICVFs) + len(self.d_ISOs)
@@ -401,25 +409,29 @@ class CylinderZeppelinBall( BaseModel ) :
         # Cylinder(s)
         for i in range(len(self.Rs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['wmr'][i,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
+            if lm.shape[0] != ndirs:
+                raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
+            KERNELS['wmr'][i,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
             progress.update()
 
         # Zeppelin(s)
         for i in range(len(self.ICVFs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['wmh'][i,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
+            if lm.shape[0] != ndirs:
+                raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
+            KERNELS['wmh'][i,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
             progress.update()
 
         # Ball(s)
         for i in range(len(self.d_ISOs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['iso'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )[merge_idx]
+            KERNELS['iso'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
             progress.update()
 
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params ) :
+    def fit( self, y, dirs, KERNELS, params, htable ) :
         nD = dirs.shape[0]
         n1 = len(self.Rs)
         n2 = len(self.ICVFs)
@@ -432,12 +444,12 @@ class CylinderZeppelinBall( BaseModel ) :
         A = np.ones( (len(y), nATOMS ), dtype=np.float64, order='F' )
         o = 0
         for i in range(nD) :
-            i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
-            A[:,o:(o+n1)] = KERNELS['wmr'][:,i1,i2,:].T
+            lut_idx = amico.lut.dir_TO_lut_idx( dirs[i], htable )
+            A[:,o:(o+n1)] = KERNELS['wmr'][:,lut_idx,:].T
             o += n1
         for i in range(nD) :
-            i1, i2 = amico.lut.dir_TO_lut_idx( dirs[i] )
-            A[:,o:(o+n2)] = KERNELS['wmh'][:,i1,i2,:].T
+            lut_idx = amico.lut.dir_TO_lut_idx( dirs[i], htable )
+            A[:,o:(o+n2)] = KERNELS['wmh'][:,lut_idx,:].T
             o += n2
         A[:,o:] = KERNELS['iso'].T
 
@@ -506,7 +518,7 @@ class NODDI( BaseModel ) :
         return params
 
 
-    def generate( self, out_path, aux, idx_in, idx_out ):
+    def generate( self, out_path, aux, idx_in, idx_out, ndirs ):
         scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale = 1 )
         protocolHR = self.scheme2noddi( scheme_high )
 
@@ -523,18 +535,18 @@ class NODDI( BaseModel ) :
                 signal_ec = self.synth_meas_watson_hindered_diffusion_PGSE( np.array([self.dPar*1E-6, dPerp, kappa]), protocolHR['grad_dirs'], np.squeeze(protocolHR['gradient_strength']), np.squeeze(protocolHR['delta']), np.squeeze(protocolHR['smalldel']), np.array([0,0,1]) )
 
                 signal = v_ic*signal_ic + (1-v_ic)*signal_ec
-                lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False )
+                lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                 np.save( pjoin( out_path, 'A_%03d.npy'%progress.i) , lm )
                 progress.update()
 
         # Isotropic
         signal = self.synth_meas_iso_GPD( self.dIso*1E-6, protocolHR)
-        lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True )
+        lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
         np.save( pjoin( out_path, 'A_%03d.npy'%progress.i) , lm )
         progress.update()
 
 
-    def resample( self, in_path, idx_out, Ylm_out, doMergeB0 ):
+    def resample( self, in_path, idx_out, Ylm_out, doMergeB0, ndirs ):
         nATOMS = len(self.IC_ODs)*len(self.IC_VFs) + 1
         if doMergeB0:
             nS = 1+self.scheme.dwi_count
@@ -544,7 +556,7 @@ class NODDI( BaseModel ) :
             merge_idx = np.arange(nS)
         KERNELS = {}
         KERNELS['model'] = self.id
-        KERNELS['wm']    = np.zeros( (nATOMS-1,181,181,nS), dtype=np.float32 )
+        KERNELS['wm']    = np.zeros( (nATOMS-1,ndirs,nS), dtype=np.float32 )
         KERNELS['iso']   = np.zeros( nS, dtype=np.float32 )
         KERNELS['kappa'] = np.zeros( nATOMS-1, dtype=np.float32 )
         KERNELS['icvf']  = np.zeros( nATOMS-1, dtype=np.float32 )
@@ -556,25 +568,27 @@ class NODDI( BaseModel ) :
         for i in range( len(self.IC_ODs) ):
             for j in range( len(self.IC_VFs) ):
                 lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
+                if lm.shape[0] != ndirs:
+                    raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
                 idx = progress.i - 1
-                KERNELS['wm'][idx,:,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
+                KERNELS['wm'][idx,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
                 KERNELS['kappa'][idx] = 1.0 / np.tan( self.IC_ODs[i]*np.pi/2.0 )
                 KERNELS['icvf'][idx]  = self.IC_VFs[j]
                 if doMergeB0:
-                    KERNELS['norms'][:,idx] = 1 / np.linalg.norm( KERNELS['wm'][idx,0,0,1:] ) # norm of coupled atoms (for l1 minimization)
+                    KERNELS['norms'][:,idx] = 1 / np.linalg.norm( KERNELS['wm'][idx,0,1:] ) # norm of coupled atoms (for l1 minimization)
                 else:
-                    KERNELS['norms'][:,idx] = 1 / np.linalg.norm( KERNELS['wm'][idx,0,0,self.scheme.dwi_idx] ) # norm of coupled atoms (for l1 minimization)
+                    KERNELS['norms'][:,idx] = 1 / np.linalg.norm( KERNELS['wm'][idx,0,self.scheme.dwi_idx] ) # norm of coupled atoms (for l1 minimization)
                 progress.update()
 
         # Isotropic
         lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-        KERNELS['iso'] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )[merge_idx]
+        KERNELS['iso'] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
         progress.update()
 
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params ) :
+    def fit( self, y, dirs, KERNELS, params, htable ) :
         singleb0 = True if len(y) == (1+self.scheme.dwi_count) else False
         nD = dirs.shape[0]
         if nD != 1 :
@@ -585,9 +599,9 @@ class NODDI( BaseModel ) :
         nATOMS = nWM + 1
         if self.isExvivo == True :
             nATOMS += 1
-        i1, i2 = amico.lut.dir_TO_lut_idx( dirs[0] )
+        lut_idx = amico.lut.dir_TO_lut_idx( dirs[0], htable )
         A = np.ones( (len(y), nATOMS), dtype=np.float64, order='F' )
-        A[:,:nWM] = KERNELS['wm'][:,i1,i2,:].T
+        A[:,:nWM] = KERNELS['wm'][:,lut_idx,:].T
         A[:,-1]  = KERNELS['iso']
 
 
@@ -1091,7 +1105,7 @@ class FreeWater( BaseModel ) :
         return params
 
 
-    def generate( self, out_path, aux, idx_in, idx_out ) :
+    def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
         scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1 )
         gtab = gradient_table( scheme_high.b, scheme_high.raw[:,0:3] )
 
@@ -1101,19 +1115,19 @@ class FreeWater( BaseModel ) :
         # Tensor compartment(s)
         for d in self.d_perps :
             signal = single_tensor( gtab, evals=[d, d, self.d_par] )
-            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False )
+            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
             np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
             progress.update()
 
         # Isotropic compartment(s)
         for d in self.d_isos :
             signal = single_tensor( gtab, evals=[d, d, d] )
-            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True )
+            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
             np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
             progress.update()
 
 
-    def resample( self, in_path, idx_out, Ylm_out, doMergeB0 ) :
+    def resample( self, in_path, idx_out, Ylm_out, doMergeB0, ndirs ) :
         if doMergeB0:
             nS = 1+self.scheme.dwi_count
             merge_idx = np.hstack((self.scheme.b0_idx[0],self.scheme.dwi_idx))
@@ -1122,7 +1136,7 @@ class FreeWater( BaseModel ) :
             merge_idx = np.arange(nS)
         KERNELS = {}
         KERNELS['model'] = self.id
-        KERNELS['D']     = np.zeros( (len(self.d_perps),181,181,nS), dtype=np.float32 )
+        KERNELS['D']     = np.zeros( (len(self.d_perps),ndirs,nS), dtype=np.float32 )
         KERNELS['CSF']   = np.zeros( (len(self.d_isos),nS), dtype=np.float32 )
 
         nATOMS = len(self.d_perps) + len(self.d_isos)
@@ -1131,19 +1145,21 @@ class FreeWater( BaseModel ) :
         # Tensor compartment(s)
         for i in range(len(self.d_perps)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['D'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False )[:,:,merge_idx]
+            if lm.shape[0] != ndirs:
+                raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
+            KERNELS['D'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
             progress.update()
 
         # Isotropic compartment(s)
         for i in range(len(self.d_isos)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['CSF'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True )[merge_idx]
+            KERNELS['CSF'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
             progress.update()
 
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params ) :
+    def fit( self, y, dirs, KERNELS, params, htable ) :
         nD = dirs.shape[0]
         if nD > 1 : # model works only with one direction
             raise RuntimeError( '"%s" model requires exactly 1 orientation' % self.name )
@@ -1155,9 +1171,9 @@ class FreeWater( BaseModel ) :
             return [0, 0], None, None, None
 
         # prepare DICTIONARY from dir and lookup tables
-        i1, i2 = amico.lut.dir_TO_lut_idx( dirs[0] )
+        lut_idx = amico.lut.dir_TO_lut_idx( dirs[0], htable )
         A = np.zeros( (len(y), nATOMS), dtype=np.float64, order='F' )
-        A[:,:(nD*n1)] = KERNELS['D'][:,i1,i2,:].T
+        A[:,:(nD*n1)] = KERNELS['D'][:,lut_idx,:].T
         A[:,(nD*n1):] = KERNELS['CSF'].T
 
         # fit
@@ -1201,11 +1217,11 @@ class VolumeFractions( BaseModel ) :
         raise NotImplementedError
 
 
-    def generate( self, out_path, aux, idx_in, idx_out ) :
+    def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
         return
 
 
-    def resample( self, in_path, idx_out, Ylm_out, doMergeB0 ) :
+    def resample( self, in_path, idx_out, Ylm_out, doMergeB0, ndirs ) :
         if doMergeB0:
             nS = 1+self.scheme.dwi_count
             merge_idx = np.hstack((self.scheme.b0_idx[0],self.scheme.dwi_idx))
@@ -1215,8 +1231,8 @@ class VolumeFractions( BaseModel ) :
 
         KERNELS = {}
         KERNELS['model'] = self.id
-        KERNELS['wmr']   = np.ones( (1,181,181,nS), dtype=np.float32 )
-        KERNELS['wmh']   = np.ones( (0,181,181,nS), dtype=np.float32 )
+        KERNELS['wmr']   = np.ones( (1,ndirs,nS), dtype=np.float32 )
+        KERNELS['wmh']   = np.ones( (0,ndirs,nS), dtype=np.float32 )
         KERNELS['iso']   = np.ones( (1 if self.hasISO else 0,nS), dtype=np.float32 )
 
         return KERNELS
