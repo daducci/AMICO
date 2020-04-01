@@ -214,7 +214,7 @@ class StickZeppelinBall( BaseModel ) :
         gtab = gradient_table( scheme_high.b, scheme_high.raw[:,0:3] )
 
         nATOMS = 1 + len(self.ICVFs) + len(self.d_ISOs)
-        progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
+        progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
 
         # Stick
         signal = single_tensor( gtab, evals=[0, 0, self.d_par] )
@@ -251,7 +251,7 @@ class StickZeppelinBall( BaseModel ) :
         KERNELS['iso']   = np.zeros( (len(self.d_ISOs),nS), dtype=np.float32 )
 
         nATOMS = 1 + len(self.ICVFs) + len(self.d_ISOs)
-        progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
+        progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
 
         # Stick
         lm = np.load( pjoin( in_path, 'A_001.npy' ) )
@@ -346,7 +346,7 @@ class CylinderZeppelinBall( BaseModel ) :
         filename_signal = pjoin( tempfile._get_default_tempdir(), next(tempfile._get_candidate_names())+'.Bfloat' )
 
         nATOMS = len(self.Rs) + len(self.ICVFs) + len(self.d_ISOs)
-        progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
+        progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
 
         # Cylinder(s)
         for R in self.Rs :
@@ -405,7 +405,7 @@ class CylinderZeppelinBall( BaseModel ) :
         KERNELS['iso'] = np.zeros( (len(self.d_ISOs),nS,), dtype=np.float32 )
 
         nATOMS = len(self.Rs) + len(self.ICVFs) + len(self.d_ISOs)
-        progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
+        progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
 
         # Cylinder(s)
         for i in range(len(self.Rs)) :
@@ -524,7 +524,7 @@ class NODDI( BaseModel ) :
         protocolHR = self.scheme2noddi( scheme_high )
 
         nATOMS = len(self.IC_ODs)*len(self.IC_VFs) + 1
-        progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
+        progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
 
         # Coupled contributions
         IC_KAPPAs = 1 / np.tan(self.IC_ODs*np.pi/2)
@@ -563,7 +563,7 @@ class NODDI( BaseModel ) :
         KERNELS['icvf']  = np.zeros( nATOMS-1, dtype=np.float32 )
         KERNELS['norms'] = np.zeros( (self.scheme.dwi_count, nATOMS-1) )
 
-        progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
+        progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
 
         # Coupled contributions
         for i in range( len(self.IC_ODs) ):
@@ -1107,7 +1107,7 @@ class FreeWater( BaseModel ) :
         gtab = gradient_table( scheme_high.b, scheme_high.raw[:,0:3] )
 
         nATOMS = len(self.d_perps) + len(self.d_isos)
-        progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
+        progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
 
         # Tensor compartment(s)
         for d in self.d_perps :
@@ -1137,7 +1137,7 @@ class FreeWater( BaseModel ) :
         KERNELS['CSF']   = np.zeros( (len(self.d_isos),nS), dtype=np.float32 )
 
         nATOMS = len(self.d_perps) + len(self.d_isos)
-        progress = ProgressBar( n=nATOMS, prefix="   ", erase=True )
+        progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
 
         # Tensor compartment(s)
         for i in range(len(self.d_perps)) :

@@ -105,8 +105,8 @@ class Evaluation :
         """
 
         # Loading data, acquisition scheme and mask (optional)
-        tic = time.time()
         LOG( '\n-> Loading data:' )
+        tic = time.time()
 
         print('\t* DWI signal...')
         self.set_config('dwi_filename', dwi_filename)
@@ -151,9 +151,12 @@ class Evaluation :
             self.niiMASK_img = np.ones( self.get_config('dim') )
             print('\t\t- not specified')
         print('\t\t- voxels = %d' % np.count_nonzero(self.niiMASK_img))
+        
+        LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
 
         # Preprocessing
         LOG( '\n-> Preprocessing:' )
+        tic = time.time()
 
         if self.get_config('doDebiasSignal') :
             print('\t* Debiasing signal...\n')
@@ -246,7 +249,7 @@ class Evaluation :
         # check if kernels were already generated
         tmp = glob.glob( pjoin(self.get_config('ATOMS_path'),'A_*.npy') )
         if len(tmp)>0 and not regenerate :
-            LOG( '   LUT already computed. Call "generate_kernels( regenerate=True )" to force regeneration' )
+            LOG( '   [ LUT already computed. Call "generate_kernels( regenerate=True )" to force regeneration ]' )
             return
 
         # create folder or delete existing files (if any)

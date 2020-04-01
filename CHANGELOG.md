@@ -1,6 +1,11 @@
 
 # Change Log
 All notable changes to AMICO will be documented in this file.
+
+## [1.2.0] - 2020-04-01
+
+### Added
+- Functions to colorize the output messages.
  
 ## [1.1.0] - 2019-10-30
 
