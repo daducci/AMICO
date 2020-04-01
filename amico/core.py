@@ -249,7 +249,7 @@ class Evaluation :
         # check if kernels were already generated
         tmp = glob.glob( pjoin(self.get_config('ATOMS_path'),'A_*.npy') )
         if len(tmp)>0 and not regenerate :
-            LOG( '   [ LUT already computed. Call "generate_kernels( regenerate=True )" to force regeneration ]' )
+            WARNING( 'LUT already computed. Call "generate_kernels( regenerate=True )" to force regeneration' )
             return
 
         # create folder or delete existing files (if any)
