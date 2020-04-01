@@ -9,6 +9,7 @@ from dipy.data.fetcher import dipy_home
 from dipy.core.geometry import cart2sphere
 from dipy.reconst.shm import real_sym_sh_basis
 import amico.scheme
+from amico.util import LOG, NOTE, WARNING, ERROR
 
 def is_valid(ndirs):
     """Check if the given ndirs value is supported by AMICO
@@ -101,7 +102,7 @@ def precompute_rotation_matrices( lmax, ndirs ) :
 
     directions = load_directions(ndirs)
 
-    print('\n-> Precomputing rotation matrices for l_max=%d:' % lmax)
+    LOG('\n-> Precomputing rotation matrices for l_max=%d:' % lmax)
     AUX = {}
     AUX['lmax'] = lmax
     AUX['ndirs'] = ndirs
@@ -133,7 +134,7 @@ def precompute_rotation_matrices( lmax, ndirs ) :
     with open( filename, 'wb+' ) as fid :
         pickle.dump( AUX, fid, protocol=2 )
 
-    print('   [ DONE ]')
+    LOG('   [ DONE ]')
 
 
 def load_precomputed_rotation_matrices( lmax, ndirs ) :
@@ -157,7 +158,7 @@ def load_precomputed_rotation_matrices( lmax, ndirs ) :
             str_ndirs = 'ndirs={}'.format(ndirs)
         if str_lmax != '' and str_ndirs != '':
             str_sep = ' , '
-        raise RuntimeError( 'Auxiliary matrices not found; call "amico.core.setup({}{}{})" first.'.format(str_lmax, str_sep, str_ndirs) )
+        ERROR( 'Auxiliary matrices not found; call "amico.core.setup({}{}{})" first.'.format(str_lmax, str_sep, str_ndirs) )
     with open( filename, 'rb' ) as rotation_matrices_file:
         if sys.version_info.major == 3:
             aux = pickle.load( rotation_matrices_file, fix_imports=True, encoding='bytes' )
@@ -304,14 +305,14 @@ def resample_kernel( KRlm, nS, idx_out, Ylm_out, is_isotropic, ndirs ) :
             for i in range(ndirs) :
                 KR[i,idx_out] = np.dot( Ylm_out, KRlm[i,:] ).astype(np.float32)
         except:
-            raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
+            ERROR( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
     else :
         KR = np.ones( nS, dtype=np.float32 )
         try:
             for i in range(ndirs) :
                 KR[idx_out] = np.dot( Ylm_out, KRlm ).astype(np.float32)
         except:
-            raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
+            ERROR( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
     return KR
 
 
@@ -349,7 +350,7 @@ def dir_TO_lut_idx( direction, htable ) :
     i1 = np.round( i1/np.pi*180.0 ).astype(int)
     i2 = np.round( i2/np.pi*180.0 ).astype(int)
     if i1<0 or i1>180 or i2<0 or i2>180 :
-        raise Exception( '[amico.lut.dir_TO_lut_idx] index out of bounds (%d,%d)' % (i1,i2) )
+        ERROR( '[amico.lut.dir_TO_lut_idx] index out of bounds (%d,%d)' % (i1,i2) )
 
     return htable[i1*181 + i2]
 

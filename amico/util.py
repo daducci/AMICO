@@ -3,6 +3,20 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 import os.path
 
+def LOG( msg ):
+    print( "\033[0;32m%s\033[0m" % msg )
+
+def NOTE( msg ):
+    print( "\033[0;30;44m[ NOTE ]\033[0;34m %s\033[0m" % msg )
+
+def WARNING( msg ):
+    print( "\033[0;30;43m[ WARNING ]\033[0;33m %s\033[0m" % msg )
+
+def ERROR( msg ):
+    print( "\033[0;30;41m[ ERROR ]\033[0;31m %s\033[0m\n" % msg )
+    raise RuntimeError( msg )
+
+
 def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = [False,False,False], bStep = 1.0, delimiter = None ):
     """Create a scheme file from bvals+bvecs and write to file.
 
@@ -19,9 +33,9 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = 
     """
 
     if not os.path.exists(bvalsFilename):
-        raise RuntimeError( 'bvals file not exist:' + bvalsFilename )
+        ERROR( 'bvals file not exist:' + bvalsFilename )
     if not os.path.exists(bvecsFilename):
-        raise RuntimeError( 'bvecs file not exist:' + bvecsFilename )
+        ERROR( 'bvecs file not exist:' + bvecsFilename )
 
     if schemeFilename is None:
         schemeFilename = os.path.splitext(bvalsFilename)[0]+".scheme"
@@ -31,12 +45,12 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = 
     bvals = np.loadtxt( bvalsFilename, delimiter=delimiter )
 
     if bvecs.ndim !=2 or bvals.ndim != 1 or bvecs.shape[0] != 3 or bvecs.shape[1] != bvals.shape[0]:
-        raise RuntimeError( 'incorrect/incompatible bval/bvecs files' )
+        ERROR( 'incorrect/incompatible bval/bvecs files' )
 
     # if requested, flip the axes
     flipAxes = np.array(flipAxes, dtype = np.bool)
     if flipAxes.ndim != 1 or flipAxes.size != 3 :
-        raise RuntimeError( '"flipAxes" must contain 3 boolean values (one for each axis)' )
+        ERROR( '"flipAxes" must contain 3 boolean values (one for each axis)' )
     if flipAxes[0] :
         bvecs[0,:] *= -1
     if flipAxes[1] :

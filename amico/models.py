@@ -12,6 +12,7 @@ from amico.progressbar import ProgressBar
 from dipy.core.gradients import gradient_table
 from dipy.sims.voxel import single_tensor
 import abc
+from amico.util import LOG, NOTE, WARNING, ERROR
 
 import warnings
 warnings.filterwarnings("ignore") # needed for a problem with spams
@@ -205,7 +206,7 @@ class StickZeppelinBall( BaseModel ) :
 
 
     def set_solver( self ) :
-        raise NotImplementedError
+        ERROR( 'Not implemented' )
 
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
@@ -255,7 +256,7 @@ class StickZeppelinBall( BaseModel ) :
         # Stick
         lm = np.load( pjoin( in_path, 'A_001.npy' ) )
         if lm.shape[0] != ndirs:
-            raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
+            ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
         KERNELS['wmr'][0,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
         progress.update()
 
@@ -263,7 +264,7 @@ class StickZeppelinBall( BaseModel ) :
         for i in range(len(self.ICVFs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             if lm.shape[0] != ndirs:
-                raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
+                ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
             KERNELS['wmh'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
             progress.update()
 
@@ -277,7 +278,7 @@ class StickZeppelinBall( BaseModel ) :
 
 
     def fit( self, y, dirs, KERNELS, params ) :
-        raise NotImplementedError
+        ERROR( 'Not implemented' )
 
 
 
@@ -335,7 +336,7 @@ class CylinderZeppelinBall( BaseModel ) :
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
         if self.scheme.version != 1 :
-            raise RuntimeError( 'This model requires a "VERSION: STEJSKALTANNER" scheme.' )
+            ERROR( 'This model requires a "VERSION: STEJSKALTANNER" scheme' )
 
         scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1E6 )
         filename_scheme = pjoin( out_path, 'scheme.txt' )
@@ -352,7 +353,7 @@ class CylinderZeppelinBall( BaseModel ) :
             CMD = 'datasynth -synthmodel compartment 1 CYLINDERGPD %E 0 0 %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null' % ( self.d_par*1E-6, R, filename_scheme, filename_signal )
             subprocess.call( CMD, shell=True )
             if not exists( filename_signal ) :
-                raise RuntimeError( 'Problems generating the signal with "datasynth"' )
+                ERROR( 'Problems generating the signal with "datasynth"' )
             signal  = np.fromfile( filename_signal, dtype='>f4' )
             if exists( filename_signal ) :
                 remove( filename_signal )
@@ -366,7 +367,7 @@ class CylinderZeppelinBall( BaseModel ) :
             CMD = 'datasynth -synthmodel compartment 1 ZEPPELIN %E 0 0 %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null' % ( self.d_par*1E-6, d*1e-6, filename_scheme, filename_signal )
             subprocess.call( CMD, shell=True )
             if not exists( filename_signal ) :
-                raise RuntimeError( 'Problems generating the signal with "datasynth"' )
+                ERROR( 'Problems generating the signal with "datasynth"' )
             signal  = np.fromfile( filename_signal, dtype='>f4' )
             if exists( filename_signal ) :
                 remove( filename_signal )
@@ -380,7 +381,7 @@ class CylinderZeppelinBall( BaseModel ) :
             CMD = 'datasynth -synthmodel compartment 1 BALL %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null' % ( d*1e-6, filename_scheme, filename_signal )
             subprocess.call( CMD, shell=True )
             if not exists( filename_signal ) :
-                raise RuntimeError( 'Problems generating the signal with "datasynth"' )
+                ERROR( 'Problems generating the signal with "datasynth"' )
             signal  = np.fromfile( filename_signal, dtype='>f4' )
             if exists( filename_signal ) :
                 remove( filename_signal )
@@ -410,7 +411,7 @@ class CylinderZeppelinBall( BaseModel ) :
         for i in range(len(self.Rs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             if lm.shape[0] != ndirs:
-                raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
+                ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
             KERNELS['wmr'][i,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
             progress.update()
 
@@ -418,7 +419,7 @@ class CylinderZeppelinBall( BaseModel ) :
         for i in range(len(self.ICVFs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             if lm.shape[0] != ndirs:
-                raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
+                ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
             KERNELS['wmh'][i,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
             progress.update()
 
@@ -569,7 +570,7 @@ class NODDI( BaseModel ) :
             for j in range( len(self.IC_VFs) ):
                 lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
                 if lm.shape[0] != ndirs:
-                    raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
+                    ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
                 idx = progress.i - 1
                 KERNELS['wm'][idx,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
                 KERNELS['kappa'][idx] = 1.0 / np.tan( self.IC_ODs[i]*np.pi/2.0 )
@@ -592,7 +593,7 @@ class NODDI( BaseModel ) :
         singleb0 = True if len(y) == (1+self.scheme.dwi_count) else False
         nD = dirs.shape[0]
         if nD != 1 :
-            raise RuntimeError( '"%s" model requires exactly 1 orientation' % self.name )
+            ERROR( '"%s" model requires exactly 1 orientation' % self.name )
 
         # prepare DICTIONARY from dir and lookup tables
         nWM = len(self.IC_ODs)*len(self.IC_VFs)
@@ -815,13 +816,11 @@ class NODDI( BaseModel ) :
             LE = np.zeros(G.shape) # np.size(R) = 1
             return LE
         else:
-            msg = "Python implementation for function noddi.cyl_neuman_le_perp_PGSE not yet validated for non-zero values"
-            raise ValueError(msg)
+            ERROR("Python implementation for function cyl_neuman_le_perp_PGSE not yet validated for non-zero values")
 
     def legendre_gaussian_integral( self, Lpmp, n ):
         if n > 6:
-            msg = 'The maximum value for n is 6, which correspondes to the 12th order Legendre polynomial'
-            raise ValueError(msg)
+            ERROR('The maximum value for n is 6, which correspondes to the 12th order Legendre polynomial')
         exact = Lpmp>0.05
         approx = Lpmp<=0.05
 
@@ -881,8 +880,7 @@ class NODDI( BaseModel ) :
     def watson_SH_coeff( self, kappa ):
 
         if isinstance(kappa,np.ndarray):
-            msg = 'noddi.py : watson_SH_coeff() not implemented for multiple kappa input yet.'
-            raise ValueError(msg)
+            ERROR('watson_SH_coeff() not implemented for multiple kappa input yet')
 
         # In the scope of AMICO only a single value is used for kappa
         n = 6
@@ -1028,8 +1026,7 @@ class NODDI( BaseModel ) :
 
     def synth_meas_iso_GPD( self, d, protocol ):
         if protocol['pulseseq'] != 'PGSE' and protocol['pulseseq'] != 'STEAM':
-            msg = 'synth_meas_iso_GPD() : Protocol %s not translated from NODDI matlab code yet' % protocol['pulseseq']
-            raise ValueError(msg)
+            ERROR( 'synth_meas_iso_GPD() : Protocol %s not translated from NODDI matlab code yet' % protocol['pulseseq'] )
 
         GAMMA = 2.675987E8
         modQ = GAMMA*protocol['smalldel'].transpose()*protocol['gradient_strength'].transpose()
@@ -1146,7 +1143,7 @@ class FreeWater( BaseModel ) :
         for i in range(len(self.d_perps)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             if lm.shape[0] != ndirs:
-                raise RuntimeError( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
+                ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
             KERNELS['D'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
             progress.update()
 
@@ -1162,7 +1159,7 @@ class FreeWater( BaseModel ) :
     def fit( self, y, dirs, KERNELS, params, htable ) :
         nD = dirs.shape[0]
         if nD > 1 : # model works only with one direction
-            raise RuntimeError( '"%s" model requires exactly 1 orientation' % self.name )
+            ERROR( '"%s" model requires exactly 1 orientation' % self.name )
 
         n1 = len(self.d_perps)
         n2 = len(self.d_isos)
@@ -1214,7 +1211,7 @@ class VolumeFractions( BaseModel ) :
 
 
     def set_solver( self ) :
-        raise NotImplementedError
+        ERROR( 'Not implemented' )
 
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
@@ -1239,4 +1236,4 @@ class VolumeFractions( BaseModel ) :
 
 
     def fit( self, y, dirs, KERNELS, params ) :
-        raise NotImplementedError
+        ERROR( 'Not implemented' )
