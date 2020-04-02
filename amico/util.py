@@ -5,6 +5,7 @@ import os.path
 from os import EX_USAGE
 from sys import exit
 
+
 def LOG( msg, prefix='' ):
     print( prefix+"\033[0;32m%s\033[0m" % msg )
 
@@ -17,7 +18,6 @@ def WARNING( msg, prefix='' ):
 def ERROR( msg, prefix='' ):
     print( prefix+"\033[0;30;41m[ ERROR ]\033[0;31m %s\033[0m\n" % msg )
     exit(EX_USAGE)
-    
 
 
 def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = [False,False,False], bStep = 1.0, delimiter = None ):
