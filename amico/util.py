@@ -2,19 +2,22 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 import os.path
+from os import EX_USAGE
+from sys import exit
 
-def LOG( msg ):
-    print( "\033[0;32m%s\033[0m" % msg )
+def LOG( msg, prefix='' ):
+    print( prefix+"\033[0;32m%s\033[0m" % msg )
 
-def NOTE( msg ):
-    print( "\033[0;30;44m[ NOTE ]\033[0;34m %s\033[0m" % msg )
+def NOTE( msg, prefix='' ):
+    print( prefix+"\033[0;30;44m[ NOTE ]\033[0;34m %s\033[0m" % msg )
 
-def WARNING( msg ):
-    print( "\033[0;30;43m[ WARNING ]\033[0;33m %s\033[0m" % msg )
+def WARNING( msg, prefix='' ):
+    print( prefix+"\033[0;30;43m[ WARNING ]\033[0;33m %s\033[0m" % msg )
 
-def ERROR( msg ):
-    print( "\033[0;30;41m[ ERROR ]\033[0;31m %s\033[0m\n" % msg )
-    raise RuntimeError( msg )
+def ERROR( msg, prefix='' ):
+    print( prefix+"\033[0;30;41m[ ERROR ]\033[0;31m %s\033[0m\n" % msg )
+    exit(EX_USAGE)
+    
 
 
 def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = [False,False,False], bStep = 1.0, delimiter = None ):
