@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 from re import match as re_match
-#import os.path
+from amico.util import LOG, NOTE, WARNING, ERROR
 
 class Scheme :
     """A class to hold information about an acquisition scheme.
@@ -40,7 +40,7 @@ class Scheme :
                 tmp = np.loadtxt( data, skiprows=n )
 
             except :
-                raise IOError( 'Unable to open scheme file' )
+                ERROR( 'Unable to open scheme file' )
 
             self.load_from_table( tmp, b0_thr )
         else :
@@ -79,7 +79,7 @@ class Scheme :
             self.version = 1
             self.b = ( 267.513e6 * self.raw[:,3] * self.raw[:,5] )**2 * (self.raw[:,4] - self.raw[:,5]/3.0) * 1e-6 # in mm^2/s
         else :
-            raise ValueError( 'Unrecognized scheme format' )
+            ERROR( 'Unrecognized scheme format' )
 
         # store information about the volumes
         self.b0_thr    = b0_thr

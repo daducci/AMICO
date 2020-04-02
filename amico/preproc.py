@@ -4,7 +4,6 @@ import numpy as np
 from scipy.optimize import minimize
 import scipy.special
 from amico.progressbar import ProgressBar
-import time
 
 # Kaden's functionals
 def F_norm_Diff_K(E0,Signal,sigma_diff):
@@ -24,7 +23,6 @@ def der_Diff(E0,Signal,sigma_diff):
 
 def debiasRician(DWI,SNR,mask,scheme):
     debiased_DWI = np.zeros(DWI.shape)
-    t = time.time()
     progress = ProgressBar( n=mask.sum(), prefix="   ", erase=True )
     for ix in range(DWI.shape[0]):
         for iy in range(DWI.shape[1]):
@@ -36,5 +34,4 @@ def debiasRician(DWI,SNR,mask,scheme):
                     tmp = minimize(F_norm_Diff_K, init_guess, args=(init_guess,sigma_diff), method = 'L-BFGS-B', jac=der_Diff)
                     debiased_DWI[ix,iy,iz] = tmp.x
                     progress.update()
-    print('   [ %s ]' % ( time.strftime("%Hh %Mm %Ss", time.gmtime(time.time()-t) ) ))
     return debiased_DWI

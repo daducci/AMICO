@@ -16,6 +16,7 @@ from amico.lut import is_valid
 from amico.progressbar import ProgressBar
 from dipy.core.gradients import gradient_table
 import dipy.reconst.dti as dti
+from amico.util import LOG, NOTE, WARNING, ERROR
 
 
 def setup( lmax = 12, ndirs = 32761 ) :
@@ -29,7 +30,7 @@ def setup( lmax = 12, ndirs = 32761 ) :
         Number of directions on the half of the sphere representing the possible orientations of the response functions (default : 32761)
     """
     if not is_valid(ndirs):
-        raise RuntimeError( 'Unsupported value for ndirs.\nNote: Supported values for ndirs are [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 32761 (default)]' )
+        ERROR( 'Unsupported value for ndirs.\nNote: supported values for ndirs are [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 32761 (default)]' )
     
     amico.lut.precompute_rotation_matrices( lmax, ndirs )
 
@@ -104,10 +105,10 @@ class Evaluation :
         """
 
         # Loading data, acquisition scheme and mask (optional)
+        LOG( '\n-> Loading data:' )
         tic = time.time()
-        print('\n-> Loading data:')
 
-        print('\t* DWI signal...')
+        print('\t* DWI signal')
         self.set_config('dwi_filename', dwi_filename)
         self.niiDWI  = nibabel.load( pjoin( self.get_config('DATA_path'), dwi_filename) )
         self.niiDWI_img = self.niiDWI.get_data().astype(np.float32)
@@ -119,11 +120,11 @@ class Evaluation :
         # Scale signal intensities (if necessary)
         if ( np.isfinite(hdr['scl_slope']) and np.isfinite(hdr['scl_inter']) and hdr['scl_slope'] != 0 and
             ( hdr['scl_slope'] != 1 or hdr['scl_inter'] != 0 ) ):
-            print('\t\t- rescaling data', end=' ')
+            print('\t\t- rescaling data ', end='')
             self.niiDWI_img = self.niiDWI_img * hdr['scl_slope'] + hdr['scl_inter']
-            print("[OK]")
+            print('[OK]')
 
-        print('\t* Acquisition scheme...')
+        print('\t* Acquisition scheme')
         self.set_config('scheme_filename', scheme_filename)
         self.set_config('b0_thr', b0_thr)
         self.scheme = amico.scheme.Scheme( pjoin( self.get_config('DATA_path'), scheme_filename), b0_thr )
@@ -134,9 +135,9 @@ class Evaluation :
         print()
 
         if self.scheme.nS != self.niiDWI_img.shape[3] :
-            raise ValueError( 'Scheme does not match with DWI data' )
+            ERROR( 'Scheme does not match with DWI data' )
 
-        print('\t* Binary mask...')
+        print('\t* Binary mask')
         if mask_filename is not None :
             self.niiMASK  = nibabel.load( pjoin( self.get_config('DATA_path'), mask_filename) )
             self.niiMASK_img = self.niiMASK.get_data().astype(np.uint8)
@@ -144,30 +145,34 @@ class Evaluation :
             print('\t\t- dim    = %d x %d x %d' % self.niiMASK_img.shape[:3])
             print('\t\t- pixdim = %.3f x %.3f x %.3f' % niiMASK_hdr.get_zooms()[:3])
             if self.get_config('dim') != self.niiMASK_img.shape[:3] :
-                raise ValueError( 'MASK geometry does not match with DWI data' )
+                ERROR( 'MASK geometry does not match with DWI data' )
         else :
             self.niiMASK = None
             self.niiMASK_img = np.ones( self.get_config('dim') )
             print('\t\t- not specified')
         print('\t\t- voxels = %d' % np.count_nonzero(self.niiMASK_img))
+        
+        LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
 
         # Preprocessing
-        print('\n-> Preprocessing:')
+        LOG( '\n-> Preprocessing:' )
+        tic = time.time()
 
         if self.get_config('doDebiasSignal') :
-            print('\t* Debiasing signal...\n')
+            print('\t* Debiasing signal... ', end='')
             sys.stdout.flush()
             if self.get_config('DWI-SNR') == None:
-                raise ValueError( "Set noise variance for debiasing (eg. ae.set_config('RicianNoiseSigma', sigma))" )
+                ERROR( "Set noise variance for debiasing (eg. ae.set_config('RicianNoiseSigma', sigma))" )
             self.niiDWI_img = debiasRician(self.niiDWI_img,self.get_config('DWI-SNR'),self.niiMASK_img,self.scheme)
+            print(' [OK]')
 
         if self.get_config('doNormalizeSignal') :
-            print('\t* Normalizing to b0...', end=' ')
+            print('\t* Normalizing to b0... ', end='')
             sys.stdout.flush()
             if self.scheme.b0_count > 0 :
                 self.mean_b0s = np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 )
             else:
-                raise ValueError( 'No b0 volume to normalize signal with' )
+                ERROR( 'No b0 volume to normalize signal with' )
             norm_factor = self.mean_b0s.copy()
             idx = self.mean_b0s <= 0
             norm_factor[ idx ] = 1
@@ -178,13 +183,13 @@ class Evaluation :
             print('[ min=%.2f,  mean=%.2f, max=%.2f ]' % ( self.niiDWI_img.min(), self.niiDWI_img.mean(), self.niiDWI_img.max() ))
 
         if self.get_config('doMergeB0') :
-            print('\t* Merging multiple b0 volume(s)...', end=' ')
+            print('\t* Merging multiple b0 volume(s)')
             mean = np.expand_dims( np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 ), axis=3 )
             self.niiDWI_img = np.concatenate( (mean, self.niiDWI_img[:,:,:,self.scheme.dwi_idx]), axis=3 )
         else :
-            print('\t* Keeping all b0 volume(s)...')
+            print('\t* Keeping all b0 volume(s)')
 
-        print('   [ %.1f seconds ]' % ( time.time() - tic ))
+        LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
 
 
     def set_model( self, model_name ) :
@@ -199,7 +204,7 @@ class Evaluation :
         if hasattr(amico.models, model_name ) :
             self.model = getattr(amico.models,model_name)()
         else :
-            raise ValueError( 'Model "%s" not recognized' % model_name )
+            ERROR( 'Model "%s" not recognized' % model_name )
 
         self.set_config('ATOMS_path', pjoin( self.get_config('study_path'), 'kernels', self.model.id ))
 
@@ -212,7 +217,7 @@ class Evaluation :
         Dispatch to the proper function, depending on the model; a model shoudl provide a "set_solver" function to set these parameters.
         """
         if self.model is None :
-            raise RuntimeError( 'Model not set; call "set_model()" method first.' )
+            ERROR( 'Model not set; call "set_model()" method first' )
         self.set_config('solver_params', self.model.set_solver( **params ))
 
 
@@ -230,22 +235,22 @@ class Evaluation :
             Number of directions on the half of the sphere representing the possible orientations of the response functions (default : 32761)
          """
         if self.scheme is None :
-            raise RuntimeError( 'Scheme not loaded; call "load_data()" first.' )
+            ERROR( 'Scheme not loaded; call "load_data()" first' )
         if self.model is None :
-            raise RuntimeError( 'Model not set; call "set_model()" method first.' )
+            ERROR( 'Model not set; call "set_model()" method first' )
         if not is_valid(ndirs):
-            raise RuntimeError( 'Unsupported value for ndirs.\nNote: Supported values for ndirs are [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 32761 (default)]' )
+            ERROR( 'Unsupported value for ndirs.\nNote: Supported values for ndirs are [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 32761 (default)]' )
 
         # store some values for later use
         self.set_config('lmax', lmax)
         self.set_config('ndirs', ndirs)
         self.model.scheme = self.scheme
-        print('\n-> Creating LUT for "%s" model:' % self.model.name)
+        LOG( '\n-> Creating LUT for "%s" model:' % self.model.name )
 
         # check if kernels were already generated
         tmp = glob.glob( pjoin(self.get_config('ATOMS_path'),'A_*.npy') )
         if len(tmp)>0 and not regenerate :
-            print('   [ LUT already computed. Call "generate_kernels( regenerate=True )" to force regeneration. ]')
+            LOG( '   [ LUT already computed. USe option "regenerate=True" to force regeneration ]' )
             return
 
         # create folder or delete existing files (if any)
@@ -262,7 +267,7 @@ class Evaluation :
         # Dispatch to the right handler for each model
         tic = time.time()
         self.model.generate( self.get_config('ATOMS_path'), aux, idx_IN, idx_OUT, ndirs )
-        print('   [ %.1f seconds ]' % ( time.time() - tic ))
+        LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
 
 
     def load_kernels( self ) :
@@ -270,12 +275,12 @@ class Evaluation :
         Dispatch to the proper function, depending on the model.
         """
         if self.model is None :
-            raise RuntimeError( 'Model not set; call "set_model()" method first.' )
+            ERROR( 'Model not set; call "set_model()" method first' )
         if self.scheme is None :
-            raise RuntimeError( 'Scheme not loaded; call "load_data()" first.' )
+            ERROR( 'Scheme not loaded; call "load_data()" first' )
 
         tic = time.time()
-        print('\n-> Resampling LUT for subject "%s":' % self.get_config('subject'))
+        LOG( '\n-> Resampling LUT for subject "%s":' % self.get_config('subject') )
 
         # auxiliary data structures
         idx_OUT, Ylm_OUT = amico.lut.aux_structures_resample( self.scheme, self.get_config('lmax') )
@@ -286,7 +291,7 @@ class Evaluation :
         # Dispatch to the right handler for each model
         self.KERNELS = self.model.resample( self.get_config('ATOMS_path'), idx_OUT, Ylm_OUT, self.get_config('doMergeB0'), self.get_config('ndirs') )
 
-        print('   [ %.1f seconds ]' % ( time.time() - tic ))
+        LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
 
 
     def fit( self ) :
@@ -294,17 +299,17 @@ class Evaluation :
         Call the appropriate fit() method of the actual model used.
         """
         if self.niiDWI is None :
-            raise RuntimeError( 'Data not loaded; call "load_data()" first.' )
+            ERROR( 'Data not loaded; call "load_data()" first' )
         if self.model is None :
-            raise RuntimeError( 'Model not set; call "set_model()" first.' )
+            ERROR( 'Model not set; call "set_model()" first' )
         if self.KERNELS is None :
-            raise RuntimeError( 'Response functions not generated; call "generate_kernels()" and "load_kernels()" first.' )
+            ERROR( 'Response functions not generated; call "generate_kernels()" and "load_kernels()" first' )
         if self.KERNELS['model'] != self.model.id :
-            raise RuntimeError( 'Response functions were not created with the same model.' )
+            ERROR( 'Response functions were not created with the same model' )
 
         self.set_config('fit_time', None)
         totVoxels = np.count_nonzero(self.niiMASK_img)
-        print('\n-> Fitting "%s" model to %d voxels:' % ( self.model.name, totVoxels ))
+        LOG( '\n-> Fitting "%s" model to %d voxels:' % ( self.model.name, totVoxels ) )
 
         # setup fitting directions
         peaks_filename = self.get_config('peaks_filename')
@@ -322,7 +327,7 @@ class Evaluation :
             nDIR = np.floor( DIRs.shape[3]/3 )
             print('\t* peaks dim = %d x %d x %d x %d' % DIRs.shape[:4])
             if DIRs.shape[:3] != self.niiMASK_img.shape[:3] :
-                raise ValueError( 'PEAKS geometry does not match with DWI data' )
+                ERROR( 'PEAKS geometry does not match with DWI data' )
 
         # setup other output files
         MAPs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1],
@@ -335,11 +340,10 @@ class Evaluation :
         if self.get_config('doSaveCorrectedDWI') :
             DWI_corrected = np.zeros(self.niiDWI.shape, dtype=np.float32)
 
-
         # fit the model to the data
         # =========================
         t = time.time()
-        progress = ProgressBar( n=totVoxels, prefix="   ", erase=True )
+        progress = ProgressBar( n=totVoxels, prefix="   ", erase=False )
         for iz in range(self.niiMASK_img.shape[2]) :
             for iy in range(self.niiMASK_img.shape[1]) :
                 for ix in range(self.niiMASK_img.shape[0]) :
@@ -380,21 +384,19 @@ class Evaluation :
                             y_fw_corrected = y - y_fw_part
                             y_fw_corrected[ y_fw_corrected < 0 ] = 0 # [NOTE] this should not happen!
 
-                            #print(y, x, b0, A.shape)
                             if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
                                 y_fw_corrected = y_fw_corrected * self.mean_b0s[ix,iy,iz]
                                 
                             if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
                                 # put original b0 data back in.
                                 y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*self.mean_b0s[ix,iy,iz]
-                            
 
                             DWI_corrected[ix,iy,iz,:] = y_fw_corrected
 
                     progress.update()
 
         self.set_config('fit_time', time.time()-t)
-        print('   [ %s ]' % ( time.strftime("%Hh %Mm %Ss", time.gmtime(self.get_config('fit_time')) ) ))
+        LOG( '   [ %s ]' % ( time.strftime("%Hh %Mm %Ss", time.gmtime(self.get_config('fit_time')) ) ) )
 
         # store results
         self.RESULTS = {}
@@ -415,13 +417,13 @@ class Evaluation :
             Text to be appended to the output path (default : None)
         """
         if self.RESULTS is None :
-            raise RuntimeError( 'Model not fitted to the data; call "fit()" first.' )
+            ERROR( 'Model not fitted to the data; call "fit()" first' )
         if self.get_config('OUTPUT_path') is None:
             RESULTS_path = pjoin( 'AMICO', self.model.id )
             if path_suffix :
                 RESULTS_path = RESULTS_path +'_'+ path_suffix
             self.RESULTS['RESULTS_path'] = RESULTS_path
-            print('\n-> Saving output to "%s/*":' % RESULTS_path)
+            LOG( '\n-> Saving output to "%s/*":' % RESULTS_path )
 
             # delete previous output
             RESULTS_path = pjoin( self.get_config('DATA_path'), RESULTS_path )
@@ -430,7 +432,7 @@ class Evaluation :
             if path_suffix :
                 RESULTS_path = RESULTS_path +'_'+ path_suffix
             self.RESULTS['RESULTS_path'] = RESULTS_path
-            print('\n-> Saving output to "%s/*":' % RESULTS_path)
+            LOG( '\n-> Saving output to "%s/*":' % RESULTS_path )
 
         if not exists( RESULTS_path ) :
             makedirs( RESULTS_path )
@@ -481,7 +483,7 @@ class Evaluation :
                 nibabel.save( niiMAP, pjoin(RESULTS_path, 'dwi_fw_corrected.nii.gz') )
                 print(' [OK]')
             else :
-                print('          doSaveCorrectedDWI option not supported for %s model' % self.model.name)
+                WARNING( '"doSaveCorrectedDWI" option not supported for "%s" model' % self.model.name )
 
         # voxelwise maps
         for i in range( len(self.model.maps_name) ) :
@@ -497,4 +499,4 @@ class Evaluation :
             nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_%s.nii.gz' % self.model.maps_name[i] ) )
             print(' [OK]')
 
-        print('   [ DONE ]')
+        LOG( '   [ DONE ]' )
