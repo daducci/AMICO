@@ -108,7 +108,7 @@ class Evaluation :
         LOG( '\n-> Loading data:' )
         tic = time.time()
 
-        print('\t* DWI signal...')
+        print('\t* DWI signal')
         self.set_config('dwi_filename', dwi_filename)
         self.niiDWI  = nibabel.load( pjoin( self.get_config('DATA_path'), dwi_filename) )
         self.niiDWI_img = self.niiDWI.get_data().astype(np.float32)
@@ -120,11 +120,11 @@ class Evaluation :
         # Scale signal intensities (if necessary)
         if ( np.isfinite(hdr['scl_slope']) and np.isfinite(hdr['scl_inter']) and hdr['scl_slope'] != 0 and
             ( hdr['scl_slope'] != 1 or hdr['scl_inter'] != 0 ) ):
-            print('\t\t- rescaling data', end=' ')
+            print('\t\t- rescaling data ', end='')
             self.niiDWI_img = self.niiDWI_img * hdr['scl_slope'] + hdr['scl_inter']
-            print("[OK]")
+            print('[OK]')
 
-        print('\t* Acquisition scheme...')
+        print('\t* Acquisition scheme')
         self.set_config('scheme_filename', scheme_filename)
         self.set_config('b0_thr', b0_thr)
         self.scheme = amico.scheme.Scheme( pjoin( self.get_config('DATA_path'), scheme_filename), b0_thr )
@@ -137,7 +137,7 @@ class Evaluation :
         if self.scheme.nS != self.niiDWI_img.shape[3] :
             ERROR( 'Scheme does not match with DWI data' )
 
-        print('\t* Binary mask...')
+        print('\t* Binary mask')
         if mask_filename is not None :
             self.niiMASK  = nibabel.load( pjoin( self.get_config('DATA_path'), mask_filename) )
             self.niiMASK_img = self.niiMASK.get_data().astype(np.uint8)
@@ -159,14 +159,15 @@ class Evaluation :
         tic = time.time()
 
         if self.get_config('doDebiasSignal') :
-            print('\t* Debiasing signal...\n')
+            print('\t* Debiasing signal... ', end='')
             sys.stdout.flush()
             if self.get_config('DWI-SNR') == None:
                 ERROR( "Set noise variance for debiasing (eg. ae.set_config('RicianNoiseSigma', sigma))" )
             self.niiDWI_img = debiasRician(self.niiDWI_img,self.get_config('DWI-SNR'),self.niiMASK_img,self.scheme)
+            print(' [OK]')
 
         if self.get_config('doNormalizeSignal') :
-            print('\t* Normalizing to b0...', end=' ')
+            print('\t* Normalizing to b0... ', end='')
             sys.stdout.flush()
             if self.scheme.b0_count > 0 :
                 self.mean_b0s = np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 )
@@ -182,11 +183,11 @@ class Evaluation :
             print('[ min=%.2f,  mean=%.2f, max=%.2f ]' % ( self.niiDWI_img.min(), self.niiDWI_img.mean(), self.niiDWI_img.max() ))
 
         if self.get_config('doMergeB0') :
-            print('\t* Merging multiple b0 volume(s)...', end=' ')
+            print('\t* Merging multiple b0 volume(s)')
             mean = np.expand_dims( np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 ), axis=3 )
             self.niiDWI_img = np.concatenate( (mean, self.niiDWI_img[:,:,:,self.scheme.dwi_idx]), axis=3 )
         else :
-            print('\t* Keeping all b0 volume(s)...')
+            print('\t* Keeping all b0 volume(s)')
 
         LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
 
@@ -339,11 +340,10 @@ class Evaluation :
         if self.get_config('doSaveCorrectedDWI') :
             DWI_corrected = np.zeros(self.niiDWI.shape, dtype=np.float32)
 
-
         # fit the model to the data
         # =========================
         t = time.time()
-        progress = ProgressBar( n=totVoxels, prefix="   ", erase=True )
+        progress = ProgressBar( n=totVoxels, prefix="   ", erase=False )
         for iz in range(self.niiMASK_img.shape[2]) :
             for iy in range(self.niiMASK_img.shape[1]) :
                 for ix in range(self.niiMASK_img.shape[0]) :
@@ -384,14 +384,12 @@ class Evaluation :
                             y_fw_corrected = y - y_fw_part
                             y_fw_corrected[ y_fw_corrected < 0 ] = 0 # [NOTE] this should not happen!
 
-                            #print(y, x, b0, A.shape)
                             if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
                                 y_fw_corrected = y_fw_corrected * self.mean_b0s[ix,iy,iz]
                                 
                             if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
                                 # put original b0 data back in.
                                 y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*self.mean_b0s[ix,iy,iz]
-                            
 
                             DWI_corrected[ix,iy,iz,:] = y_fw_corrected
 
@@ -485,7 +483,7 @@ class Evaluation :
                 nibabel.save( niiMAP, pjoin(RESULTS_path, 'dwi_fw_corrected.nii.gz') )
                 print(' [OK]')
             else :
-                WARNING( 'doSaveCorrectedDWI option not supported for %s model' % self.model.name )
+                WARNING( '"doSaveCorrectedDWI" option not supported for "%s" model' % self.model.name )
 
         # voxelwise maps
         for i in range( len(self.model.maps_name) ) :

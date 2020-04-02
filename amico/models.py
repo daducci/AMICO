@@ -816,11 +816,11 @@ class NODDI( BaseModel ) :
             LE = np.zeros(G.shape) # np.size(R) = 1
             return LE
         else:
-            ERROR("Python implementation for function cyl_neuman_le_perp_PGSE not yet validated for non-zero values")
+            ERROR( '"cyl_neuman_le_perp_PGSE" not yet validated for non-zero values' )
 
     def legendre_gaussian_integral( self, Lpmp, n ):
         if n > 6:
-            ERROR('The maximum value for n is 6, which correspondes to the 12th order Legendre polynomial')
+            ERROR( 'The maximum value for n is 6, which corresponds to the 12th order Legendre polynomial' )
         exact = Lpmp>0.05
         approx = Lpmp<=0.05
 
@@ -880,7 +880,7 @@ class NODDI( BaseModel ) :
     def watson_SH_coeff( self, kappa ):
 
         if isinstance(kappa,np.ndarray):
-            ERROR('watson_SH_coeff() not implemented for multiple kappa input yet')
+            ERROR( '"watson_SH_coeff()" not implemented for multiple kappa input yet' )
 
         # In the scope of AMICO only a single value is used for kappa
         n = 6

@@ -305,14 +305,14 @@ def resample_kernel( KRlm, nS, idx_out, Ylm_out, is_isotropic, ndirs ) :
             for i in range(ndirs) :
                 KR[i,idx_out] = np.dot( Ylm_out, KRlm[i,:] ).astype(np.float32)
         except:
-            ERROR( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
+            ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
     else :
         KR = np.ones( nS, dtype=np.float32 )
         try:
             for i in range(ndirs) :
                 KR[idx_out] = np.dot( Ylm_out, KRlm ).astype(np.float32)
         except:
-            ERROR( '[ Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT. ]' )
+            ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
     return KR
 
 
@@ -350,7 +350,7 @@ def dir_TO_lut_idx( direction, htable ) :
     i1 = np.round( i1/np.pi*180.0 ).astype(int)
     i2 = np.round( i2/np.pi*180.0 ).astype(int)
     if i1<0 or i1>180 or i2<0 or i2>180 :
-        ERROR( '[amico.lut.dir_TO_lut_idx] index out of bounds (%d,%d)' % (i1,i2) )
+        raise RuntimeError( '"amico.lut.dir_TO_lut_idx" index out of bounds (%d,%d)' % (i1,i2) )
 
     return htable[i1*181 + i2]
 
