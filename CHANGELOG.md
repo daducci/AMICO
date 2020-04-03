@@ -2,6 +2,11 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.2.1] - 2020-04-03
+ 
+### Changed
+- Option to set one single direction in the resolution of the LUT.
+
 ## [1.2.0] - 2020-04-01
 
 ### Added
@@ -13,9 +18,4 @@ This version of AMICO *is not compatible* with [COMMIT](https://github.com/daduc
  
 ### Added
 - Changelog file to keep tracking of the AMICO versions.
- 
-### Changed
 - New feature that allows to decrease the LUT resolution. [Example here.](https://github.com/ErickHernandezGutierrez/AMICO/blob/lowresLUT/doc/demos/NODDI_lowres.md)
- 
-### Fixed
-- Nothing.
