@@ -2,6 +2,12 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.2.1] - 2020-04-25
+
+### Changed
+- Use d_perps to set models instead of ICVFs.
+- Canged case of some parameters for consistency
+
 ## [1.2.0] - 2020-04-01
 
 ### Added
