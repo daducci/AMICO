@@ -129,15 +129,6 @@ class BaseModel( object ) :
             Contains the LUT and all corresponding details. In particular, it is
             required to have a field 'model' set to "self.id".
         """
-        # if doMergeB0:
-        #     nS = 1+self.scheme.dwi_count
-        # else:
-        #     nS = self.scheme.nS
-        # KERNELS = {}
-        # KERNELS['model'] = self.id
-        # KERNELS['IC']    = np.zeros( (len(self.Rs),181,181,nS), dtype=np.float32 )
-        # KERNELS['EC']    = np.zeros( (len(self.ICVFs),181,181,nS), dtype=np.float32 )
-        # ...
         return
 
 
@@ -178,8 +169,7 @@ class StickZeppelinBall( BaseModel ) :
     The intra-cellular contributions from within the axons are modeled as "sticks", i.e.
     tensors with a given axial diffusivity (d_par) but null perpendicular diffusivity.
     Extra-cellular contributions are modeled as tensors with the same axial diffusivity
-    as the sticks (d_par) and whose perpendicular diffusivities are calculated with a
-    tortuosity model as a function of the intra-cellular volume fractions (ICVFs).
+    as the sticks (d_par) and, possibily, a series of perpendicular diffusivities (d_PERPs).
     Isotropic contributions are modeled as tensors with isotropic diffusivities (d_ISOs).
 
     References
@@ -194,15 +184,15 @@ class StickZeppelinBall( BaseModel ) :
         self.maps_name  = [ ]
         self.maps_descr = [ ]
 
-        self.d_par  = 1.7E-3                    # Parallel diffusivity [mm^2/s]
-        self.ICVFs  = np.arange(0.3,0.9,0.1)    # Intra-cellular volume fraction(s) [0..1]
-        self.d_ISOs = np.array([ 3.0E-3 ])      # Isotropic diffusivitie(s) [mm^2/s]
+        self.d_par   = 1.7E-3                                          # Parallel diffusivity [mm^2/s]
+        self.d_PERPs = np.array([ 1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]) # Perpendicular diffusivitie(s) [mm^2/s]
+        self.d_ISOs  = np.array([ 3.0E-3 ])                            # Isotropic diffusivitie(s) [mm^2/s]
 
 
-    def set( self, d_par, ICVFs, d_ISOs ) :
-        self.d_par  = d_par
-        self.ICVFs  = np.array( ICVFs )
-        self.d_ISOs = np.array( d_ISOs )
+    def set( self, d_par, d_PERPs, d_ISOs ) :
+        self.d_par   = d_par
+        self.d_PERPs = np.array( d_PERPs )
+        self.d_ISOs  = np.array( d_ISOs )
 
 
     def set_solver( self ) :
@@ -213,7 +203,7 @@ class StickZeppelinBall( BaseModel ) :
         scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1 )
         gtab = gradient_table( scheme_high.b, scheme_high.raw[:,0:3] )
 
-        nATOMS = 1 + len(self.ICVFs) + len(self.d_ISOs)
+        nATOMS = 1 + len(self.d_PERPs) + len(self.d_ISOs)
         progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
 
         # Stick
@@ -223,7 +213,7 @@ class StickZeppelinBall( BaseModel ) :
         progress.update()
 
         # Zeppelin(s)
-        for d in [ self.d_par*(1.0-ICVF) for ICVF in self.ICVFs] :
+        for d in self.d_PERPs :
             signal = single_tensor( gtab, evals=[d, d, self.d_par] )
             lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
             np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
@@ -247,10 +237,10 @@ class StickZeppelinBall( BaseModel ) :
             nS = self.scheme.nS
             merge_idx = np.arange(nS)
         KERNELS['wmr']   = np.zeros( (1,ndirs,nS), dtype=np.float32 )
-        KERNELS['wmh']   = np.zeros( (len(self.ICVFs),ndirs,nS), dtype=np.float32 )
+        KERNELS['wmh']   = np.zeros( (len(self.d_PERPs),ndirs,nS), dtype=np.float32 )
         KERNELS['iso']   = np.zeros( (len(self.d_ISOs),nS), dtype=np.float32 )
 
-        nATOMS = 1 + len(self.ICVFs) + len(self.d_ISOs)
+        nATOMS = 1 + len(self.d_PERPs) + len(self.d_ISOs)
         progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
 
         # Stick
@@ -261,7 +251,7 @@ class StickZeppelinBall( BaseModel ) :
         progress.update()
 
         # Zeppelin(s)
-        for i in range(len(self.ICVFs)) :
+        for i in range(len(self.d_PERPs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             if lm.shape[0] != ndirs:
                 ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
@@ -288,8 +278,7 @@ class CylinderZeppelinBall( BaseModel ) :
     The intra-cellular contributions from within the axons are modeled as "cylinders"
     with specific radii (Rs) and a given axial diffusivity (d_par).
     Extra-cellular contributions are modeled as tensors with the same axial diffusivity
-    as the cylinders (d_par) and whose perpendicular diffusivities are calculated with a
-    tortuosity model as a function of the intra-cellular volume fractions (ICVFs).
+    as the cylinders (d_par) and, possibily, a series of perpendicular diffusivities (d_PERPs).
     Isotropic contributions are modeled as tensors with isotropic diffusivities (d_ISOs).
 
     NB: this model works only with schemes containing the full specification of
@@ -311,18 +300,18 @@ class CylinderZeppelinBall( BaseModel ) :
         self.maps_name  = [ 'v', 'a', 'd' ]
         self.maps_descr = [ 'Intra-cellular volume fraction', 'Mean axonal diameter', 'Axonal density' ]
 
-        self.d_par  = 0.6E-3                                                         # Parallel diffusivity [mm^2/s]
-        self.Rs     = np.concatenate( ([0.01],np.linspace(0.5,8.0,20)) ) * 1E-6    # Radii of the axons [meters]
-        self.ICVFs  = np.arange(0.3,0.9,0.1)                                         # Intra-cellular volume fraction(s) [0..1]
-        self.d_ISOs = np.array( [ 2.0E-3 ] )                                         # Isotropic diffusivitie(s) [mm^2/s]
-        self.isExvivo  = False                                                       # Add dot compartment to dictionary (exvivo data)
+        self.d_par   = 0.6E-3                                                    # Parallel diffusivity [mm^2/s]
+        self.Rs      = np.concatenate( ([0.01],np.linspace(0.5,8.0,20)) ) * 1E-6 # Radii of the axons [meters]
+        self.d_PERPs = np.array([ 1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3])           # Perpendicular diffusivitie(s) [mm^2/s]
+        self.d_ISOs  = np.array( [ 2.0E-3 ] )                                    # Isotropic diffusivitie(s) [mm^2/s]
+        self.isExvivo  = False                                                   # Add dot compartment to dictionary (exvivo data)
 
 
-    def set( self, d_par, Rs, ICVFs, d_ISOs ) :
-        self.d_par  = d_par
-        self.Rs     = np.array(Rs)
-        self.ICVFs  = np.array(ICVFs)
-        self.d_ISOs = np.array(d_ISOs)
+    def set( self, d_par, Rs, d_PERPs, d_ISOs ) :
+        self.d_par   = d_par
+        self.Rs      = np.array(Rs)
+        self.d_PERPs = np.array(d_PERPs)
+        self.d_ISOs  = np.array(d_ISOs)
 
 
     def set_solver( self, lambda1 = 0.0, lambda2 = 4.0 ) :
@@ -345,7 +334,7 @@ class CylinderZeppelinBall( BaseModel ) :
         # temporary file where to store "datasynth" output
         filename_signal = pjoin( tempfile._get_default_tempdir(), next(tempfile._get_candidate_names())+'.Bfloat' )
 
-        nATOMS = len(self.Rs) + len(self.ICVFs) + len(self.d_ISOs)
+        nATOMS = len(self.Rs) + len(self.d_PERPs) + len(self.d_ISOs)
         progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
 
         # Cylinder(s)
@@ -363,7 +352,7 @@ class CylinderZeppelinBall( BaseModel ) :
             progress.update()
 
         # Zeppelin(s)
-        for d in [ self.d_par*(1.0-ICVF) for ICVF in self.ICVFs] :
+        for d in self.d_PERPs :
             CMD = 'datasynth -synthmodel compartment 1 ZEPPELIN %E 0 0 %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null' % ( self.d_par*1E-6, d*1e-6, filename_scheme, filename_signal )
             subprocess.call( CMD, shell=True )
             if not exists( filename_signal ) :
@@ -401,10 +390,10 @@ class CylinderZeppelinBall( BaseModel ) :
         KERNELS = {}
         KERNELS['model'] = self.id
         KERNELS['wmr'] = np.zeros( (len(self.Rs),ndirs,nS,), dtype=np.float32 )
-        KERNELS['wmh'] = np.zeros( (len(self.ICVFs),ndirs,nS,), dtype=np.float32 )
+        KERNELS['wmh'] = np.zeros( (len(self.d_PERPs),ndirs,nS,), dtype=np.float32 )
         KERNELS['iso'] = np.zeros( (len(self.d_ISOs),nS,), dtype=np.float32 )
 
-        nATOMS = len(self.Rs) + len(self.ICVFs) + len(self.d_ISOs)
+        nATOMS = len(self.Rs) + len(self.d_PERPs) + len(self.d_ISOs)
         progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
 
         # Cylinder(s)
@@ -416,7 +405,7 @@ class CylinderZeppelinBall( BaseModel ) :
             progress.update()
 
         # Zeppelin(s)
-        for i in range(len(self.ICVFs)) :
+        for i in range(len(self.d_PERPs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             if lm.shape[0] != ndirs:
                 ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
@@ -435,7 +424,7 @@ class CylinderZeppelinBall( BaseModel ) :
     def fit( self, y, dirs, KERNELS, params, htable ) :
         nD = dirs.shape[0]
         n1 = len(self.Rs)
-        n2 = len(self.ICVFs)
+        n2 = len(self.d_PERPs)
         n3 = len(self.d_ISOs)
         if self.isExvivo:
             nATOMS = nD*(n1+n2)+n3+1
