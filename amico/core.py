@@ -144,6 +144,8 @@ class Evaluation :
             niiMASK_hdr = self.niiMASK.header if nibabel.__version__ >= '2.0.0' else self.niiMASK.get_header()
             print('\t\t- dim    = %d x %d x %d' % self.niiMASK_img.shape[:3])
             print('\t\t- pixdim = %.3f x %.3f x %.3f' % niiMASK_hdr.get_zooms()[:3])
+            if self.niiMASK.ndim != 3 :
+                ERROR( 'The provided MASK if 4D, but a 3D dataset is expected' )
             if self.get_config('dim') != self.niiMASK_img.shape[:3] :
                 ERROR( 'MASK geometry does not match with DWI data' )
         else :

@@ -2,6 +2,11 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.2.2] - 2020-05-05
+
+### Fixed
+- Checks if input mask is 3D.
+
 ## [1.2.1] - 2020-04-25
 
 ### Changed
