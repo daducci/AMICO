@@ -7,3 +7,5 @@ ehthumbs.db
 Thumbs.db
 __pycache__/
 .vscode/
+.eggs/
+amico.egg-info/
