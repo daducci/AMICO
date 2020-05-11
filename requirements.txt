@@ -3,4 +3,4 @@ dipy==1.1.1
 numpy==1.18.4
 setuptools==46.1.3
 spams==2.6.1
-scipy==1.0.1
+scipy==1.4.1

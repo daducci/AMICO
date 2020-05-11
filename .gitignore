@@ -8,4 +8,5 @@ Thumbs.db
 __pycache__/
 .vscode/
 .eggs/
-amico.egg-info/
+*.egg-info/
+dist/
