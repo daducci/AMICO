@@ -9,4 +9,4 @@ from . import progressbar
 from . import util
 
 from pkg_resources import get_distribution
-__version__ = get_distribution('amico').version
+__version__ = get_distribution('dmri-amico').version

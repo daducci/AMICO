@@ -12,4 +12,4 @@ setup(name='dmri-amico',
       packages=find_packages(),
       setup_requires=['Cython>=0.29.17', 'numpy>=1.18.4'],
       package_data={'': ['*.bin', 'directions/*.bin']},
-      install_requires=['dipy>=1.1.1', 'scipy>=1.4.1', 'spams>=2.6.1'])
+      install_requires=['dipy>=1.1.1', 'scipy>=1.4.1', 'spams>=2.6.0'])
