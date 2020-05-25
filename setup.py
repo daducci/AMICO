@@ -3,13 +3,13 @@ from setuptools import setup, find_packages
 description = 'Implementation of the linear framework for Accelerated Microstructure Imaging via Convex Optimization (AMICO) from diffusion MRI data'
 
 setup(name='dmri-amico',
-      version='1.2.3.1',
+      version='1.2.3.2',
       description='Accelerated Microstructure Imaging via Convex Optimization (AMICO)',
       long_description=description,
       author='Alessandro Daducci',
       author_email='alessandro.daducci@univr.it',
       url='https://github.com/daducci/AMICO',
       packages=find_packages(),
-      setup_requires=['numpy>=1.18.4'],
+      setup_requires=['numpy>=1.18'],
       package_data={'': ['*.bin', 'directions/*.bin']},
-      install_requires=['numpy>=1.18.4', 'dipy>=1.1.0', 'scipy>=1.4.1', 'python-spams>=2.6.1'])
+      install_requires=['numpy>=1.18', 'dipy>=1.1', 'scipy>=1.4', 'python-spams>=2.6.1'])
