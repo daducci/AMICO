@@ -1,0 +1,5 @@
+dipy>=1.0
+numpy>=1.12
+setuptools>=46.1
+scipy>=1.0
+spams>=2.6.1
