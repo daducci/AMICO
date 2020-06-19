@@ -168,9 +168,11 @@ class StickZeppelinBall( BaseModel ) :
 
     The intra-cellular contributions from within the axons are modeled as "sticks", i.e.
     tensors with a given axial diffusivity (d_par) but null perpendicular diffusivity.
-    Extra-cellular contributions are modeled as tensors with the same axial diffusivity
-    as the sticks (d_par) and, possibily, a series of perpendicular diffusivities (d_perps).
-    Isotropic contributions are modeled as tensors with isotropic diffusivities (d_isos).
+    Extra-cellular contributions are modeled as "Zeppelins", i.e. tensors with a given axial
+    diffusivity (d_par_zep) and, possibily, a series of perpendicular diffusivities (d_perps).
+    If the axial diffusivity of the Zeppelins is not specified, then it is assumed equal to that
+    of the Stick. Isotropic contributions are modeled as "Balls", i.e. tensors with isotropic
+    diffusivities (d_isos).
 
     References
     ----------
@@ -184,13 +186,18 @@ class StickZeppelinBall( BaseModel ) :
         self.maps_name  = [ ]
         self.maps_descr = [ ]
 
-        self.d_par   = 1.7E-3                                          # Parallel diffusivity [mm^2/s]
+        self.d_par     = 1.7E-3                                        # Parallel diffusivity for the Stick [mm^2/s]
+        self.d_par_zep = 1.7E-3                                        # Parallel diffusivity for the Zeppelins [mm^2/s]
         self.d_perps = np.array([ 1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]) # Perpendicular diffusivitie(s) [mm^2/s]
         self.d_isos  = np.array([ 3.0E-3 ])                            # Isotropic diffusivitie(s) [mm^2/s]
 
 
-    def set( self, d_par, d_perps, d_isos ) :
+    def set( self, d_par, d_perps, d_isos, d_par_zep=None ) :
         self.d_par   = d_par
+        if d_par_zep is None:
+            self.d_par_zep = d_par
+        else:
+            self.d_par_zep = d_par_zep
         self.d_perps = np.array( d_perps )
         self.d_isos  = np.array( d_isos )
 
@@ -214,7 +221,7 @@ class StickZeppelinBall( BaseModel ) :
 
         # Zeppelin(s)
         for d in self.d_perps :
-            signal = single_tensor( gtab, evals=[d, d, self.d_par] )
+            signal = single_tensor( gtab, evals=[d, d, self.d_par_zep] )
             lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
             np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
             progress.update()
