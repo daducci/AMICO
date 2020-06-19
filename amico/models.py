@@ -168,9 +168,11 @@ class StickZeppelinBall( BaseModel ) :
 
     The intra-cellular contributions from within the axons are modeled as "sticks", i.e.
     tensors with a given axial diffusivity (d_par) but null perpendicular diffusivity.
-    Extra-cellular contributions are modeled as tensors with the same axial diffusivity
-    as the sticks (d_par) and, possibily, a series of perpendicular diffusivities (d_perps).
-    Isotropic contributions are modeled as tensors with isotropic diffusivities (d_isos).
+    Extra-cellular contributions are modeled as "Zeppelins", i.e. tensors with a given axial
+    diffusivity (d_par_zep) and, possibily, a series of perpendicular diffusivities (d_perps).
+    If the axial diffusivity of the Zeppelins is not specified, then it is assumed equal to that
+    of the Stick. Isotropic contributions are modeled as "Balls", i.e. tensors with isotropic
+    diffusivities (d_isos).
 
     References
     ----------
