@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 description = 'Implementation of the linear framework for Accelerated Microstructure Imaging via Convex Optimization (AMICO) from diffusion MRI data'
 
 setup(name='dmri-amico',
-      version='1.2.3.4',
+      version='1.2.4.0',
       description='Accelerated Microstructure Imaging via Convex Optimization (AMICO)',
       long_description=description,
       author='Alessandro Daducci',

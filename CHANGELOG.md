@@ -2,6 +2,11 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.2.4] - 2020-06-10
+
+### Added
+- Added the parameter 'd_par_zep' in the StickZeppelinBall model
+
 ## [1.2.3] - 2020-05-25
 
 ### Fixed
