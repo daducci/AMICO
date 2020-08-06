@@ -2,6 +2,11 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.2.5] - 2020-08-06
+
+### Changed
+- Moved the documentation to the Wiki
+
 ## [1.2.4] - 2020-06-10
 
 ### Added
