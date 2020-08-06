@@ -12,6 +12,6 @@ AMICO is written in **python** and **does not require** the [NODDI MATLAB toolbo
 
 # Documentation
 
-The documentation, including the [installation guide](wiki/Installation) as well as a series of demos/tutorials to show how to use AMICO to fit different models to the data, can be found in the [wiki pages](wiki/Home).
+The documentation, including the [installation guide](https://github.com/daducci/AMICO/wiki/Installation) as well as a series of demos/tutorials to show how to use AMICO to fit different models to the data, can be found in the [wiki pages](https://github.com/daducci/AMICO/wiki/Home).
 
 For questions, requesting assistance, suggesting enhancements or new ideas as well as for reporting bugs, please open an [issue](https://github.com/daducci/AMICO/issues).
