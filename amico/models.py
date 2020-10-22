@@ -72,6 +72,14 @@ class BaseModel( object ) :
 
 
     @abc.abstractmethod
+    def get_params( self ) :
+        """For getting the actual values of all the parameters specific to the model.
+        NB: the parameters are model-dependent.
+        """
+        return
+
+
+    @abc.abstractmethod
     def set_solver( self, *args, **kwargs ) :
         """For setting the parameters required by the solver to fit the model.
         NB: the parameters are model-dependent.
@@ -202,6 +210,17 @@ class StickZeppelinBall( BaseModel ) :
         self.d_isos  = np.array( d_isos )
 
 
+    def get_params( self ) :
+        params = {}
+        params['id'] = self.id
+        params['name'] = self.name
+        params['d_par'] = self.d_par
+        params['d_par_zep'] = self.d_par_zep
+        params['d_perps'] = self.d_perps
+        params['d_isos'] = self.d_isos
+        return params
+
+
     def set_solver( self ) :
         ERROR( 'Not implemented' )
 
@@ -319,6 +338,18 @@ class CylinderZeppelinBall( BaseModel ) :
         self.Rs      = np.array(Rs)
         self.d_perps = np.array(d_perps)
         self.d_isos  = np.array(d_isos)
+
+
+    def get_params( self ) :
+        params = {}
+        params['id'] = self.id
+        params['name'] = self.name
+        params['d_par'] = self.d_par
+        params['Rs'] = self.Rs
+        params['d_perps'] = self.d_perps
+        params['d_isos'] = self.d_isos
+        params['isExvivo'] = self.isExvivo
+        return params
 
 
     def set_solver( self, lambda1 = 0.0, lambda2 = 4.0 ) :
@@ -504,6 +535,18 @@ class NODDI( BaseModel ) :
         else:
             self.maps_name  = [ 'ICVF', 'OD', 'ISOVF']
             self.maps_descr = [ 'Intra-cellular volume fraction', 'Orientation dispersion', 'Isotropic volume fraction']
+
+
+    def get_params( self ) :
+        params = {}
+        params['id'] = self.id
+        params['name'] = self.name
+        params['dPar'] = self.dPar
+        params['dIso'] = self.dIso
+        params['IC_VFs'] = self.IC_VFs
+        params['IC_ODs'] = self.IC_ODs
+        params['isExvivo'] = self.isExvivo
+        return params
 
 
     def set_solver( self, lambda1 = 5e-1, lambda2 = 1e-3 ):
@@ -1051,7 +1094,6 @@ class FreeWater( BaseModel ) :
             self.d_perps = np.linspace(0.15,0.55,10)*1E-3
             self.d_isos  = [1.5e-3, 3e-3]
 
-
         else :
             self.maps_name  = [ 'FiberVolume', 'FW' ]
             self.maps_descr = [ 'fiber volume fraction',
@@ -1082,6 +1124,17 @@ class FreeWater( BaseModel ) :
         print('             -iso  compartments: ', self.d_isos)
         print('             -perp compartments: ', self.d_perps)
         print('             -para compartments: ', self.d_par)
+
+
+    def get_params( self ) :
+        params = {}
+        params['id'] = self.id
+        params['name'] = self.name
+        params['d_par'] = self.d_par
+        params['d_perps'] = self.d_perps
+        params['d_isos'] = self.d_isos
+        params['type'] = self.type
+        return params
 
 
     def set_solver( self, lambda1 = 0.0, lambda2 = 1e-3 ):
@@ -1204,6 +1257,14 @@ class VolumeFractions( BaseModel ) :
 
     def set( self, hasISO ) :
         self.hasISO = hasISO
+
+
+    def get_params( self ) :
+        params = {}
+        params['id'] = self.id
+        params['name'] = self.name
+        params['hasISO'] = self.hasISO
+        return params
 
 
     def set_solver( self ) :

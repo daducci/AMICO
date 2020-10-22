@@ -2,6 +2,11 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.2.6] - 2020-10-22
+
+### Added
+- Function get_params to get the specific parameter values of a model
+
 ## [1.2.5] - 2020-08-06
 
 ### Changed
