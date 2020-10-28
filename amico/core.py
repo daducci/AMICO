@@ -30,7 +30,7 @@ def setup( lmax = 12, ndirs = 32761 ) :
         Number of directions on the half of the sphere representing the possible orientations of the response functions (default : 32761)
     """
     if not is_valid(ndirs):
-        ERROR( 'Unsupported value for ndirs.\nNote: supported values for ndirs are [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 32761 (default)]' )
+        ERROR( 'Unsupported value for ndirs.\nNote: supported values for ndirs are [1, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 32761 (default)]' )
     
     amico.lut.precompute_rotation_matrices( lmax, ndirs )
 
@@ -241,7 +241,7 @@ class Evaluation :
         if self.model is None :
             ERROR( 'Model not set; call "set_model()" method first' )
         if not is_valid(ndirs):
-            ERROR( 'Unsupported value for ndirs.\nNote: Supported values for ndirs are [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 32761 (default)]' )
+            ERROR( 'Unsupported value for ndirs.\nNote: Supported values for ndirs are [1, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 32761 (default)]' )
 
         # store some values for later use
         self.set_config('lmax', lmax)
