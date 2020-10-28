@@ -23,7 +23,7 @@ def is_valid(ndirs):
     -------
     A bool value which indicates if the number of directions is supported
     """
-    valid_values = np.arange(start=500, stop=10500, step=500).tolist() + [32761]
+    valid_values = np.arange(start=500, stop=10500, step=500).tolist() + [1, 32761]
 
     for value in valid_values:
         if ndirs == value:
