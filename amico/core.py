@@ -196,8 +196,16 @@ class Evaluation :
 
         self.set_config('is_dir_avg', do_dir_avg)                
         # if do_dir_avg:
-            # TODO
-            # print('\t* Debiasing signal... ', end='')
+        #     print('\t* Performing the directional average on the signal of each shell... ', end='')
+        #     numShells = len(ae.scheme.shells)
+        #     dir_avg_img = self.niiDWI_img[:,:,:,:(numShells + 1)]
+
+        #     id_bval = 0 
+        #     dir_avg_img[:,:,:,id_bval] = np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 )
+        #     for shell in ae.scheme.shells:
+        #         id_bval = id_bval + 1
+        #         dir_avg_img[:,:,:,id_bval] = np.mean( self.niiDWI_img[:,:,:,shell['idx']], axis=3 )
+
 
         LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
 
