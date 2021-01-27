@@ -1322,26 +1322,26 @@ class SANDI( BaseModel ) :
         self.maps_name  = [ 'fsoma', 'fneurite', 'fextra', 'Rsoma', 'Din', 'De' ]
         self.maps_descr = [ 'Intra-soma volume fraction', 'Intra-neurite volume fraction', 'Extra-cellular volume fraction', 'Apparent soma radius', 'Neurite axial diffusivity', 'Extra-cellular mean diffusivity' ]
 
-        self.d_is   = 3.0E-3                                 # Intra-soma diffusivity [mm^2/s]
-        self.Rs      = np.linspace(1.0,12.0,5) * 1E-6        # Radii of the soma [meters]
-        self.d_in = np.linspace(0.25,3.0,5) * 1E-3           # Intra-neurite diffusivitie(s) [mm^2/s]
-        self.d_isos  = np.linspace(0.25,3.0,5) * 1E-3        # Extra-cellular isotropic mean diffusivitie(s) [mm^2/s]
+        self.d_is   = 3.0E-3                         # Intra-soma diffusivity [mm^2/s]
+        self.Rs     = np.linspace(1.0,12.0,5) * 1E-6 # Radii of the soma [meters]
+        self.d_in   = np.linspace(0.25,3.0,5) * 1E-3 # Intra-neurite diffusivitie(s) [mm^2/s]
+        self.d_isos = np.linspace(0.25,3.0,5) * 1E-3 # Extra-cellular isotropic mean diffusivitie(s) [mm^2/s]
 
 
     def set( self, d_is, Rs, d_in, d_isos ) :
         self.d_is   = d_is
-        self.Rs      = np.array(Rs)
-        self.d_in = np.array(d_in)
-        self.d_isos  = np.array(d_isos)
+        self.Rs     = np.array(Rs)
+        self.d_in   = np.array(d_in)
+        self.d_isos = np.array(d_isos)
 
 
     def get_params( self ) :
         params = {}
-        params['id'] = self.id
-        params['name'] = self.name
-        params['d_is'] = self.d_is
-        params['Rs'] = self.Rs
-        params['d_in'] = self.d_in
+        params['id']     = self.id
+        params['name']   = self.name
+        params['d_is']   = self.d_is
+        params['Rs']     = self.Rs
+        params['d_in']   = self.d_in
         params['d_isos'] = self.d_isos
         return params
 
@@ -1378,7 +1378,6 @@ class SANDI( BaseModel ) :
             signal  = np.fromfile( filename_signal, dtype='>f4' )
             if exists( filename_signal ) :
                 remove( filename_signal )
-
             lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
             np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
             progress.update()
@@ -1392,7 +1391,6 @@ class SANDI( BaseModel ) :
             signal  = np.fromfile( filename_signal, dtype='>f4' )
             if exists( filename_signal ) :
                 remove( filename_signal )
-
             lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
             np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
             progress.update()
@@ -1406,7 +1404,6 @@ class SANDI( BaseModel ) :
             signal  = np.fromfile( filename_signal, dtype='>f4' )
             if exists( filename_signal ) :
                 remove( filename_signal )
-
             lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
             np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
             progress.update()
@@ -1422,68 +1419,59 @@ class SANDI( BaseModel ) :
             merge_idx = np.arange(nS)
         KERNELS = {}
         KERNELS['model']  = self.id
-        KERNELS['sphere'] = np.zeros( (len(self.Rs),nS,), dtype=np.float32 )
-        KERNELS['stick']  = np.zeros( (len(self.d_in),nS,), dtype=np.float32 )
-        KERNELS['iso']    = np.zeros( (len(self.d_isos),nS,), dtype=np.float32 )
-        KERNELS['norms']  = np.zeros( nATOMS )
+        KERNELS['signal'] = np.zeros( (nS,nATOMS), dtype=np.float64, order='F' )
+        KERNELS['norms']  = np.zeros( nATOMS, dtype=np.float64 )
 
         progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
 
         # Soma = SPHERE
         for i in range(len(self.Rs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['sphere'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
-            KERNELS['norms'][progress.i-1] = 1.0 / np.linalg.norm( KERNELS['sphere'][i,:] )
+            signal = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx].T
+            KERNELS['norms'][progress.i-1] = 1.0 / np.linalg.norm( signal )
+            KERNELS['signal'][:,progress.i-1] = signal * KERNELS['norms'][progress.i-1]
             progress.update()
 
         # Neurites = STICKS
         for i in range(len(self.d_in)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['stick'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
-            KERNELS['norms'][progress.i-1] = 1.0 / np.linalg.norm( KERNELS['stick'][i,:] )
+            signal = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx].T
+            KERNELS['norms'][progress.i-1] = 1.0 / np.linalg.norm( signal )
+            KERNELS['signal'][:,progress.i-1] = signal * KERNELS['norms'][progress.i-1]
             progress.update()
 
         # Extra-cellular = BALL
         for i in range(len(self.d_isos)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['iso'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
-            KERNELS['norms'][progress.i-1] = 1.0 / np.linalg.norm( KERNELS['iso'][i,:] )
+            signal = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx].T
+            KERNELS['norms'][progress.i-1] = 1.0 / np.linalg.norm( signal )
+            KERNELS['signal'][:,progress.i-1] = signal * KERNELS['norms'][progress.i-1]
             progress.update()
 
         return KERNELS
 
 
     def fit( self, y, dirs, KERNELS, params, htable ) :
-        n1 = len(self.Rs)
-        n2 = len(self.d_in)
-        n3 = len(self.d_isos)
-        nATOMS = n1+n2+n3
-        
-        # prepare DICTIONARY from lookup tables
-        A = np.ones( (len(y), nATOMS ), dtype=np.float64, order='F' )
-        A[:,:n1]      = KERNELS['sphere'][:,:].T
-        A[:,n1:n1+n2] = KERNELS['stick'][:,:].T
-        A[:,n1+n2:]   = KERNELS['iso'][:,:].T
-
-        # empty dictionary
-        if A.shape[1] == 0 :
-            return [0, 0, 0], None, None, None
+        # if dictionary is empty 
+        if KERNELS['signal'].shape[1] == 0 :
+            return [0, 0, 0, 0, 0, 0], None, None, None
 
         # fit
-        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A*KERNELS['norms'], **params ).todense().A1
+        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=KERNELS['signal'], **params ).todense().A1
         x = x*KERNELS['norms']
 
         # return estimates
+        n1 = len(self.Rs)
+        n2 = len(self.d_in)
         xsph = x[:n1]
         xstk = x[n1:n1+n2]
         xiso = x[n1+n2:]
         
-        fsoma    = xsph.sum()/(x.sum() + 1e-16 )
-        fneurite = xstk.sum()/(x.sum() + 1e-16 )
-        fextra   = xiso.sum()/(x.sum() + 1e-16 )
-                
-        Rsoma = 1E6 * np.dot(self.Rs,xsph) / ( xsph.sum() + 1e-16 ) # Sphere radius in micron
-        Din   = 1E3 * np.dot(self.d_in,xstk) / ( xstk.sum() + 1e-16 ) # Intra-stick diffusivity in micron^2/ms
-        De    = 1E3 * np.dot(self.d_isos,xiso) / ( xiso.sum() + 1e-16 ) # Extra-cellular diffusivity in micron^2/ms
-        
-        return [fsoma, fneurite, fextra, Rsoma, Din, De], dirs, x, A
+        fsoma    = xsph.sum()/(x.sum()+1e-16)
+        fneurite = xstk.sum()/(x.sum()+1e-16)
+        fextra   = xiso.sum()/(x.sum()+1e-16)        
+        Rsoma    = 1E6*np.dot(self.Rs,xsph)/(xsph.sum()+1e-16 )     # Sphere radius [micron]
+        Din      = 1E3*np.dot(self.d_in,xstk)/(xstk.sum()+1e-16 )   # Intra-stick diffusivity [micron^2/ms]
+        De       = 1E3*np.dot(self.d_isos,xiso)/(xiso.sum()+1e-16 ) # Extra-cellular diffusivity [micron^2/ms]
+
+        return [fsoma, fneurite, fextra, Rsoma, Din, De], dirs, x, KERNELS['signal']
