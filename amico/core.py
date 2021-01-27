@@ -540,5 +540,14 @@ class Evaluation :
             nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_%s.nii.gz' % self.model.maps_name[i] ) )
             print(' [OK]')
         
+        # Directional average signal
+        if save_dir_avg:
+            print('\t- dir_avg_signal.nii.gz', end=' ')
+            nibabel.save( nibabel.Nifti1Image( self.niiDWI_img , affine, hdr ), pjoin(RESULTS_path, 'dir_avg_signal.nii.gz' ) ) 
+            print(' [OK]') 
+
+            print('\t- dir_avg.scheme', end=' ')
+            np.savetxt( pjoin(RESULTS_path, 'dir_avg.scheme' ), self.scheme.get_table(), fmt="%.06f", delimiter="\t", header="VERSION: {}".format(self.scheme.version), comments='' )
+            print(' [OK]')
             
         LOG( '   [ DONE ]' )
