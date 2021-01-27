@@ -1460,9 +1460,9 @@ class SANDI( BaseModel ) :
         # prepare DICTIONARY from dirs and lookup tables
         A = np.ones( (len(y), nATOMS ), dtype=np.float64, order='F' )
     
-        A[:,:n1] = KERNELS['sphere'][:,lut_idx,:].T
-        A[:,n1:n1+n2] = KERNELS['stick'][:,lut_idx,:].T
-        A[:,n1+n2:] = KERNELS['iso'][:,lut_idx,:].T
+        A[:,:n1] = KERNELS['sphere'][:,:].T
+        A[:,n1:n1+n2] = KERNELS['stick'][:,:].T
+        A[:,n1+n2:] = KERNELS['iso'][:,:].T
 
         # empty dictionary
         if A.shape[1] == 0 :
@@ -1483,6 +1483,6 @@ class SANDI( BaseModel ) :
                 
         Rsoma = 1E6 * np.dot(self.Rs,xsph) / ( xsph.sum() + 1e-16 ) # Sphere radius in micron
         Din = 1E3 * np.dot(self.d_in,xstk) / ( xstk.sum() + 1e-16 ) # Intra-stick diffusivity in micron^2/ms
-        De = 1E3 * np.dot(self.d_iso,xiso) / ( xiso.sum() + 1e-16 ) # Extra-cellular diffusivity in micron^2/ms
+        De = 1E3 * np.dot(self.d_isos,xiso) / ( xiso.sum() + 1e-16 ) # Extra-cellular diffusivity in micron^2/ms
         
         return [fsoma, fneurite, fextra, Rsoma, Din, De], dirs, x, A
