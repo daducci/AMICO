@@ -129,7 +129,7 @@ def sandi2scheme( bvalsFilename, bvecsFilename, deltaFilename, smalldelFilename,
         ERROR('incorrect/incompatible delta/small delta files')
 
     if teFilename is None:
-        teFilename = delta + smalldel
+        te = delta + smalldel
     else:
         if not os.path.exists(teFilename):
             ERROR('echo time file not exist:' + teFilename)
