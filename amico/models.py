@@ -1421,34 +1421,31 @@ class SANDI( BaseModel ) :
             nS = self.scheme.nS
             merge_idx = np.arange(nS)
         KERNELS = {}
-        KERNELS['model']  = self.id
-        KERNELS['sphere'] = np.zeros( (len(self.Rs),nS,), dtype=np.float32 )
-        KERNELS['stick']  = np.zeros( (len(self.d_in),nS,), dtype=np.float32 )
-        KERNELS['iso']    = np.zeros( (len(self.d_isos),nS,), dtype=np.float32 )
-        KERNELS['norms']  = np.zeros( nATOMS )
+        KERNELS['model'] = self.id
+        KERNELS['all']   = np.zeros( (nATOMS,nS), dtype=np.float32 )
 
         progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
 
         # Soma = SPHERE
         for i in range(len(self.Rs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['sphere'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
-            KERNELS['norms'][progress.i-1] = 1.0 / np.linalg.norm( KERNELS['sphere'][i,:] )
+            KERNELS['all'][progress.i-1,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
             progress.update()
 
         # Neurites = STICKS
         for i in range(len(self.d_in)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['stick'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
-            KERNELS['norms'][progress.i-1] = 1.0 / np.linalg.norm( KERNELS['stick'][i,:] )
+            KERNELS['all'][progress.i-1,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
             progress.update()
 
         # Extra-cellular = BALL
         for i in range(len(self.d_isos)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-            KERNELS['iso'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
-            KERNELS['norms'][progress.i-1] = 1.0 / np.linalg.norm( KERNELS['iso'][i,:] )
+            KERNELS['all'][v,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
             progress.update()
+        
+        # get norms of each column
+        KERNELS['norms'] = np.linalg.norm(KERNELS['all'], axis=0)
 
         return KERNELS
 
@@ -1461,9 +1458,10 @@ class SANDI( BaseModel ) :
         
         # prepare DICTIONARY from lookup tables
         A = np.ones( (len(y), nATOMS ), dtype=np.float64, order='F' )
-        A[:,:n1]      = KERNELS['sphere'][:,:].T
-        A[:,n1:n1+n2] = KERNELS['stick'][:,:].T
-        A[:,n1+n2:]   = KERNELS['iso'][:,:].T
+        # A[:,:n1]      = KERNELS['sphere'][:,:].T
+        # A[:,n1:n1+n2] = KERNELS['stick'][:,:].T
+        # A[:,n1+n2:]   = KERNELS['iso'][:,:].T
+        A[:,:] = KERNELS['all']
 
         # empty dictionary
         if A.shape[1] == 0 :
