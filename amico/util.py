@@ -83,3 +83,93 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = 
     np.savetxt( schemeFilename, np.c_[bvecs.T, bvals], fmt="%.06f", delimiter="\t", header="VERSION: BVECTOR", comments='' )
     print("-> Writing scheme file to [ %s ]" % schemeFilename)
     return schemeFilename
+
+
+def sandi2scheme( bvalsFilename, bvecsFilename, deltaFilename, smalldelFilename, teFilename = None, schemeFilename = None, flipAxes = [False,False,False], bStep = 1.0, delimiter = None ):
+    """Create a scheme file from bvals+bvecs and write to file.
+
+    If required, b-values can be rounded up to a specific threshold (bStep parameter).
+
+    Parameters
+    ----------
+    :param str bvalsFilename: The path to bval file.
+    :param str bvecsFilename: The path to bvec file.
+    :param str deltaFilename: The path to delta file.
+    :param str smalldelFilename: The path to small delta file.
+    :param str teFilename: The path to echo time file (optional).
+    :param str schemeFilename: The path to output scheme file (optional).
+    :param list of three boolean flipAxes: Whether to flip or not each axis (optional).
+    :param float or list or np.bStep: If bStep is a scalar, round b-values to nearest integer multiple of bStep. If bStep is a list, it is treated as an array of shells in increasing order. B-values will be forced to the nearest shell value.
+    :param str delimiter: Change the delimiter used by np.loadtxt (optional). None means "all white spaces".
+    """
+
+    if not os.path.exists(bvalsFilename):
+        ERROR( 'bvals file not exist:' + bvalsFilename )
+    if not os.path.exists(bvecsFilename):
+        ERROR( 'bvecs file not exist:' + bvecsFilename )
+    if not os.path.exists(deltaFilename):
+        ERROR( 'delta file not exist:' + deltaFilename )
+    if not os.path.exists(smalldelFilename):
+        ERROR( 'small delta file not exist:' + smalldelFilename )
+
+
+    if schemeFilename is None:
+        schemeFilename = os.path.splitext(bvalsFilename)[0]+".scheme"
+
+    # load files and check size
+    bvecs = np.loadtxt( bvecsFilename, delimiter=delimiter)
+    bvals = np.loadtxt( bvalsFilename, delimiter=delimiter )
+    delta = np.loadtxt(deltaFilename, delimiter=delimiter)
+    smalldel = np.loadtxt(smalldelFilename, delimiter=delimiter)
+
+    if bvecs.ndim !=2 or bvals.ndim != 1 or bvecs.shape[0] != 3 or bvecs.shape[1] != bvals.shape[0]:
+        ERROR( 'incorrect/incompatible bval/bvecs files' )
+
+    if delta.ndim !=1 or smalldel.ndim !=1 or  delta.shape[0] != bvals.shape[0] or smalldel.shape[0] != bvals.shape[0]:
+        ERROR('incorrect/incompatible delta/small delta files')
+
+    if teFilename is None:
+        teFilename = delta + smalldel
+    else:
+        if not os.path.exists(teFilename):
+            ERROR('echo time file not exist:' + teFilename)
+        te = np.loadtxt(teFilename, delimiter=delimiter)
+        if te.ndim != 1 or te.shape[0] != bvals.shape[0]:
+            ERROR('incorrect/incompatible echo time delta file')
+
+    # if requested, flip the axes
+    flipAxes = np.array(flipAxes, dtype = np.bool)
+    if flipAxes.ndim != 1 or flipAxes.size != 3 :
+        ERROR( '"flipAxes" must contain 3 boolean values (one for each axis)' )
+    if flipAxes[0] :
+        bvecs[0,:] *= -1
+    if flipAxes[1] :
+        bvecs[1,:] *= -1
+    if flipAxes[2] :
+        bvecs[2,:] *= -1
+
+    # if requested, round the b-values
+    bStep = np.array(bStep, dtype = np.float)
+    if bStep.size == 1 and bStep > 1.0:
+        print("-> Rounding b-values to nearest multiple of %s" % np.array_str(bStep))
+        bvals = np.round(bvals/bStep) * bStep
+    elif bStep.size > 1:
+        print("-> Setting b-values to the closest shell in %s" % np.array_str(bStep))
+        for i in range(0, bvals.size):
+            diff = min(abs(bvals[i] - bStep))
+            ind = np.argmin(abs(bvals[i] - bStep))
+
+            # warn if b > 99 is set to 0, possible error
+            if (bStep[ind] == 0.0 and diff > 100) or (bStep[ind] > 0.0 and diff > bStep[ind] / 20.0):
+                # For non-zero shells, warn if actual b-value is off by more than 5%. For zero shells, warn above 50. Assuming s / mm^2
+                print("   Warning: measurement %d has b-value %d, being forced to %d\n'" % i, bvals[i], bStep[ind])
+
+            bvals[i] = bStep[ind]
+
+    g =np.sqrt( bvals*1e6 / (267.513e6**2 *  smalldel**2 * (delta - smalldel/3) ) )
+
+
+    # write corresponding scheme file
+    np.savetxt( schemeFilename, np.c_[bvecs.T, g, delta, smalldel, te], fmt="%.06f", delimiter="\t", header="VERSION: 1", comments='' )
+    print("-> Writing scheme file to [ %s ]" % schemeFilename)
+    return schemeFilename    
