@@ -64,6 +64,7 @@ class Evaluation :
         self.KERNELS     = None # set by "load_kernels" method
         self.RESULTS     = None # set by "fit" method
         self.mean_b0s    = None # set by "load_data" method
+        self.is_dir_avg  = None # set by "load_data" method
 
         # store all the parameters of an evaluation with AMICO
         self.CONFIG = {}
@@ -89,7 +90,7 @@ class Evaluation :
 
 
     def load_data( self, dwi_filename = 'DWI.nii',
-                   scheme_filename = 'DWI.scheme', mask_filename = None, b0_thr = 0 ) :
+                   scheme_filename = 'DWI.scheme', mask_filename = None, b0_thr = 0, do_dir_avg = False ) :
         """Load the diffusion signal and its corresponding acquisition scheme.
 
         Parameters
@@ -102,6 +103,8 @@ class Evaluation :
             The file name of the (optional) binary mask (default : None)
         b0_thr : float
             The threshold below which a b-value is considered a b0 (default : 0)
+        do_dir_avg : bool
+            Perform the directional average on the signal of each shell (default : False)
         """
 
         # Loading data, acquisition scheme and mask (optional)
@@ -190,6 +193,11 @@ class Evaluation :
             self.niiDWI_img = np.concatenate( (mean, self.niiDWI_img[:,:,:,self.scheme.dwi_idx]), axis=3 )
         else :
             print('\t* Keeping all b0 volume(s)')
+
+        self.set_config('is_dir_avg', do_dir_avg)                
+        # if do_dir_avg:
+            # TODO
+            # print('\t* Debiasing signal... ', end='')
 
         LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
 
