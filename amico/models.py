@@ -1413,6 +1413,7 @@ class SANDI( BaseModel ) :
 
 
     def resample( self, in_path, idx_out, Ylm_out, doMergeB0, ndirs ) :
+        nATOMS = len(self.Rs) + len(self.d_in) + len(self.d_isos)
         if doMergeB0:
             nS = 1+self.scheme.dwi_count
             merge_idx = np.hstack((self.scheme.b0_idx[0],self.scheme.dwi_idx))
@@ -1420,69 +1421,69 @@ class SANDI( BaseModel ) :
             nS = self.scheme.nS
             merge_idx = np.arange(nS)
         KERNELS = {}
-        KERNELS['model'] = self.id
+        KERNELS['model']  = self.id
         KERNELS['sphere'] = np.zeros( (len(self.Rs),nS,), dtype=np.float32 )
-        KERNELS['stick'] = np.zeros( (len(self.d_in),nS,), dtype=np.float32 )
-        KERNELS['iso'] = np.zeros( (len(self.d_isos),nS,), dtype=np.float32 )
+        KERNELS['stick']  = np.zeros( (len(self.d_in),nS,), dtype=np.float32 )
+        KERNELS['iso']    = np.zeros( (len(self.d_isos),nS,), dtype=np.float32 )
+        KERNELS['norms']  = np.zeros( nATOMS )
 
-        nATOMS = len(self.Rs) + len(self.d_in) + len(self.d_isos)
         progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
 
         # Soma = SPHERE
         for i in range(len(self.Rs)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             KERNELS['sphere'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
+            KERNELS['norms'][progress.i-1] = 1.0 / np.linalg.norm( KERNELS['sphere'][i,:] )
             progress.update()
 
         # Neurites = STICKS
         for i in range(len(self.d_in)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             KERNELS['stick'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
+            KERNELS['norms'][progress.i-1] = 1.0 / np.linalg.norm( KERNELS['stick'][i,:] )
             progress.update()
 
         # Extra-cellular = BALL
         for i in range(len(self.d_isos)) :
             lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
             KERNELS['iso'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
+            KERNELS['norms'][progress.i-1] = 1.0 / np.linalg.norm( KERNELS['iso'][i,:] )
             progress.update()
 
         return KERNELS
 
 
     def fit( self, y, dirs, KERNELS, params, htable ) :
-        
         n1 = len(self.Rs)
         n2 = len(self.d_in)
         n3 = len(self.d_isos)
-            
         nATOMS = n1+n2+n3
         
-        # prepare DICTIONARY from dirs and lookup tables
+        # prepare DICTIONARY from lookup tables
         A = np.ones( (len(y), nATOMS ), dtype=np.float64, order='F' )
-    
-        A[:,:n1] = KERNELS['sphere'][:,:].T
+        A[:,:n1]      = KERNELS['sphere'][:,:].T
         A[:,n1:n1+n2] = KERNELS['stick'][:,:].T
-        A[:,n1+n2:] = KERNELS['iso'][:,:].T
+        A[:,n1+n2:]   = KERNELS['iso'][:,:].T
 
         # empty dictionary
         if A.shape[1] == 0 :
             return [0, 0, 0], None, None, None
 
         # fit
-        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, **params ).todense().A1
+        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A*KERNELS['norms'], **params ).todense().A1
+        x = x*KERNELS['norms']
 
         # return estimates
-        
         xsph = x[:n1]
         xstk = x[n1:n1+n2]
         xiso = x[n1+n2:]
         
-        fsoma = xsph.sum()/(x.sum() + 1e-16 )
+        fsoma    = xsph.sum()/(x.sum() + 1e-16 )
         fneurite = xstk.sum()/(x.sum() + 1e-16 )
-        fextra = xiso.sum()/(x.sum() + 1e-16 )
+        fextra   = xiso.sum()/(x.sum() + 1e-16 )
                 
         Rsoma = 1E6 * np.dot(self.Rs,xsph) / ( xsph.sum() + 1e-16 ) # Sphere radius in micron
-        Din = 1E3 * np.dot(self.d_in,xstk) / ( xstk.sum() + 1e-16 ) # Intra-stick diffusivity in micron^2/ms
-        De = 1E3 * np.dot(self.d_isos,xiso) / ( xiso.sum() + 1e-16 ) # Extra-cellular diffusivity in micron^2/ms
+        Din   = 1E3 * np.dot(self.d_in,xstk) / ( xstk.sum() + 1e-16 ) # Intra-stick diffusivity in micron^2/ms
+        De    = 1E3 * np.dot(self.d_isos,xiso) / ( xiso.sum() + 1e-16 ) # Extra-cellular diffusivity in micron^2/ms
         
         return [fsoma, fneurite, fextra, Rsoma, Din, De], dirs, x, A
