@@ -364,11 +364,14 @@ class Evaluation :
                     y = self.niiDWI_img[ix,iy,iz,:].astype(np.float64)
                     y[ y < 0 ] = 0 # [NOTE] this should not happen!
 
-                    # fitting directions
-                    if peaks_filename is None :
-                        dirs = DTI.fit( y ).directions[0]
+                    if False : # <----- NOTE TO DO: CHANGE THIS!!!!
+                        # fitting directions
+                        if peaks_filename is None :
+                            dirs = DTI.fit( y ).directions[0]
+                        else :
+                            dirs = DIRs[ix,iy,iz,:]
                     else :
-                        dirs = DIRs[ix,iy,iz,:]
+                        dirs = np.zeros( (1, 3), dtype=np.float32 )
 
                     # dispatch to the right handler for each model
                     MAPs[ix,iy,iz,:], DIRs[ix,iy,iz,:], x, A = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, self.get_config('solver_params'), self.htable )

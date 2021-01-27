@@ -1294,3 +1294,195 @@ class VolumeFractions( BaseModel ) :
 
     def fit( self, y, dirs, KERNELS, params ) :
         ERROR( 'Not implemented' )
+
+
+class SANDI( BaseModel ) :
+    """Implements the SANDI model [1].
+
+    The intra-cellular contributions from within the neural cells are modeled as intra-soma + intra-neurite,
+    with the soma modelled as "sphere" of radius (Rs) and fixed intra-soma diffusivity (d_is) to 3 micron^2/ms;
+    the neurites are modelled as randomly oriented sticks with axial intra-neurite diffusivity (d_in).
+    Extra-cellular contributions are modeled as isotropic gaussian diffusion, i.e. "ball", with the mean diffusivity (d_iso)
+
+    NB: this model works only with direction-averaged signal and schemes containing the full specification of
+        the diffusion gradients (eg gradient strength, small delta etc).
+
+    NB: this model requires Camino to be installed and properly configured
+        in the system; in particular, the script "datasynth" must be placed
+        in your system path.
+
+    References
+    ----------
+    .. [1] Palombo, Marco, et al. "SANDI: a compartment-based model for non-invasive apparent soma and neurite imaging by diffusion MRI." Neuroimage 215 (2020): 116835.
+    """
+
+    def __init__( self ) :
+        self.id         = 'SANDI'
+        self.name       = 'SANDI'
+        self.maps_name  = [ 'fsoma', 'fneurite', 'fextra', 'Rsoma', 'Din', 'De' ]
+        self.maps_descr = [ 'Intra-soma volume fraction', 'Intra-neurite volume fraction', 'Extra-cellular volume fraction', 'Apparent soma radius', 'Neurite axial diffusivity', 'Extra-cellular mean diffusivity' ]
+
+        self.d_is   = 3.0E-3                                 # Intra-soma diffusivity [mm^2/s]
+        self.Rs      = np.linspace(1.0,12.0,5) * 1E-6        # Radii of the soma [meters]
+        self.d_in = np.linspace(0.25,3.0,5) * 1E-3           # Intra-neurite diffusivitie(s) [mm^2/s]
+        self.d_isos  = np.linspace(0.25,3.0,5) * 1E-3        # Extra-cellular isotropic mean diffusivitie(s) [mm^2/s]
+
+
+    def set( self, d_is, Rs, d_in, d_isos ) :
+        self.d_is   = d_is
+        self.Rs      = np.array(Rs)
+        self.d_in = np.array(d_in)
+        self.d_isos  = np.array(d_isos)
+
+
+    def get_params( self ) :
+        params = {}
+        params['id'] = self.id
+        params['name'] = self.name
+        params['d_is'] = self.d_is
+        params['Rs'] = self.Rs
+        params['d_in'] = self.d_in
+        params['d_isos'] = self.d_isos
+        return params
+
+
+    def set_solver( self, lambda1 = 0.0, lambda2 = 5.0E-3 ) :
+        params = {}
+        params['mode']    = 2
+        params['pos']     = True
+        params['lambda1'] = lambda1
+        params['lambda2'] = lambda2
+        return params
+
+
+    def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
+        if self.scheme.version != 1 :
+            ERROR( 'This model requires a "VERSION: STEJSKALTANNER" scheme' )
+
+        scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1E6 )
+        filename_scheme = pjoin( out_path, 'scheme.txt' )
+        np.savetxt( filename_scheme, scheme_high.raw, fmt='%15.8e', delimiter=' ', header='VERSION: STEJSKALTANNER', comments='' )
+
+        # temporary file where to store "datasynth" output
+        filename_signal = pjoin( tempfile._get_default_tempdir(), next(tempfile._get_candidate_names())+'.Bfloat' )
+
+        nATOMS = len(self.Rs) + len(self.d_in) + len(self.d_isos)
+        progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
+
+        # Soma = SPHERE
+        for R in self.Rs :
+            CMD = 'datasynth -synthmodel compartment 1 SPHEREGPD %E %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null' % ( self.d_is*1E-6, R, filename_scheme, filename_signal )
+            subprocess.call( CMD, shell=True )
+            if not exists( filename_signal ) :
+                ERROR( 'Problems generating the signal with "datasynth"' )
+            signal  = np.fromfile( filename_signal, dtype='>f4' )
+            if exists( filename_signal ) :
+                remove( filename_signal )
+
+            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
+            np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
+            progress.update()
+
+        # Neurites = ASTRO STICKS
+        for d in self.d_in :
+            CMD = 'datasynth -synthmodel compartment 1 ASTROSTICKS %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null' % ( d*1e-6, filename_scheme, filename_signal )
+            subprocess.call( CMD, shell=True )
+            if not exists( filename_signal ) :
+                ERROR( 'Problems generating the signal with "datasynth"' )
+            signal  = np.fromfile( filename_signal, dtype='>f4' )
+            if exists( filename_signal ) :
+                remove( filename_signal )
+
+            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
+            np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
+            progress.update()
+
+        # Extra-cellular = BALL
+        for d in self.d_isos :
+            CMD = 'datasynth -synthmodel compartment 1 BALL %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null' % ( d*1e-6, filename_scheme, filename_signal )
+            subprocess.call( CMD, shell=True )
+            if not exists( filename_signal ) :
+                ERROR( 'Problems generating the signal with "datasynth"' )
+            signal  = np.fromfile( filename_signal, dtype='>f4' )
+            if exists( filename_signal ) :
+                remove( filename_signal )
+
+            lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
+            np.save( pjoin( out_path, 'A_%03d.npy'%progress.i ), lm )
+            progress.update()
+
+
+    def resample( self, in_path, idx_out, Ylm_out, doMergeB0, ndirs ) :
+        if doMergeB0:
+            nS = 1+self.scheme.dwi_count
+            merge_idx = np.hstack((self.scheme.b0_idx[0],self.scheme.dwi_idx))
+        else:
+            nS = self.scheme.nS
+            merge_idx = np.arange(nS)
+        KERNELS = {}
+        KERNELS['model'] = self.id
+        KERNELS['sphere'] = np.zeros( (len(self.Rs),nS,), dtype=np.float32 )
+        KERNELS['stick'] = np.zeros( (len(self.d_in),nS,), dtype=np.float32 )
+        KERNELS['iso'] = np.zeros( (len(self.d_isos),nS,), dtype=np.float32 )
+
+        nATOMS = len(self.Rs) + len(self.d_in) + len(self.d_isos)
+        progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
+
+        # Soma = SPHERE
+        for i in range(len(self.Rs)) :
+            lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
+            KERNELS['sphere'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
+            progress.update()
+
+        # Neurites = STICKS
+        for i in range(len(self.d_in)) :
+            lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
+            KERNELS['stick'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
+            progress.update()
+
+        # Extra-cellular = BALL
+        for i in range(len(self.d_isos)) :
+            lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
+            KERNELS['iso'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
+            progress.update()
+
+        return KERNELS
+
+
+    def fit( self, y, dirs, KERNELS, params, htable ) :
+        
+        n1 = len(self.Rs)
+        n2 = len(self.d_in)
+        n3 = len(self.d_isos)
+            
+        nATOMS = n1+n2+n3
+        
+        # prepare DICTIONARY from dirs and lookup tables
+        A = np.ones( (len(y), nATOMS ), dtype=np.float64, order='F' )
+    
+        A[:,:n1] = KERNELS['sphere'][:,lut_idx,:].T
+        A[:,n1:n1+n2] = KERNELS['stick'][:,lut_idx,:].T
+        A[:,n1+n2:] = KERNELS['iso'][:,lut_idx,:].T
+
+        # empty dictionary
+        if A.shape[1] == 0 :
+            return [0, 0, 0], None, None, None
+
+        # fit
+        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, **params ).todense().A1
+
+        # return estimates
+        
+        xsph = x[:n1]
+        xstk = x[n1:n1+n2]
+        xiso = x[n1+n2:]
+        
+        fsoma = xsph.sum()/(x.sum() + 1e-16 )
+        fneurite = xstk.sum()/(x.sum() + 1e-16 )
+        fextra = xiso.sum()/(x.sum() + 1e-16 )
+                
+        Rsoma = 1E6 * np.dot(self.Rs,xsph) / ( xsph.sum() + 1e-16 ) # Sphere radius in micron
+        Din = 1E3 * np.dot(self.d_in,xstk) / ( xstk.sum() + 1e-16 ) # Intra-stick diffusivity in micron^2/ms
+        De = 1E3 * np.dot(self.d_iso,xiso) / ( xiso.sum() + 1e-16 ) # Extra-cellular diffusivity in micron^2/ms
+        
+        return [fsoma, fneurite, fextra, Rsoma, Din, De], dirs, x, A
