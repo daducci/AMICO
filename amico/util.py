@@ -85,7 +85,7 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = 
     return schemeFilename
 
 
-def sandi2scheme( bvalsFilename, bvecsFilename, deltaFilename, smalldelFilename, teFilename = None, schemeFilename = None, flipAxes = [False,False,False], bStep = 1.0, delimiter = None ):
+def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, teFilename = None, schemeFilename = None, flipAxes = [False,False,False], bStep = 1.0, delimiter = None ):
     """Create a scheme file from bvals+bvecs and write to file.
 
     If required, b-values can be rounded up to a specific threshold (bStep parameter).
@@ -94,8 +94,8 @@ def sandi2scheme( bvalsFilename, bvecsFilename, deltaFilename, smalldelFilename,
     ----------
     :param str bvalsFilename: The path to bval file.
     :param str bvecsFilename: The path to bvec file.
-    :param str deltaFilename: The path to delta file.
-    :param str smalldelFilename: The path to small delta file.
+    :param str Delta_data: string or numpy.ndarray. The path to Delta file or a value to use in all the scheme (seconds).
+    :param str smalldel_data: string or numpy.ndarray. The path to (small) delta file or a value to use in all the scheme (seconds).
     :param str teFilename: The path to echo time file (optional).
     :param str schemeFilename: The path to output scheme file (optional).
     :param list of three boolean flipAxes: Whether to flip or not each axis (optional).
@@ -107,33 +107,53 @@ def sandi2scheme( bvalsFilename, bvecsFilename, deltaFilename, smalldelFilename,
         ERROR( 'bvals file not exist:' + bvalsFilename )
     if not os.path.exists(bvecsFilename):
         ERROR( 'bvecs file not exist:' + bvecsFilename )
-    if not os.path.exists(deltaFilename):
-        ERROR( 'delta file not exist:' + deltaFilename )
-    if not os.path.exists(smalldelFilename):
-        ERROR( 'small delta file not exist:' + smalldelFilename )
-
-
+    if type(Delta_data) is str :
+        if not os.path.exists(Delta_data):
+            ERROR( 'delta file not exist:' + Delta_data )
+    if type(smalldel_data) is str :    
+        if not os.path.exists(smalldel_data):
+            ERROR( 'small delta file not exist:' + smalldel_data )
+    
     if schemeFilename is None:
         schemeFilename = os.path.splitext(bvalsFilename)[0]+".scheme"
 
     # load files and check size
-    bvecs = np.loadtxt( bvecsFilename, delimiter=delimiter)
-    bvals = np.loadtxt( bvalsFilename, delimiter=delimiter )
-    delta = np.loadtxt(deltaFilename, delimiter=delimiter)
-    smalldel = np.loadtxt(smalldelFilename, delimiter=delimiter)
+    bvecs    = np.loadtxt( bvecsFilename, delimiter=delimiter)
+    bvals    = np.loadtxt( bvalsFilename, delimiter=delimiter )
 
     if bvecs.ndim !=2 or bvals.ndim != 1 or bvecs.shape[0] != 3 or bvecs.shape[1] != bvals.shape[0]:
         ERROR( 'incorrect/incompatible bval/bvecs files' )
 
-    if delta.ndim !=1 or smalldel.ndim !=1 or  delta.shape[0] != bvals.shape[0] or smalldel.shape[0] != bvals.shape[0]:
-        ERROR('incorrect/incompatible delta/small delta files')
+    if type(Delta_data) is str :
+        delta = np.loadtxt( Delta_data, delimiter=delimiter)
+        if delta.ndim !=1  or  delta.shape[0] != bvals.shape[0]:
+            ERROR('incorrect/incompatible delta files')
+        if delta.mean( ) > 0.1:
+            WARNING('The mean of the delta values is {:.4f}, these values must be in seconds.'.format(delta.mean()))
+    else:
+        delta = np.ones_like(bvals) * Delta_data
+        if Delta_data > 0.1:
+            WARNING('The delta value is {:.4f}, this value must be in seconds.'.format(delta.mean()))
+
+    if type(smalldel_data) is str : 
+        smalldel = np.loadtxt( smalldel_data, delimiter=delimiter)
+        if smalldel.ndim !=1 or  smalldel.shape[0] != bvals.shape[0]:
+            ERROR('incorrect/incompatible small delta files')
+        if smalldel.mean() > 0.1:
+            WARNING('The mean of the small delta values is {:.4f}, these values must be in seconds.'.format(smalldel.mean()))
+    else:
+        smalldel = np.ones_like(bvals) * smalldel_data
+        if smalldel_data > 0.1:
+            WARNING('The small delta value is {:.4f}, this value must be in seconds.'.format(smalldel.mean()))
+
+
 
     if teFilename is None:
-        te = delta + smalldel
+        TE = delta + smalldel
     else:
         if not os.path.exists(teFilename):
             ERROR('echo time file not exist:' + teFilename)
-        te = np.loadtxt(teFilename, delimiter=delimiter)
+        TE = np.loadtxt(teFilename, delimiter=delimiter)
         if te.ndim != 1 or te.shape[0] != bvals.shape[0]:
             ERROR('incorrect/incompatible echo time delta file')
 
@@ -166,10 +186,9 @@ def sandi2scheme( bvalsFilename, bvecsFilename, deltaFilename, smalldelFilename,
 
             bvals[i] = bStep[ind]
 
-    g =np.sqrt( bvals*1e6 / (267.513e6**2 *  smalldel**2 * (delta - smalldel/3) ) )
-
+    G = np.sqrt( bvals*1e6 / (267.513e6**2 *  smalldel**2 * (delta - smalldel/3.0) ) )
 
     # write corresponding scheme file
-    np.savetxt( schemeFilename, np.c_[bvecs.T, g, delta, smalldel, te], fmt="%.06f", delimiter="\t", header="VERSION: 1", comments='' )
+    np.savetxt( schemeFilename, np.c_[bvecs.T, G, delta, smalldel, TE], fmt="%.06f", delimiter="\t", header="VERSION: 1", comments='' )
     print("-> Writing scheme file to [ %s ]" % schemeFilename)
     return schemeFilename    
