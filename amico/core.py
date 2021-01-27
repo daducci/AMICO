@@ -195,17 +195,36 @@ class Evaluation :
             print('\t* Keeping all b0 volume(s)')
 
         self.set_config('is_dir_avg', do_dir_avg)                
-        # if do_dir_avg:
-        #     print('\t* Performing the directional average on the signal of each shell... ', end='')
-        #     numShells = len(ae.scheme.shells)
-        #     dir_avg_img = self.niiDWI_img[:,:,:,:(numShells + 1)]
+        if do_dir_avg:
+            print('\t* Performing the directional average on the signal of each shell... ')
+            numShells = len(self.scheme.shells)
+            dir_avg_img = self.niiDWI_img[:,:,:,:(numShells + 1)]
+            scheme_table = np.zeros([numShells + 1, 7])
 
-        #     id_bval = 0 
-        #     dir_avg_img[:,:,:,id_bval] = np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 )
-        #     for shell in ae.scheme.shells:
-        #         id_bval = id_bval + 1
-        #         dir_avg_img[:,:,:,id_bval] = np.mean( self.niiDWI_img[:,:,:,shell['idx']], axis=3 )
+            id_bval = 0 
+            dir_avg_img[:,:,:,id_bval] = np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 )
+            scheme_table[id_bval, : ] = np.array([1, 0, 0, 0, 0, 0, 0])
+            for shell in self.scheme.shells:
+                id_bval = id_bval + 1
+                dir_avg_img[:,:,:,id_bval] = np.mean( self.niiDWI_img[:,:,:,shell['idx']], axis=3 )
+                scheme_table[id_bval, : ] = np.array([1, 0, 0, shell['G'], shell['Delta'], shell['delta'], shell['TE']])
 
+            self.niiDWI_img = dir_avg_img
+            self.set_config('dim', self.niiDWI_img.shape[:3])
+            print('\t\t- dim    = %d x %d x %d x %d' % self.niiDWI_img.shape)
+            print('\t\t- pixdim = %.3f x %.3f x %.3f' % self.get_config('pixdim'))
+            
+
+            print('\t* Acquisition scheme')
+            self.scheme = amico.scheme.Scheme( scheme_table, b0_thr )
+            print('\t\t- %d samples, %d shells' % ( self.scheme.nS, len(self.scheme.shells) ))
+            print('\t\t- %d @ b=0' % ( self.scheme.b0_count ), end=' ')
+            for i in range(len(self.scheme.shells)) :
+                print(', %d @ b=%.1f' % ( len(self.scheme.shells[i]['idx']), self.scheme.shells[i]['b'] ), end=' ')
+            print()
+
+            if self.scheme.nS != self.niiDWI_img.shape[3] :
+                ERROR( 'Scheme does not match with DWI data' )
 
         LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
 
@@ -520,4 +539,5 @@ class Evaluation :
             nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_%s.nii.gz' % self.model.maps_name[i] ) )
             print(' [OK]')
 
+            
         LOG( '   [ DONE ]' )
