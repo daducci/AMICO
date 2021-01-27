@@ -209,7 +209,7 @@ class Evaluation :
                 dir_avg_img[:,:,:,id_bval] = np.mean( self.niiDWI_img[:,:,:,shell['idx']], axis=3 )
                 scheme_table[id_bval, : ] = np.array([1, 0, 0, shell['G'], shell['Delta'], shell['delta'], shell['TE']])
 
-            self.niiDWI_img = dir_avg_img
+            self.niiDWI_img = dir_avg_img.astype(np.float32)
             self.set_config('dim', self.niiDWI_img.shape[:3])
             print('\t\t- dim    = %d x %d x %d x %d' % self.niiDWI_img.shape)
             print('\t\t- pixdim = %.3f x %.3f x %.3f' % self.get_config('pixdim'))
@@ -448,7 +448,7 @@ class Evaluation :
             self.RESULTS['DWI_corrected'] = DWI_corrected
 
 
-    def save_results( self, path_suffix = None ) :
+    def save_results( self, path_suffix = None, save_dir_avg=False ) :
         """Save the output (directions, maps etc).
 
         Parameters
@@ -490,7 +490,8 @@ class Evaluation :
         print('\t- FIT_dir.nii.gz', end=' ')
         niiMAP_img = self.RESULTS['DIRs']
         affine     = self.niiDWI.affine if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_affine()
-        niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine )
+        hdr        = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
+        niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
         niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
         niiMAP_hdr['cal_min'] = -1
         niiMAP_hdr['cal_max'] = 1
@@ -503,7 +504,7 @@ class Evaluation :
         if self.get_config('doComputeNRMSE') :
             print('\t- FIT_nrmse.nii.gz', end=' ')
             niiMAP_img = self.RESULTS['NRMSE']
-            niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine )
+            niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
             niiMAP_hdr['cal_min'] = 0
             niiMAP_hdr['cal_max'] = 1
@@ -516,7 +517,7 @@ class Evaluation :
             if self.model.name == 'Free-Water' :
                 print('\t- dwi_fw_corrected.nii.gz', end=' ')
                 niiMAP_img = self.RESULTS['DWI_corrected']
-                niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine )
+                niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
                 niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
                 niiMAP_hdr['cal_min'] = 0
                 niiMAP_hdr['cal_max'] = 1
@@ -529,7 +530,7 @@ class Evaluation :
         for i in range( len(self.model.maps_name) ) :
             print('\t- FIT_%s.nii.gz' % self.model.maps_name[i], end=' ')
             niiMAP_img = self.RESULTS['MAPs'][:,:,:,i]
-            niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine )
+            niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
             niiMAP_hdr['descrip'] = self.model.maps_descr[i]
             niiMAP_hdr['cal_min'] = niiMAP_img.min()
@@ -538,6 +539,6 @@ class Evaluation :
             niiMAP_hdr['scl_inter'] = 0
             nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_%s.nii.gz' % self.model.maps_name[i] ) )
             print(' [OK]')
-
+        
             
         LOG( '   [ DONE ]' )
