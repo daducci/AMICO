@@ -85,7 +85,7 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = 
     return schemeFilename
 
 
-def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, teFilename = None, schemeFilename = None, flipAxes = [False,False,False], bStep = 1.0, delimiter = None ):
+def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_data = None, schemeFilename = None, flipAxes = [False,False,False], bStep = 1.0, delimiter = None ):
     """Create a scheme file from bvals+bvecs and write to file.
 
     If required, b-values can be rounded up to a specific threshold (bStep parameter).
@@ -96,7 +96,7 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, teFil
     :param str bvecsFilename: The path to bvec file.
     :param str Delta_data: string or numpy.ndarray. The path to Delta file or a value to use in all the scheme (seconds).
     :param str smalldel_data: string or numpy.ndarray. The path to (small) delta file or a value to use in all the scheme (seconds).
-    :param str teFilename: The path to echo time file (optional).
+    :param str TE_data: string or numpy.ndarray. The path to echo time file or a value to use in all the scheme (seconds) (optional).
     :param str schemeFilename: The path to output scheme file (optional).
     :param list of three boolean flipAxes: Whether to flip or not each axis (optional).
     :param float or list or np.bStep: If bStep is a scalar, round b-values to nearest integer multiple of bStep. If bStep is a list, it is treated as an array of shells in increasing order. B-values will be forced to the nearest shell value.
@@ -146,16 +146,20 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, teFil
         if smalldel_data > 0.1:
             WARNING('The small delta value is {:.4f}, this value must be in seconds.'.format(smalldel.mean()))
 
+    
 
-
-    if teFilename is None:
+    if TE_data is None:
         TE = delta + smalldel
     else:
-        if not os.path.exists(teFilename):
-            ERROR('echo time file not exist:' + teFilename)
-        TE = np.loadtxt(teFilename, delimiter=delimiter)
-        if te.ndim != 1 or te.shape[0] != bvals.shape[0]:
-            ERROR('incorrect/incompatible echo time delta file')
+
+        if type(TE_data) is str :
+            TE = np.loadtxt( TE_data, delimiter=delimiter)
+            if TE.ndim !=1  or  TE.shape[0] != bvals.shape[0]:
+                ERROR('incorrect/incompatible TE files')            
+        else:
+            TE = np.ones_like(bvals) * TE_data            
+        if not (TE >= (delta + smalldel)).all():
+                ERROR('The value TE < (Delta + delta) ')
 
     # if requested, flip the axes
     flipAxes = np.array(flipAxes, dtype = np.bool)
