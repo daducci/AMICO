@@ -397,7 +397,7 @@ class Evaluation :
                     y = self.niiDWI_img[ix,iy,iz,:].astype(np.float64)
                     y[ y < 0 ] = 0 # [NOTE] this should not happen!
 
-                    if False : # <----- NOTE TO DO: CHANGE THIS!!!!
+                    if not self.get_config('doDirectionalAverage'):
                         # fitting directions
                         if peaks_filename is None :
                             dirs = DTI.fit( y ).directions[0]
@@ -454,13 +454,17 @@ class Evaluation :
             self.RESULTS['DWI_corrected'] = DWI_corrected
 
 
-    def save_results( self, path_suffix = None, save_dir_avg=False ) :
+    def save_results( self, path_suffix = None, save_dir_avg = False ) :
         """Save the output (directions, maps etc).
 
         Parameters
         ----------
         path_suffix : string
             Text to be appended to the output path (default : None)
+        save_dir_avg : boolean
+            If true and the option doDirectionalAverage is true 
+            the directional average signal and the scheme 
+            will be saved in files (default : False)
         """
         if self.RESULTS is None :
             ERROR( 'Model not fitted to the data; call "fit()" first' )
@@ -493,19 +497,20 @@ class Evaluation :
         print(' [OK]')
 
         # estimated orientations
-        print('\t- FIT_dir.nii.gz', end=' ')
-        niiMAP_img = self.RESULTS['DIRs']
-        affine     = self.niiDWI.affine if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_affine()
-        hdr        = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
-        hdr['descrip'] = 'Created with AMICO %s'%self.get_config('version')
-        niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
-        niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
-        niiMAP_hdr['cal_min'] = -1
-        niiMAP_hdr['cal_max'] = 1
-        niiMAP_hdr['scl_slope'] = 1
-        niiMAP_hdr['scl_inter'] = 0
-        nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_dir.nii.gz') )
-        print(' [OK]')
+        if not self.get_config('doDirectionalAverage'):
+            print('\t- FIT_dir.nii.gz', end=' ')
+            niiMAP_img = self.RESULTS['DIRs']
+            affine     = self.niiDWI.affine if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_affine()
+            hdr        = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
+            hdr['descrip'] = 'Created with AMICO %s'%self.get_config('version')
+            niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
+            niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
+            niiMAP_hdr['cal_min'] = -1
+            niiMAP_hdr['cal_max'] = 1
+            niiMAP_hdr['scl_slope'] = 1
+            niiMAP_hdr['scl_inter'] = 0
+            nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_dir.nii.gz') )
+            print(' [OK]')
 
         # fitting error
         if self.get_config('doComputeNRMSE') :
@@ -549,12 +554,15 @@ class Evaluation :
         
         # Directional average signal
         if save_dir_avg:
-            print('\t- dir_avg_signal.nii.gz', end=' ')
-            nibabel.save( nibabel.Nifti1Image( self.niiDWI_img , affine, hdr ), pjoin(RESULTS_path, 'dir_avg_signal.nii.gz' ) ) 
-            print(' [OK]') 
+            if not self.get_config('doDirectionalAverage'):
+                NOTE('The option doDirectionalAverage is False. The directional average signal will not be saved.')
+            else:
+                print('\t- dir_avg_signal.nii.gz', end=' ')
+                nibabel.save( nibabel.Nifti1Image( self.niiDWI_img , affine, hdr ), pjoin(RESULTS_path, 'dir_avg_signal.nii.gz' ) ) 
+                print(' [OK]') 
 
-            print('\t- dir_avg.scheme', end=' ')
-            np.savetxt( pjoin(RESULTS_path, 'dir_avg.scheme' ), self.scheme.get_table(), fmt="%.06f", delimiter="\t", header="VERSION: {}".format(self.scheme.version), comments='' )
-            print(' [OK]')
+                print('\t- dir_avg.scheme', end=' ')
+                np.savetxt( pjoin(RESULTS_path, 'dir_avg.scheme' ), self.scheme.get_table(), fmt="%.06f", delimiter="\t", header="VERSION: {}".format(self.scheme.version), comments='' )
+                print(' [OK]')
             
         LOG( '   [ DONE ]' )
