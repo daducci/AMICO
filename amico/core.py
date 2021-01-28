@@ -206,16 +206,23 @@ class Evaluation :
             id_bval = 0 
             dir_avg_img[:,:,:,id_bval] = np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 )
             scheme_table[id_bval, : ] = np.array([1, 0, 0, 0, 0, 0, 0])
+
+            bvals = []
             for shell in self.scheme.shells:
+                bvals.append(shell['b'])
+            
+            sort_idx = np.argsort(bvals)
+
+            for shell_idx in sort_idx:
+                shell = self.scheme.shells[shell_idx]
                 id_bval = id_bval + 1
                 dir_avg_img[:,:,:,id_bval] = np.mean( self.niiDWI_img[:,:,:,shell['idx']], axis=3 )
                 scheme_table[id_bval, : ] = np.array([1, 0, 0, shell['G'], shell['Delta'], shell['delta'], shell['TE']])
-
+            
             self.niiDWI_img = dir_avg_img.astype(np.float32)
             self.set_config('dim', self.niiDWI_img.shape[:3])
             print('\t\t- dim    = %d x %d x %d x %d' % self.niiDWI_img.shape)
-            print('\t\t- pixdim = %.3f x %.3f x %.3f' % self.get_config('pixdim'))
-            
+            print('\t\t- pixdim = %.3f x %.3f x %.3f' % self.get_config('pixdim'))            
 
             print('\t* Acquisition scheme')
             self.scheme = amico.scheme.Scheme( scheme_table, b0_thr )
