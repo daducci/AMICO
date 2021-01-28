@@ -17,6 +17,7 @@ from amico.progressbar import ProgressBar
 from dipy.core.gradients import gradient_table
 import dipy.reconst.dti as dti
 from amico.util import LOG, NOTE, WARNING, ERROR
+from pkg_resources import get_distribution
 
 
 def setup( lmax = 12, ndirs = 32761 ) :
@@ -68,6 +69,7 @@ class Evaluation :
 
         # store all the parameters of an evaluation with AMICO
         self.CONFIG = {}
+        self.set_config('version', get_distribution('dmri-amico').version)
         self.set_config('study_path', study_path)
         self.set_config('subject', subject)
         self.set_config('DATA_path', pjoin( study_path, subject ))
@@ -491,6 +493,7 @@ class Evaluation :
         niiMAP_img = self.RESULTS['DIRs']
         affine     = self.niiDWI.affine if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_affine()
         hdr        = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
+        hdr['descrip'] = 'Created with AMICO %s'%self.get_config('version')
         niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
         niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
         niiMAP_hdr['cal_min'] = -1
