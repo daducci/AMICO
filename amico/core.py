@@ -496,12 +496,13 @@ class Evaluation :
             pickle.dump( self.CONFIG, fid, protocol=2 )
         print(' [OK]')
 
+        affine     = self.niiDWI.affine if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_affine()
+        hdr        = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
+
         # estimated orientations
         if not self.get_config('doDirectionalAverage'):
             print('\t- FIT_dir.nii.gz', end=' ')
-            niiMAP_img = self.RESULTS['DIRs']
-            affine     = self.niiDWI.affine if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_affine()
-            hdr        = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
+            niiMAP_img = self.RESULTS['DIRs']            
             hdr['descrip'] = 'Created with AMICO %s'%self.get_config('version')
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
