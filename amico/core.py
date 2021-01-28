@@ -554,9 +554,7 @@ class Evaluation :
         
         # Directional average signal
         if save_dir_avg:
-            if not self.get_config('doDirectionalAverage'):
-                NOTE('The option doDirectionalAverage is False. The directional average signal will not be saved.')
-            else:
+            if self.get_config('doDirectionalAverage'):
                 print('\t- dir_avg_signal.nii.gz', end=' ')
                 nibabel.save( nibabel.Nifti1Image( self.niiDWI_img , affine, hdr ), pjoin(RESULTS_path, 'dir_avg_signal.nii.gz' ) ) 
                 print(' [OK]') 
@@ -564,5 +562,7 @@ class Evaluation :
                 print('\t- dir_avg.scheme', end=' ')
                 np.savetxt( pjoin(RESULTS_path, 'dir_avg.scheme' ), self.scheme.get_table(), fmt="%.06f", delimiter="\t", header="VERSION: {}".format(self.scheme.version), comments='' )
                 print(' [OK]')
+            else:
+                WARNING('The directional average signal was not created (The option doDirectionalAverage is False).')
             
         LOG( '   [ DONE ]' )
