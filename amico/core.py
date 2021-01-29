@@ -556,6 +556,7 @@ class Evaluation :
         if save_dir_avg:
             if self.get_config('doDirectionalAverage'):
                 print('\t- dir_avg_signal.nii.gz', end=' ')
+                hdr['descrip'] = 'Directional average signal of each shell'
                 nibabel.save( nibabel.Nifti1Image( self.niiDWI_img , affine, hdr ), pjoin(RESULTS_path, 'dir_avg_signal.nii.gz' ) ) 
                 print(' [OK]') 
 
