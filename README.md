@@ -7,8 +7,8 @@
 ![GitHub forks](https://img.shields.io/github/forks/daducci/AMICO?style=social)
 ![GitHub watchers](https://img.shields.io/github/watchers/daducci/AMICO?style=social)
 ![GitHub followers](https://img.shields.io/github/followers/daducci?style=social)
-![GitHub contributors](https://img.shields.io/github/contributors-anon/daducci/AMICO?style=social&link)
-[![Twitter Follow](https://img.shields.io/twitter/follow/ADaducci)](https://twitter.com/adaducci)
+[![GitHub contributors](https://img.shields.io/github/contributors-anon/daducci/AMICO?style=social&link)](#)
+[![Twitter Follow](https://img.shields.io/twitter/follow/ADaducci)](https://twitter.com/ADaducci)
 
 # AMICO
 
