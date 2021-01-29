@@ -2,6 +2,12 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.2.8] - 2021-01-04
+
+### Added
+
+- MANIFEST.in
+
 ## [1.2.7] - 2020-10-28
 
 ### Added
