@@ -496,8 +496,8 @@ class Evaluation :
             pickle.dump( self.CONFIG, fid, protocol=2 )
         print(' [OK]')
 
-        affine     = self.niiDWI.affine if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_affine()
-        hdr        = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
+        affine  = self.niiDWI.affine if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_affine()
+        hdr     = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
         hdr['descrip'] = 'Created with AMICO %s'%self.get_config('version')
 
         # estimated orientations
