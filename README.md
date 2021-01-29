@@ -1,7 +1,8 @@
 [![PyPI](https://img.shields.io/pypi/v/dmri-amico)](https://pypi.org/project/dmri-amico/)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/dmri-amico)](#)
 [![GitHub](https://img.shields.io/github/license/daducci/AMICO)](#)
-[![GitHub top language](https://img.shields.io/github/languages/top/daducci/amico)](#)
+[![GitHub top language](https://img.shields.io/github/languages/top/daducci/amico?color=lightgray)](#)
+[![reference](https://img.shields.io/badge/DOI-10.1016/j.neuroimage.2014.10.026-red.svg)](https://www.sciencedirect.com/science/article/pii/S1053811914008519)
 
 [![GitHub stars](https://img.shields.io/github/stars/daducci/AMICO?style=social)](#)
 [![GitHub forks](https://img.shields.io/github/forks/daducci/AMICO?style=social)](#)
