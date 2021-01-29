@@ -2,11 +2,10 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
-## [1.2.8] - 2021-01-27
+## [1.2.8] - 2021-01-29
 
 ### Added
 
-- MANIFEST.in
 - Added direction-average and SANDI model 
 - Added sandi2scheme function in util.py
 

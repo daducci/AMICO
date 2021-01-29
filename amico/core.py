@@ -91,8 +91,7 @@ class Evaluation :
         return self.CONFIG.get( key )
 
 
-    def load_data( self, dwi_filename = 'DWI.nii',
-                   scheme_filename = 'DWI.scheme', mask_filename = None, b0_thr = 0) :
+    def load_data( self, dwi_filename = 'DWI.nii', scheme_filename = 'DWI.scheme', mask_filename = None, b0_thr = 0 ) :
         """Load the diffusion signal and its corresponding acquisition scheme.
 
         Parameters
