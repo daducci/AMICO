@@ -8,7 +8,7 @@
 ![GitHub watchers](https://img.shields.io/github/watchers/daducci/AMICO?style=social)
 ![GitHub followers](https://img.shields.io/github/followers/daducci?style=social)
 ![GitHub contributors](https://img.shields.io/github/contributors-anon/daducci/AMICO?style=social)
-![Twitter Follow](https://img.shields.io/twitter/follow/ADaducci?link=https://twitter.com/ADaducci&link=https://twitter.com/ADaducci&style=social)
+[![Twitter Follow](https://img.shields.io/twitter/follow/ADaducci?style=social)](https://twitter.com/ADaducci)
 
 # AMICO
 
