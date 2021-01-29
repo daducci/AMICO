@@ -1,14 +1,14 @@
-![PyPI](https://img.shields.io/pypi/v/dmri-amico)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/dmri-amico)
-![GitHub](https://img.shields.io/github/license/daducci/AMICO)
-![GitHub top language](https://img.shields.io/github/languages/top/daducci/amico)
+[![PyPI](https://img.shields.io/pypi/v/dmri-amico)](https://pypi.org/project/dmri-amico/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/dmri-amico)](#)
+[![GitHub](https://img.shields.io/github/license/daducci/AMICO)](#)
+[![GitHub top language](https://img.shields.io/github/languages/top/daducci/amico)](#)
 
-![GitHub stars](https://img.shields.io/github/stars/daducci/AMICO?style=social)
-![GitHub forks](https://img.shields.io/github/forks/daducci/AMICO?style=social)
-![GitHub watchers](https://img.shields.io/github/watchers/daducci/AMICO?style=social)
-![GitHub followers](https://img.shields.io/github/followers/daducci?style=social)
+[![GitHub stars](https://img.shields.io/github/stars/daducci/AMICO?style=social)](#)
+[![GitHub forks](https://img.shields.io/github/forks/daducci/AMICO?style=social)](#)
+[![GitHub watchers](https://img.shields.io/github/watchers/daducci/AMICO?style=social)](#)
+[![GitHub followers](https://img.shields.io/github/followers/daducci?style=social)](#)
 [![GitHub contributors](https://img.shields.io/github/contributors-anon/daducci/AMICO?style=social&link)](#)
-[![Twitter Follow](https://img.shields.io/twitter/follow/ADaducci)](https://twitter.com/ADaducci)
+[![Twitter Follow](https://img.shields.io/twitter/follow/ADaducci)](https://twitter.com/intent/follow?screen_name=ADaducci)
 
 # AMICO
 
