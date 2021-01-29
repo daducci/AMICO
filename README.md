@@ -1,3 +1,15 @@
+![PyPI](https://img.shields.io/pypi/v/dmri-amico)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/dmri-amico)
+![GitHub](https://img.shields.io/github/license/daducci/AMICO)
+![GitHub top language](https://img.shields.io/github/languages/top/daducci/amico)
+
+![GitHub stars](https://img.shields.io/github/stars/daducci/AMICO?style=social)
+![GitHub forks](https://img.shields.io/github/forks/daducci/AMICO?style=social)
+![GitHub watchers](https://img.shields.io/github/watchers/daducci/AMICO?style=social)
+![GitHub followers](https://img.shields.io/github/followers/daducci?style=social)
+![GitHub contributors](https://img.shields.io/github/contributors-anon/daducci/AMICO?style=social)
+![Twitter Follow](https://img.shields.io/twitter/follow/ADaducci?style=social)
+
 # AMICO
 
 Implementation of the linear framework for Accelerated Microstructure Imaging via Convex Optimization (AMICO) described here:
