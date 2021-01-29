@@ -121,6 +121,35 @@ class Scheme :
             self.shells.append( shell )
 
 
+    def get_table( self) :
+        """Return a matrix from the structure.
+
+        The first three columns represent the gradient directions.
+        Then, we return two formats to describe each gradient:
+            - if the shape of data is Nx4, the 4^ column is the b-value;
+            - if the shape of data is Nx7, the last 4 columns are, respectively, the gradient strength, big delta, small delta and TE.
+        
+        """
+        if self.raw is None:
+            ERROR( 'The structure has not been created.' )
+         
+        if self.version == 0 :
+            scheme_table = np.zeros([self.b0_count + self.dwi_count, 4])
+            for shell in self.shells:
+                scheme_table[shell['idx'], 0:3 ]    = shell['grad']
+                scheme_table[shell['idx'], 3 ]      = shell['b']
+
+        if self.version == 1 :
+            scheme_table = np.zeros([self.b0_count + self.dwi_count, 7])
+            for shell in self.shells:
+                scheme_table[shell['idx'], 0:3 ]    = shell['grad']
+                scheme_table[shell['idx'], 3 ]      = shell['G']
+                scheme_table[shell['idx'], 4 ]      = shell['Delta']
+                scheme_table[shell['idx'], 5 ]      = shell['delta']
+                scheme_table[shell['idx'], 6 ]      = shell['TE']
+                    
+        return scheme_table
+             
     @property
     def nS( self ) :
         return self.b0_count + self.dwi_count

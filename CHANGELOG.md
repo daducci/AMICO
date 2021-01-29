@@ -2,11 +2,11 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
-## [1.2.8] - 2021-01-04
+## [1.2.8] - 2021-01-29
 
 ### Added
 
-- MANIFEST.in
+- SANDI model 
 
 ## [1.2.7] - 2020-10-28
 
