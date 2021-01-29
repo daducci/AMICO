@@ -543,7 +543,7 @@ class Evaluation :
             niiMAP_img = self.RESULTS['MAPs'][:,:,:,i]
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
-            niiMAP_hdr['descrip'] = self.model.maps_descr[i]
+            niiMAP_hdr['descrip'] = self.model.maps_descr[i] + ' (AMICO v%s)'%self.get_config('version')
             niiMAP_hdr['cal_min'] = niiMAP_img.min()
             niiMAP_hdr['cal_max'] = niiMAP_img.max()
             niiMAP_hdr['scl_slope'] = 1
@@ -557,7 +557,7 @@ class Evaluation :
                 print('\t- dir_avg_signal.nii.gz', end=' ')
                 niiMAP     = nibabel.Nifti1Image( self.niiDWI_img, affine, hdr )
                 niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
-                niiMAP_hdr['descrip'] = 'Directional average signal of each shell'
+                niiMAP_hdr['descrip'] = 'Directional average signal of each shell' + ' (AMICO v%s)'%self.get_config('version')
                 nibabel.save( niiMAP , pjoin(RESULTS_path, 'dir_avg_signal.nii.gz' ) ) 
                 print(' [OK]') 
 
