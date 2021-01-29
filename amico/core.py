@@ -497,8 +497,7 @@ class Evaluation :
 
         affine  = self.niiDWI.affine if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_affine()
         hdr     = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
-        hdr['descrip'] = 'Created with AMICO %s'%self.get_config('version')
-
+        
         # estimated orientations
         if not self.get_config('doDirectionalAverage'):
             print('\t- FIT_dir.nii.gz', end=' ')
@@ -556,8 +555,10 @@ class Evaluation :
         if save_dir_avg:
             if self.get_config('doDirectionalAverage'):
                 print('\t- dir_avg_signal.nii.gz', end=' ')
-                hdr['descrip'] = 'Directional average signal of each shell'
-                nibabel.save( nibabel.Nifti1Image( self.niiDWI_img , affine, hdr ), pjoin(RESULTS_path, 'dir_avg_signal.nii.gz' ) ) 
+                niiMAP     = nibabel.Nifti1Image( self.niiDWI_img, affine, hdr )
+                niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
+                niiMAP_hdr['descrip'] = 'Directional average signal of each shell'
+                nibabel.save( niiMAP , pjoin(RESULTS_path, 'dir_avg_signal.nii.gz' ) ) 
                 print(' [OK]') 
 
                 print('\t- dir_avg.scheme', end=' ')
