@@ -5,7 +5,8 @@ import time
 import glob
 import sys
 from os import makedirs, remove
-from os.path import exists, join as pjoin
+from os.path import exists, join as pjoin, isfile, isdir
+
 import nibabel
 import pickle
 import amico.scheme
@@ -111,8 +112,10 @@ class Evaluation :
         tic = time.time()
 
         print('\t* DWI signal')
+        if not isfile( pjoin(self.get_config('DATA_path'), dwi_filename) ):
+            ERROR( 'DWI file not found' )
         self.set_config('dwi_filename', dwi_filename)
-        self.niiDWI  = nibabel.load( pjoin( self.get_config('DATA_path'), dwi_filename) )
+        self.niiDWI  = nibabel.load( pjoin(self.get_config('DATA_path'), dwi_filename) )
         self.niiDWI_img = self.niiDWI.get_data().astype(np.float32)
         hdr = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
         self.set_config('dim', self.niiDWI_img.shape[:3])
@@ -127,6 +130,8 @@ class Evaluation :
             print('[OK]')
 
         print('\t* Acquisition scheme')
+        if not isfile( pjoin(self.get_config('DATA_path'), scheme_filename) ):
+            ERROR( 'SCHEME file not found' )
         self.set_config('scheme_filename', scheme_filename)
         self.set_config('b0_thr', b0_thr)
         self.scheme = amico.scheme.Scheme( pjoin( self.get_config('DATA_path'), scheme_filename), b0_thr )
@@ -141,6 +146,8 @@ class Evaluation :
 
         print('\t* Binary mask')
         if mask_filename is not None :
+            if not isfile( pjoin(self.get_config('DATA_path'), mask_filename) ):
+                ERROR( 'MASK file not found' )
             self.niiMASK  = nibabel.load( pjoin( self.get_config('DATA_path'), mask_filename) )
             self.niiMASK_img = self.niiMASK.get_data().astype(np.uint8)
             niiMASK_hdr = self.niiMASK.header if nibabel.__version__ >= '2.0.0' else self.niiMASK.get_header()
@@ -364,6 +371,8 @@ class Evaluation :
                 gtab = gradient_table( self.scheme.b, self.scheme.raw[:,:3] )
             DTI = dti.TensorModel( gtab )
         else :
+            if not isfile( pjoin(self.get_config('DATA_path'), peaks_filename) ):
+                ERROR( 'PEAKS file not found' )
             niiPEAKS = nibabel.load( pjoin( self.get_config('DATA_path'), peaks_filename) )
             DIRs = niiPEAKS.get_data().astype(np.float32)
             nDIR = np.floor( DIRs.shape[3]/3 )
@@ -497,6 +506,8 @@ class Evaluation :
 
         affine  = self.niiDWI.affine if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_affine()
         hdr     = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
+        hdr['datatype'] = 16
+        hdr['bitpix'] = 32
         
         # estimated orientations
         if not self.get_config('doDirectionalAverage'):
