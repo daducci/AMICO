@@ -2,6 +2,16 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.2.9] - 2021-02-23
+
+### Added
+
+- Controls if files exist before opening
+
+### Fixed
+
+- Wrong datatype when saving results 
+
 ## [1.2.8] - 2021-01-29
 
 ### Added
