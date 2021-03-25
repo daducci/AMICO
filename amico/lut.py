@@ -70,7 +70,7 @@ def load_precomputed_rotation_matrices( lmax = 12 ) :
     filename = pjoin( dipy_home, 'AMICO_aux_matrices_lmax=%d.pickle'%lmax )
     if not isfile( filename ) :
         raise RuntimeError( 'Auxiliary matrices not found; call "lut.precompute_rotation_matrices()" first.' )
-    return pickle.load( open(filename,'rb') )
+    return pickle.load( open(filename,'rb'),encoding='latin1' )
 
 
 def aux_structures_generate( scheme, lmax = 12 ) :
