@@ -2,7 +2,7 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
-## [1.2.9] - 2021-02-23
+## [1.2.9] - 2021-05-20
 
 ### Added
 
@@ -11,6 +11,7 @@ All notable changes to AMICO will be documented in this file.
 ### Fixed
 
 - Wrong datatype when saving results 
+- Warning message in util.py fsl2scheme and sandi2scheme
 
 ## [1.2.8] - 2021-01-29
 
