@@ -75,7 +75,7 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = 
             # warn if b > 99 is set to 0, possible error
             if (bStep[ind] == 0.0 and diff > 100) or (bStep[ind] > 0.0 and diff > bStep[ind] / 20.0):
                 # For non-zero shells, warn if actual b-value is off by more than 5%. For zero shells, warn above 50. Assuming s / mm^2
-                print("   Warning: measurement %d has b-value %d, being forced to %d\n'" % (i, bvals[i], bStep[ind]))
+                WARNING("Measurement %d has b-value %d, being forced to %d\n'" % (i, bvals[i], bStep[ind]))
 
             bvals[i] = bStep[ind]
 
@@ -186,7 +186,7 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
             # warn if b > 99 is set to 0, possible error
             if (bStep[ind] == 0.0 and diff > 100) or (bStep[ind] > 0.0 and diff > bStep[ind] / 20.0):
                 # For non-zero shells, warn if actual b-value is off by more than 5%. For zero shells, warn above 50. Assuming s / mm^2
-                print("   Warning: measurement %d has b-value %d, being forced to %d\n'" % (i, bvals[i], bStep[ind]))
+                WARNING("Measurement %d has b-value %d, being forced to %d\n'" % (i, bvals[i], bStep[ind]))
 
             bvals[i] = bStep[ind]
 
