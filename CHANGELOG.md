@@ -2,27 +2,27 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
-## [1.2.9] - 2021-05-20
+## [1.2.10] - 2021-05-20
+
+### Fixed
+- Warning message in util.py fsl2scheme and sandi2scheme
+
+## [1.2.9] - 2021-02-23
 
 ### Added
-
 - Controls if files exist before opening
 
 ### Fixed
-
 - Wrong datatype when saving results 
-- Warning message in util.py fsl2scheme and sandi2scheme
 
 ## [1.2.8] - 2021-01-29
 
 ### Added
-
 - SANDI model 
 
 ## [1.2.7] - 2020-10-28
 
 ### Added
-
 - Possibility to set one single direction in the LUT resolution
 
 ## [1.2.6] - 2020-10-22
