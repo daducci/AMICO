@@ -486,7 +486,7 @@ class CylinderZeppelinBall( BaseModel ) :
             return [0, 0, 0], None, None, None
 
         # fit
-        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, **params ).todense().A1
+        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, numThreads=1, **params ).todense().A1
 
         # return estimates
         f1 = x[ :(nD*n1) ].sum()
@@ -659,7 +659,7 @@ class NODDI( BaseModel ) :
         else:
             An = A[ self.scheme.dwi_idx, :nWM ] * KERNELS['norms']
             yy = yy[ self.scheme.dwi_idx ].reshape(-1,1)
-        x = spams.lasso( np.asfortranarray(yy), D=np.asfortranarray(An), **params ).todense().A1
+        x = spams.lasso( np.asfortranarray(yy), D=np.asfortranarray(An), numThreads=1, **params ).todense().A1
 
         # debias coefficients
         x = np.append( x, 1 )
@@ -1223,7 +1223,7 @@ class FreeWater( BaseModel ) :
         A[:,(nD*n1):] = KERNELS['CSF'].T
 
         # fit
-        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, **params ).todense().A1
+        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, numThreads=1, **params ).todense().A1
 
         # return estimates
         v = x[ :n1 ].sum() / ( x.sum() + 1e-16 )
@@ -1457,7 +1457,7 @@ class SANDI( BaseModel ) :
             return [0, 0, 0, 0, 0, 0], None, None, None
 
         # fit
-        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=KERNELS['signal'], **params ).todense().A1
+        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=KERNELS['signal'], numThreads=1, **params ).todense().A1
         x = x*KERNELS['norms']
 
         # return estimates
