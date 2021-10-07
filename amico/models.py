@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import amico.lut
 from amico.progressbar import ProgressBar
+from tqdm import tqdm
 from dipy.core.gradients import gradient_table
 from dipy.sims.voxel import single_tensor
 import abc
@@ -602,23 +603,22 @@ class NODDI( BaseModel ) :
         KERNELS['icvf']  = np.zeros( nATOMS-1, dtype=np.float32 )
         KERNELS['norms'] = np.zeros( (self.scheme.dwi_count, nATOMS-1) )
 
-        progress = ProgressBar( n=nATOMS, prefix="   ", erase=False )
-
         # Coupled contributions
-        for i in range( len(self.IC_ODs) ):
-            for j in range( len(self.IC_VFs) ):
-                lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
-                if lm.shape[0] != ndirs:
-                    ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
-                idx = progress.i - 1
-                KERNELS['wm'][idx,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
-                KERNELS['kappa'][idx] = 1.0 / np.tan( self.IC_ODs[i]*np.pi/2.0 )
-                KERNELS['icvf'][idx]  = self.IC_VFs[j]
-                if doMergeB0:
-                    KERNELS['norms'][:,idx] = 1 / np.linalg.norm( KERNELS['wm'][idx,0,1:] ) # norm of coupled atoms (for l1 minimization)
-                else:
-                    KERNELS['norms'][:,idx] = 1 / np.linalg.norm( KERNELS['wm'][idx,0,self.scheme.dwi_idx] ) # norm of coupled atoms (for l1 minimization)
-                progress.update()
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
+            for i in range( len(self.IC_ODs) ):
+                for j in range( len(self.IC_VFs) ):
+                    lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
+                    if lm.shape[0] != ndirs:
+                        ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
+                    idx = progress.i - 1
+                    KERNELS['wm'][idx,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
+                    KERNELS['kappa'][idx] = 1.0 / np.tan( self.IC_ODs[i]*np.pi/2.0 )
+                    KERNELS['icvf'][idx]  = self.IC_VFs[j]
+                    if doMergeB0:
+                        KERNELS['norms'][:,idx] = 1 / np.linalg.norm( KERNELS['wm'][idx,0,1:] ) # norm of coupled atoms (for l1 minimization)
+                    else:
+                        KERNELS['norms'][:,idx] = 1 / np.linalg.norm( KERNELS['wm'][idx,0,self.scheme.dwi_idx] ) # norm of coupled atoms (for l1 minimization)
+                    progress.update()
 
         # Isotropic
         lm = np.load( pjoin( in_path, 'A_%03d.npy'%progress.i ) )
