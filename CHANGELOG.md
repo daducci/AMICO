@@ -10,6 +10,9 @@ All notable changes to AMICO will be documented in this file.
 ### Fixed
 - Forcing SPAMS to use only one thread
 
+### Changed
+- Replaced in-house progress bar to tqdm
+
 ## [1.2.10] - 2021-05-20
 
 ### Fixed
