@@ -19,6 +19,8 @@ from dipy.core.gradients import gradient_table
 import dipy.reconst.dti as dti
 from amico.util import LOG, NOTE, WARNING, ERROR
 from pkg_resources import get_distribution
+from joblib import Parallel, delayed
+from tqdm import tqdm
 
 
 def setup( lmax = 12, ndirs = 32761 ) :
@@ -343,10 +345,64 @@ class Evaluation :
         LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
 
 
-    def fit( self ) :
+    def fit( self, n_jobs=1 ) :
         """Fit the model to the data iterating over all voxels (in the mask) one after the other.
         Call the appropriate fit() method of the actual model used.
+
+        Parameters
+        ----------
+        n_jobs : integer
+            Number of voxels to fit in parallel (default : 1)
         """
+
+        def fit_voxel(self, ix, iy, iz, dirs, DTI) :
+            """Perform the fit in a single voxel.
+            """
+            # prepare the signal
+            y = self.niiDWI_img[ix, iy, iz, :].astype(np.float64)
+            y[y < 0] = 0  # [NOTE] this should not happen!
+
+            # fitting directions if not
+            if not self.get_config('doDirectionalAverage') and DTI is not None :
+                dirs = DTI.fit( y ).directions[0].reshape(-1, 3)
+
+            # dispatch to the right handler for each model
+            results, dirs, x, A = self.model.fit( y, dirs, self.KERNELS, self.get_config('solver_params'), self.htable)
+
+            # compute fitting error
+            if self.get_config('doComputeNRMSE') :
+                y_est = np.dot( A, x )
+                den = np.sum(y**2)
+                NRMSE = np.sqrt( np.sum((y-y_est)**2) / den ) if den > 1e-16 else 0
+            else :
+                NRMSE = 0.0
+
+            y_fw_corrected = None
+            if self.get_config('doSaveCorrectedDWI') :
+
+                if self.model.name == 'Free-Water' :
+                    n_iso = len(self.model.d_isos)
+                    
+                    # keep only FW components of the estimate
+                    x[0:x.shape[0]-n_iso] = 0
+                    
+                    # y_fw_corrected below is the predicted signal by the anisotropic part (no iso part)
+                    y_fw_part = np.dot( A, x )
+                    
+                    # y is the original signal
+                    y_fw_corrected = y - y_fw_part
+                    y_fw_corrected[ y_fw_corrected < 0 ] = 0 # [NOTE] this should not happen!
+
+                    if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
+                        y_fw_corrected = y_fw_corrected * self.mean_b0s[ix,iy,iz]
+                        
+                    if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
+                        # put original b0 data back in.
+                        y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*self.mean_b0s[ix,iy,iz]
+
+            return results, dirs, NRMSE, y_fw_corrected
+
+
         if self.niiDWI is None :
             ERROR( 'Data not loaded; call "load_data()" first' )
         if self.model is None :
@@ -379,86 +435,47 @@ class Evaluation :
             print('\t* peaks dim = %d x %d x %d x %d' % DIRs.shape[:4])
             if DIRs.shape[:3] != self.niiMASK_img.shape[:3] :
                 ERROR( 'PEAKS geometry does not match with DWI data' )
+            DTI = None
 
         # setup other output files
-        MAPs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1],
-                          self.get_config('dim')[2], len(self.model.maps_name)], dtype=np.float32 )
-
-        if self.get_config('doComputeNRMSE') :
-            NRMSE = np.zeros( [self.get_config('dim')[0],
-                               self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32 )
-
-        if self.get_config('doSaveCorrectedDWI') :
-            DWI_corrected = np.zeros(self.niiDWI.shape, dtype=np.float32)
+        MAPs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], len(self.model.maps_name)], dtype=np.float32 )
 
         # fit the model to the data
         # =========================
         t = time.time()
-        progress = ProgressBar( n=totVoxels, prefix="   ", erase=False )
-        for iz in range(self.niiMASK_img.shape[2]) :
-            for iy in range(self.niiMASK_img.shape[1]) :
-                for ix in range(self.niiMASK_img.shape[0]) :
-                    if self.niiMASK_img[ix,iy,iz]==0 :
-                        continue
 
-                    # prepare the signal
-                    y = self.niiDWI_img[ix,iy,iz,:].astype(np.float64)
-                    y[ y < 0 ] = 0 # [NOTE] this should not happen!
+        ix, iy, iz = np.nonzero(self.niiMASK_img)
+        n_per_thread = np.floor(totVoxels / n_jobs)
+        idx = np.arange(0, totVoxels+1, n_per_thread, dtype=np.int32)
+        idx[-1] = totVoxels
 
-                    if not self.get_config('doDirectionalAverage'):
-                        # fitting directions
-                        if peaks_filename is None :
-                            dirs = DTI.fit( y ).directions[0]
-                        else :
-                            dirs = DIRs[ix,iy,iz,:]
-                    else :
-                        dirs = np.zeros( (1, 3), dtype=np.float32 )
-
-                    # dispatch to the right handler for each model
-                    MAPs[ix,iy,iz,:], DIRs[ix,iy,iz,:], x, A = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, self.get_config('solver_params'), self.htable )
-
-                    # compute fitting error
-                    if self.get_config('doComputeNRMSE') :
-                        y_est = np.dot( A, x )
-                        den = np.sum(y**2)
-                        NRMSE[ix,iy,iz] = np.sqrt( np.sum((y-y_est)**2) / den ) if den > 1e-16 else 0
-
-                    if self.get_config('doSaveCorrectedDWI') :
-
-                        if self.model.name == 'Free-Water' :
-                            n_iso = len(self.model.d_isos)
-                            
-                            # keep only FW components of the estimate
-                            x[0:x.shape[0]-n_iso] = 0
-                            
-                            # y_fw_corrected below is the predicted signal by the anisotropic part (no iso part)
-                            y_fw_part = np.dot( A, x )
-                            
-                            # y is the original signal
-                            y_fw_corrected = y - y_fw_part
-                            y_fw_corrected[ y_fw_corrected < 0 ] = 0 # [NOTE] this should not happen!
-
-                            if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
-                                y_fw_corrected = y_fw_corrected * self.mean_b0s[ix,iy,iz]
-                                
-                            if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
-                                # put original b0 data back in.
-                                y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*self.mean_b0s[ix,iy,iz]
-
-                            DWI_corrected[ix,iy,iz,:] = y_fw_corrected
-
-                    progress.update()
+        estimates = Parallel(n_jobs=n_jobs, backend='loky')(
+            delayed(fit_voxel)(self, ix[i], iy[i], iz[i], DIRs[ix[i],iy[i],iz[i],:], DTI)
+            for i in tqdm(range(totVoxels), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%')
+        )
 
         self.set_config('fit_time', time.time()-t)
         LOG( '   [ %s ]' % ( time.strftime("%Hh %Mm %Ss", time.gmtime(self.get_config('fit_time')) ) ) )
 
         # store results
         self.RESULTS = {}
+
+        for i in range(totVoxels) :
+            MAPs[ix[i],iy[i],iz[i],:] = estimates[i][0]
+            DIRs[ix[i],iy[i],iz[i],:] = estimates[i][1]
         self.RESULTS['DIRs']  = DIRs
         self.RESULTS['MAPs']  = MAPs
+
         if self.get_config('doComputeNRMSE') :
+            NRMSE = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32 )
+            for i in range(totVoxels) :
+                NRMSE[ix[i],iy[i],iz[i]] = estimates[i][2]
             self.RESULTS['NRMSE'] = NRMSE
+
         if self.get_config('doSaveCorrectedDWI') :
+            DWI_corrected = np.zeros(self.niiDWI.shape, dtype=np.float32)
+            for i in range(totVoxels):
+                DWI_corrected[ix,iy,iz,:] = estimates[i][3]
             self.RESULTS['DWI_corrected'] = DWI_corrected
 
 

@@ -2,6 +2,14 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.3.0] - 2021-10-07
+
+### Added
+- Possibility to fit different voxels in parallel
+
+### Fixed
+- Forcing SPAMS to use only one thread
+
 ## [1.2.10] - 2021-05-20
 
 ### Fixed
