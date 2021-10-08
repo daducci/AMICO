@@ -138,10 +138,10 @@ class Evaluation :
         self.set_config('scheme_filename', scheme_filename)
         self.set_config('b0_thr', b0_thr)
         self.scheme = amico.scheme.Scheme( pjoin( self.get_config('DATA_path'), scheme_filename), b0_thr )
-        print('\t\t- %d samples, %d shells' % ( self.scheme.nS, len(self.scheme.shells) ))
-        print('\t\t- %d @ b=0' % ( self.scheme.b0_count ), end=' ')
+        print(f'\t\t- {self.scheme.nS} samples, {len(self.scheme.shells)} shells')
+        print(f'\t\t- {self.scheme.b0_count} @ b=0', end=' ')
         for i in range(len(self.scheme.shells)) :
-            print(', %d @ b=%.1f' % ( len(self.scheme.shells[i]['idx']), self.scheme.shells[i]['b'] ), end=' ')
+            print(f', {len(self.scheme.shells[i]["idx"])} @ b={self.scheme.shells[i]["b"]:.1f}', end=' ')
         print()
 
         if self.scheme.nS != self.niiDWI_img.shape[3] :
@@ -164,9 +164,9 @@ class Evaluation :
             self.niiMASK = None
             self.niiMASK_img = np.ones( self.get_config('dim') )
             print('\t\t- not specified')
-        print('\t\t- voxels = %d' % np.count_nonzero(self.niiMASK_img))
+        print(f'\t\t- voxels = {np.count_nonzero(self.niiMASK_img)}')
         
-        LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
+        LOG( f'   [ {time.time() - tic:.1f} seconds ]' )
 
         # Preprocessing
         LOG( '\n-> Preprocessing:' )
@@ -194,7 +194,7 @@ class Evaluation :
             norm_factor[ idx ] = 0
             for i in range(self.scheme.nS) :
                 self.niiDWI_img[:,:,:,i] *= norm_factor
-            print('[ min=%.2f,  mean=%.2f, max=%.2f ]' % ( self.niiDWI_img.min(), self.niiDWI_img.mean(), self.niiDWI_img.max() ))
+            print(f'[ min={self.niiDWI_img.min():.2f},  mean={self.niiDWI_img.mean():.2f}, max={self.niiDWI_img.max():.2f} ]')
 
         if self.get_config('doMergeB0') :
             print('\t* Merging multiple b0 volume(s)')
@@ -232,16 +232,16 @@ class Evaluation :
 
             print('\t* Acquisition scheme')
             self.scheme = amico.scheme.Scheme( scheme_table, b0_thr )
-            print('\t\t- %d samples, %d shells' % ( self.scheme.nS, len(self.scheme.shells) ))
-            print('\t\t- %d @ b=0' % ( self.scheme.b0_count ), end=' ')
+            print(f'\t\t- {self.scheme.nS} samples, {len(self.scheme.shells)} shells')
+            print(f'\t\t- {self.scheme.b0_count} @ b=0', end=' ')
             for i in range(len(self.scheme.shells)) :
-                print(', %d @ b=%.1f' % ( len(self.scheme.shells[i]['idx']), self.scheme.shells[i]['b'] ), end=' ')
+                print(f', {len(self.scheme.shells[i]["idx"])} @ b={self.scheme.shells[i]["b"]:.1f}', end=' ')
             print()
 
             if self.scheme.nS != self.niiDWI_img.shape[3] :
                 ERROR( 'Scheme does not match with DWI data' )
 
-        LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
+        LOG( f'   [ {time.time() - tic:.1f} seconds ]' )
 
 
     def set_model( self, model_name ) :
@@ -256,7 +256,7 @@ class Evaluation :
         if hasattr(amico.models, model_name ) :
             self.model = getattr(amico.models,model_name)()
         else :
-            ERROR( 'Model "%s" not recognized' % model_name )
+            ERROR( f'Model "{model_name}" not recognized' )
 
         self.set_config('ATOMS_path', pjoin( self.get_config('study_path'), 'kernels', self.model.id ))
 
@@ -297,7 +297,7 @@ class Evaluation :
         self.set_config('lmax', lmax)
         self.set_config('ndirs', ndirs)
         self.model.scheme = self.scheme
-        LOG( '\n-> Creating LUT for "%s" model:' % self.model.name )
+        LOG( f'\n-> Creating LUT for "{self.model.name}" model:' )
 
         # check if kernels were already generated
         tmp = glob.glob( pjoin(self.get_config('ATOMS_path'),'A_*.npy') )
@@ -319,7 +319,7 @@ class Evaluation :
         # Dispatch to the right handler for each model
         tic = time.time()
         self.model.generate( self.get_config('ATOMS_path'), aux, idx_IN, idx_OUT, ndirs )
-        LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
+        LOG( f'   [ {time.time() - tic:.1f} seconds ]' )
 
 
     def load_kernels( self ) :
@@ -332,7 +332,7 @@ class Evaluation :
             ERROR( 'Scheme not loaded; call "load_data()" first' )
 
         tic = time.time()
-        LOG( '\n-> Resampling LUT for subject "%s":' % self.get_config('subject') )
+        LOG( f'\n-> Resampling LUT for subject "{self.get_config("subject")}":' )
 
         # auxiliary data structures
         idx_OUT, Ylm_OUT = amico.lut.aux_structures_resample( self.scheme, self.get_config('lmax') )
@@ -343,7 +343,7 @@ class Evaluation :
         # Dispatch to the right handler for each model
         self.KERNELS = self.model.resample( self.get_config('ATOMS_path'), idx_OUT, Ylm_OUT, self.get_config('doMergeB0'), self.get_config('ndirs') )
 
-        LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
+        LOG( f'   [ {time.time() - tic:.1f} seconds ]')
 
 
     def fit( self ) :
@@ -501,7 +501,7 @@ class Evaluation :
             if path_suffix :
                 RESULTS_path = RESULTS_path +'_'+ path_suffix
             self.RESULTS['RESULTS_path'] = RESULTS_path
-            LOG( '\n-> Saving output to "%s/*":' % RESULTS_path )
+            LOG( f'\n-> Saving output to "{RESULTS_path}/*":' )
 
             # delete previous output
             RESULTS_path = pjoin( self.get_config('DATA_path'), RESULTS_path )
@@ -510,7 +510,7 @@ class Evaluation :
             if path_suffix :
                 RESULTS_path = RESULTS_path +'_'+ path_suffix
             self.RESULTS['RESULTS_path'] = RESULTS_path
-            LOG( '\n-> Saving output to "%s/*":' % RESULTS_path )
+            LOG( f'\n-> Saving output to "{RESULTS_path}/*":' )
 
         if not exists( RESULTS_path ) :
             makedirs( RESULTS_path )
@@ -566,20 +566,20 @@ class Evaluation :
                 nibabel.save( niiMAP, pjoin(RESULTS_path, 'dwi_fw_corrected.nii.gz') )
                 print(' [OK]')
             else :
-                WARNING( '"doSaveCorrectedDWI" option not supported for "%s" model' % self.model.name )
+                WARNING( f'"doSaveCorrectedDWI" option not supported for "{self.model.name}" model' )
 
         # voxelwise maps
         for i in range( len(self.model.maps_name) ) :
-            print('\t- FIT_%s.nii.gz' % self.model.maps_name[i], end=' ')
+            print(f'\t- FIT_{self.model.maps_name[i]}.nii.gz', end=' ')
             niiMAP_img = self.RESULTS['MAPs'][:,:,:,i]
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
-            niiMAP_hdr['descrip'] = self.model.maps_descr[i] + ' (AMICO v%s)'%self.get_config('version')
+            niiMAP_hdr['descrip'] = self.model.maps_descr[i] + f' (AMICO v{self.get_config("version")})'
             niiMAP_hdr['cal_min'] = niiMAP_img.min()
             niiMAP_hdr['cal_max'] = niiMAP_img.max()
             niiMAP_hdr['scl_slope'] = 1
             niiMAP_hdr['scl_inter'] = 0
-            nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_%s.nii.gz' % self.model.maps_name[i] ) )
+            nibabel.save( niiMAP, pjoin(RESULTS_path, f'FIT_{self.model.maps_name[i]}.nii.gz' ) )
             print(' [OK]')
         
         # Directional average signal
@@ -588,12 +588,12 @@ class Evaluation :
                 print('\t- dir_avg_signal.nii.gz', end=' ')
                 niiMAP     = nibabel.Nifti1Image( self.niiDWI_img, affine, hdr )
                 niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
-                niiMAP_hdr['descrip'] = 'Directional average signal of each shell' + ' (AMICO v%s)'%self.get_config('version')
+                niiMAP_hdr['descrip'] = 'Directional average signal of each shell' + f' (AMICO v{self.get_config("version")})'
                 nibabel.save( niiMAP , pjoin(RESULTS_path, 'dir_avg_signal.nii.gz' ) ) 
                 print(' [OK]') 
 
                 print('\t- dir_avg.scheme', end=' ')
-                np.savetxt( pjoin(RESULTS_path, 'dir_avg.scheme' ), self.scheme.get_table(), fmt="%.06f", delimiter="\t", header="VERSION: {}".format(self.scheme.version), comments='' )
+                np.savetxt( pjoin(RESULTS_path, 'dir_avg.scheme' ), self.scheme.get_table(), fmt="%.06f", delimiter="\t", header=f"VERSION: {self.scheme.version}", comments='' )
                 print(' [OK]')
             else:
                 WARNING('The directional average signal was not created (The option doDirectionalAverage is False).')
