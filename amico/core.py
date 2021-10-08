@@ -412,7 +412,7 @@ class Evaluation :
         elif n_jobs == 0 or n_jobs < -1:
             ERROR( 'Number of parallel jobs must be positive or -1' )
         parallel_backend = self.get_config( 'parallel_backend' )
-        if parallel_backend not in ['loky','multiparallel','threading']:
+        if parallel_backend not in ['loky','multiprocessing','threading']:
             ERROR( f'Backend "{parallel_backend}" is not recognized by joblib' )
             
         self.set_config('fit_time', None)
