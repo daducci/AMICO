@@ -453,7 +453,8 @@ class Evaluation :
         idx[-1] = totVoxels
 
         estimates = Parallel(n_jobs=n_jobs, backend=parallel_backend)(
-            delayed(fit_voxel)(self, ix[i], iy[i], iz[i], DIRs[ix[i],iy[i],iz[i],:], DTI)for i in tqdm(range(totVoxels), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%')
+            delayed(fit_voxel)(self, ix[i], iy[i], iz[i], DIRs[ix[i],iy[i],iz[i],:], DTI)
+            for i in tqdm(range(totVoxels), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%')
         )
 
         self.set_config('fit_time', time.time()-t)
