@@ -12,5 +12,5 @@ setup(name='dmri-amico',
       license='BSD license',
       packages=find_packages(),
       setup_requires=['numpy>=1.12'],
-      install_requires=['numpy>=1.12', 'dipy>=1.0', 'scipy>=1.0', 'python-spams>=2.6.1', 'tqdm>=4.56.0'],
+      install_requires=['numpy>=1.12', 'dipy>=1.0', 'scipy>=1.0', 'python-spams>=2.6.1', 'tqdm>=4.56.0', 'joblib>=1.0.1'],
       package_data={'': ['*.bin', 'directions/*.bin']})
