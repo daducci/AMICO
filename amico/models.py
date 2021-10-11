@@ -235,7 +235,7 @@ class StickZeppelinBall( BaseModel ) :
             # Stick
             signal = single_tensor( gtab, evals=[0, 0, self.d_par] )
             lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
-            np.save( pjoin( out_path, f'A_{nATOMS:03d}.npy' ), lm )
+            np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
             idx += 1
             progress.update()
             # Zeppelin(s)
@@ -271,7 +271,7 @@ class StickZeppelinBall( BaseModel ) :
         idx = 0
         with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
             # Stick
-            lm = np.load( pjoin( in_path, f'A_{nATOMS:03d}.npy' ) )
+            lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
             if lm.shape[0] != ndirs:
                 ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
             KERNELS['wmr'][0,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
@@ -280,7 +280,7 @@ class StickZeppelinBall( BaseModel ) :
 
             # Zeppelin(s)
             for i in range(len(self.d_perps)) :
-                lm = np.load( pjoin( in_path, f'A_{nATOMS:03d}.npy' ) )
+                lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
                 if lm.shape[0] != ndirs:
                     ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
                 KERNELS['wmh'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
@@ -289,7 +289,7 @@ class StickZeppelinBall( BaseModel ) :
 
             # Ball(s)
             for i in range(len(self.d_isos)) :
-                lm = np.load( pjoin( in_path, f'A_{nATOMS:03d}.npy' ) )
+                lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
                 KERNELS['iso'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
                 idx += 1
                 progress.update()
@@ -390,7 +390,7 @@ class CylinderZeppelinBall( BaseModel ) :
                     remove( filename_signal )
 
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
-                np.save( pjoin( out_path, f'A_{nATOMS:03d}.npy' ), lm )
+                np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
                 progress.update()
 
@@ -405,7 +405,7 @@ class CylinderZeppelinBall( BaseModel ) :
                     remove( filename_signal )
 
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
-                np.save( pjoin( out_path, f'A_{nATOMS:03d}.npy' ), lm )
+                np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
                 progress.update()
 
@@ -420,7 +420,7 @@ class CylinderZeppelinBall( BaseModel ) :
                     remove( filename_signal )
 
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
-                np.save( pjoin( out_path, f'A_{nATOMS:03d}.npy' ), lm )
+                np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
                 progress.update()
 
@@ -443,7 +443,7 @@ class CylinderZeppelinBall( BaseModel ) :
         with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
             # Cylinder(s)
             for i in range(len(self.Rs)) :
-                lm = np.load( pjoin( in_path, f'A_{nATOMS:03d}.npy' ) )
+                lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
                 if lm.shape[0] != ndirs:
                     ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
                 KERNELS['wmr'][i,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
@@ -452,7 +452,7 @@ class CylinderZeppelinBall( BaseModel ) :
 
             # Zeppelin(s)
             for i in range(len(self.d_perps)) :
-                lm = np.load( pjoin( in_path, f'A_{nATOMS:03d}.npy' ) )
+                lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
                 if lm.shape[0] != ndirs:
                     ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
                 KERNELS['wmh'][i,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
@@ -461,7 +461,7 @@ class CylinderZeppelinBall( BaseModel ) :
 
             # Ball(s)
             for i in range(len(self.d_isos)) :
-                lm = np.load( pjoin( in_path, f'A_{nATOMS:03d}.npy' ) )
+                lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
                 KERNELS['iso'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
                 idx += 1
                 progress.update()
@@ -1171,7 +1171,7 @@ class FreeWater( BaseModel ) :
             for d in self.d_perps :
                 signal = single_tensor( gtab, evals=[d, d, self.d_par] )
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
-                np.save( pjoin( out_path, f'A_{nATOMS:03d}.npy' ), lm )
+                np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
                 progress.update()
 
@@ -1179,7 +1179,7 @@ class FreeWater( BaseModel ) :
             for d in self.d_isos :
                 signal = single_tensor( gtab, evals=[d, d, d] )
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
-                np.save( pjoin( out_path, f'A_{nATOMS:03d}.npy' ), lm )
+                np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
                 progress.update()
 
@@ -1201,7 +1201,7 @@ class FreeWater( BaseModel ) :
         with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
             # Tensor compartment(s)
             for i in range(len(self.d_perps)) :
-                lm = np.load( pjoin( in_path, f'A_{nATOMS:03d}.npy' ) )
+                lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
                 if lm.shape[0] != ndirs:
                     ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
                 KERNELS['D'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
@@ -1210,7 +1210,7 @@ class FreeWater( BaseModel ) :
 
             # Isotropic compartment(s)
             for i in range(len(self.d_isos)) :
-                lm = np.load( pjoin( in_path, f'A_{nATOMS:03d}.npy' ) )
+                lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
                 KERNELS['CSF'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
                 idx += 1
                 progress.update()
@@ -1392,7 +1392,7 @@ class SANDI( BaseModel ) :
                 if exists( filename_signal ) :
                     remove( filename_signal )
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
-                np.save( pjoin( out_path, f'A_{nATOMS:03d}.npy' ), lm )
+                np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
                 progress.update()
             # Neurites = ASTRO STICKS
@@ -1405,7 +1405,7 @@ class SANDI( BaseModel ) :
                 if exists( filename_signal ) :
                     remove( filename_signal )
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
-                np.save( pjoin( out_path, f'A_{nATOMS:03d}.npy' ), lm )
+                np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
                 progress.update()
             # Extra-cellular = BALL
@@ -1418,7 +1418,7 @@ class SANDI( BaseModel ) :
                 if exists( filename_signal ) :
                     remove( filename_signal )
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
-                np.save( pjoin( out_path, f'A_{nATOMS:03d}.npy' ), lm )
+                np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
                 progress.update()
 
@@ -1440,26 +1440,26 @@ class SANDI( BaseModel ) :
         with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
             # Soma = SPHERE
             for i in range(len(self.Rs)) :
-                lm = np.load( pjoin( in_path, f'A_{nATOMS:03d}.npy' ) )
+                lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
                 signal = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx].T
-                KERNELS['norms'][progress.i-1] = 1.0 / np.linalg.norm( signal )
-                KERNELS['signal'][:,progress.i-1] = signal * KERNELS['norms'][progress.i-1]
+                KERNELS['norms'][idx] = 1.0 / np.linalg.norm( signal )
+                KERNELS['signal'][:,idx] = signal * KERNELS['norms'][idx]
                 idx += 1
                 progress.update()
             # Neurites = STICKS
             for i in range(len(self.d_in)) :
-                lm = np.load( pjoin( in_path, f'A_{nATOMS:03d}.npy' ) )
+                lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
                 signal = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx].T
-                KERNELS['norms'][progress.i-1] = 1.0 / np.linalg.norm( signal )
-                KERNELS['signal'][:,progress.i-1] = signal * KERNELS['norms'][progress.i-1]
+                KERNELS['norms'][idx] = 1.0 / np.linalg.norm( signal )
+                KERNELS['signal'][:,idx] = signal * KERNELS['norms'][idx]
                 idx += 1
                 progress.update()
             # Extra-cellular = BALL
             for i in range(len(self.d_isos)) :
-                lm = np.load( pjoin( in_path, f'A_{nATOMS:03d}.npy' ) )
+                lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
                 signal = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx].T
-                KERNELS['norms'][progress.i-1] = 1.0 / np.linalg.norm( signal )
-                KERNELS['signal'][:,progress.i-1] = signal * KERNELS['norms'][progress.i-1]
+                KERNELS['norms'][idx] = 1.0 / np.linalg.norm( signal )
+                KERNELS['signal'][:,idx] = signal * KERNELS['norms'][idx]
                 idx += 1
                 progress.update()
 
