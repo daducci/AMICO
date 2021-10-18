@@ -175,9 +175,10 @@ class StickZeppelinBall( BaseModel ) :
     """Implements the Stick-Zeppelin-Ball model [1].
 
     The intra-cellular contributions from within the axons are modeled as "sticks", i.e.
-    tensors with a given axial diffusivity (d_par) but null perpendicular diffusivity.
+    tensors with a given axial diffusivity (d_par) but null perpendicular diffusivity (d_perp=0);
+    if d_perp>0, then a Zeppelin is used instead of a Stick.
     Extra-cellular contributions are modeled as "Zeppelins", i.e. tensors with a given axial
-    diffusivity (d_par_zep) and, possibily, a series of perpendicular diffusivities (d_perps).
+    diffusivity (d_par_zep) and, possibily, a series of perpendicular diffusivities (d_perps_zep).
     If the axial diffusivity of the Zeppelins is not specified, then it is assumed equal to that
     of the Stick. Isotropic contributions are modeled as "Balls", i.e. tensors with isotropic
     diffusivities (d_isos).
@@ -194,19 +195,21 @@ class StickZeppelinBall( BaseModel ) :
         self.maps_name  = [ ]
         self.maps_descr = [ ]
 
-        self.d_par     = 1.7E-3                                        # Parallel diffusivity for the Stick [mm^2/s]
-        self.d_par_zep = 1.7E-3                                        # Parallel diffusivity for the Zeppelins [mm^2/s]
-        self.d_perps = np.array([ 1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]) # Perpendicular diffusivitie(s) [mm^2/s]
-        self.d_isos  = np.array([ 3.0E-3 ])                            # Isotropic diffusivitie(s) [mm^2/s]
+        self.d_par       = 1.7E-3                                          # Parallel diffusivity for the Stick [mm^2/s]
+        self.d_perp      = 0                                               # Perpendicular diffusivity for the Stick [mm^2/s]
+        self.d_par_zep   = 1.7E-3                                          # Parallel diffusivity for the Zeppelins [mm^2/s]
+        self.d_perps_zep = np.array([ 1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]) # Perpendicular diffusivitie(s) [mm^2/s]
+        self.d_isos      = np.array([ 3.0E-3 ])                            # Isotropic diffusivitie(s) [mm^2/s]
 
 
-    def set( self, d_par, d_perps, d_isos, d_par_zep=None ) :
-        self.d_par   = d_par
+    def set( self, d_par, d_perps_zep, d_isos, d_par_zep=None, d_perp=0 ) :
+        self.d_par = d_par
+        self.d_perp = d_perp
         if d_par_zep is None:
             self.d_par_zep = d_par
         else:
             self.d_par_zep = d_par_zep
-        self.d_perps = np.array( d_perps )
+        self.d_perps_zep = np.array( d_perps_zep )
         self.d_isos  = np.array( d_isos )
 
 
@@ -215,8 +218,9 @@ class StickZeppelinBall( BaseModel ) :
         params['id'] = self.id
         params['name'] = self.name
         params['d_par'] = self.d_par
+        params['d_perp'] = self.d_perp
         params['d_par_zep'] = self.d_par_zep
-        params['d_perps'] = self.d_perps
+        params['d_perps_zep'] = self.d_perps_zep
         params['d_isos'] = self.d_isos
         return params
 
@@ -229,17 +233,17 @@ class StickZeppelinBall( BaseModel ) :
         scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1 )
         gtab = gradient_table( scheme_high.b, scheme_high.raw[:,0:3] )
 
-        nATOMS = 1 + len(self.d_perps) + len(self.d_isos)
+        nATOMS = 1 + len(self.d_perps_zep) + len(self.d_isos)
         idx = 0
         with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
             # Stick
-            signal = single_tensor( gtab, evals=[0, 0, self.d_par] )
+            signal = single_tensor( gtab, evals=[self.d_perp, self.d_perp, self.d_par] )
             lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
             np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
             idx += 1
             progress.update()
             # Zeppelin(s)
-            for d in self.d_perps :
+            for d in self.d_perps_zep :
                 signal = single_tensor( gtab, evals=[d, d, self.d_par_zep] )
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
@@ -264,10 +268,10 @@ class StickZeppelinBall( BaseModel ) :
             nS = self.scheme.nS
             merge_idx = np.arange(nS)
         KERNELS['wmr']   = np.zeros( (1,ndirs,nS), dtype=np.float32 )
-        KERNELS['wmh']   = np.zeros( (len(self.d_perps),ndirs,nS), dtype=np.float32 )
+        KERNELS['wmh']   = np.zeros( (len(self.d_perps_zep),ndirs,nS), dtype=np.float32 )
         KERNELS['iso']   = np.zeros( (len(self.d_isos),nS), dtype=np.float32 )
 
-        nATOMS = 1 + len(self.d_perps) + len(self.d_isos)
+        nATOMS = 1 + len(self.d_perps_zep) + len(self.d_isos)
         idx = 0
         with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
             # Stick
@@ -279,7 +283,7 @@ class StickZeppelinBall( BaseModel ) :
             progress.update()
 
             # Zeppelin(s)
-            for i in range(len(self.d_perps)) :
+            for i in range(len(self.d_perps_zep)) :
                 lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
                 if lm.shape[0] != ndirs:
                     ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )

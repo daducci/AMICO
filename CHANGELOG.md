@@ -6,6 +6,7 @@ All notable changes to AMICO will be documented in this file.
 
 ### Added
 - Possibility to fit different voxels in parallel
+- Possibility to specify d_perp<>0  for the Stick in StickZeppelinBall
 
 ### Fixed
 - Forcing SPAMS to use only one thread
