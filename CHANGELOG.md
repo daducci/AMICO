@@ -2,14 +2,16 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
-## [1.3.0] - 2021-10-07
+## [1.3.0] - 2021-10-27
 
 ### Added
 - Possibility to fit different voxels in parallel
+- Config options 'parallel_jobs' and 'parallel_backend' for better control of parallel execution
 - Possibility to specify d_perp<>0  for the Stick in StickZeppelinBall
 
 ### Fixed
 - Forcing SPAMS to use only one thread
+- Added missing dependencies, e.g. wheel
 
 ### Changed
 - Replaced in-house progress bar to tqdm
