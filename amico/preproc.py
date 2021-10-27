@@ -3,7 +3,7 @@ from __future__ import print_function
 import numpy as np
 from scipy.optimize import minimize
 import scipy.special
-from amico.progressbar import ProgressBar
+from tqdm import tqdm
 
 # Kaden's functionals
 def F_norm_Diff_K(E0,Signal,sigma_diff):
@@ -23,15 +23,16 @@ def der_Diff(E0,Signal,sigma_diff):
 
 def debiasRician(DWI,SNR,mask,scheme):
     debiased_DWI = np.zeros(DWI.shape)
-    progress = ProgressBar( n=mask.sum(), prefix="   ", erase=True )
-    for ix in range(DWI.shape[0]):
-        for iy in range(DWI.shape[1]):
-            for iz in range(DWI.shape[2]):
-                if mask[ix,iy,iz]:
-                    b0 = DWI[ix,iy,iz,scheme.b0_idx].mean()
-                    sigma_diff = b0/SNR
-                    init_guess = DWI[ix,iy,iz,:].copy()
-                    tmp = minimize(F_norm_Diff_K, init_guess, args=(init_guess,sigma_diff), method = 'L-BFGS-B', jac=der_Diff)
-                    debiased_DWI[ix,iy,iz] = tmp.x
-                    progress.update()
+    idx = 0
+    with tqdm(total=mask.sum(), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
+        for ix in range(DWI.shape[0]):
+            for iy in range(DWI.shape[1]):
+                for iz in range(DWI.shape[2]):
+                    if mask[ix,iy,iz]:
+                        b0 = DWI[ix,iy,iz,scheme.b0_idx].mean()
+                        sigma_diff = b0/SNR
+                        init_guess = DWI[ix,iy,iz,:].copy()
+                        tmp = minimize(F_norm_Diff_K, init_guess, args=(init_guess,sigma_diff), method = 'L-BFGS-B', jac=der_Diff)
+                        debiased_DWI[ix,iy,iz] = tmp.x
+                        progress.update()
     return debiased_DWI

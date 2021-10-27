@@ -1,5 +1,8 @@
-dipy>=1.0
-numpy>=1.12
+wheel
 setuptools>=46.1
+numpy>=1.12
 scipy>=1.0
-spams>=2.6.1
+dipy>=1.0
+python-spams>=2.6.1
+tqdm>=4.56.0
+joblib>=1.0.1

@@ -14,11 +14,12 @@ from amico.preproc import debiasRician
 import amico.lut
 import amico.models
 from amico.lut import is_valid
-from amico.progressbar import ProgressBar
 from dipy.core.gradients import gradient_table
 import dipy.reconst.dti as dti
 from amico.util import LOG, NOTE, WARNING, ERROR
 from pkg_resources import get_distribution
+from joblib import Parallel, delayed, cpu_count
+from tqdm import tqdm
 
 
 def setup( lmax = 12, ndirs = 32761 ) :
@@ -84,6 +85,8 @@ class Evaluation :
         self.set_config('doDebiasSignal', False)        # Flag to remove Rician bias
         self.set_config('DWI-SNR', None)                # SNR of DWI image: SNR = b0/sigma
         self.set_config('doDirectionalAverage', False)  # To perform the directional average on the signal of each shell
+        self.set_config('parallel_jobs', -1)            # Number of jobs to be used in multithread-enabled parts of code
+        self.set_config('parallel_backend', 'loky')     # Backend to use for the joblib library
 
     def set_config( self, key, value ) :
         self.CONFIG[ key ] = value
@@ -135,10 +138,10 @@ class Evaluation :
         self.set_config('scheme_filename', scheme_filename)
         self.set_config('b0_thr', b0_thr)
         self.scheme = amico.scheme.Scheme( pjoin( self.get_config('DATA_path'), scheme_filename), b0_thr )
-        print('\t\t- %d samples, %d shells' % ( self.scheme.nS, len(self.scheme.shells) ))
-        print('\t\t- %d @ b=0' % ( self.scheme.b0_count ), end=' ')
+        print(f'\t\t- {self.scheme.nS} samples, {len(self.scheme.shells)} shells')
+        print(f'\t\t- {self.scheme.b0_count} @ b=0', end=' ')
         for i in range(len(self.scheme.shells)) :
-            print(', %d @ b=%.1f' % ( len(self.scheme.shells[i]['idx']), self.scheme.shells[i]['b'] ), end=' ')
+            print(f', {len(self.scheme.shells[i]["idx"])} @ b={self.scheme.shells[i]["b"]:.1f}', end=' ')
         print()
 
         if self.scheme.nS != self.niiDWI_img.shape[3] :
@@ -161,9 +164,9 @@ class Evaluation :
             self.niiMASK = None
             self.niiMASK_img = np.ones( self.get_config('dim') )
             print('\t\t- not specified')
-        print('\t\t- voxels = %d' % np.count_nonzero(self.niiMASK_img))
+        print(f'\t\t- voxels = {np.count_nonzero(self.niiMASK_img)}')
         
-        LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
+        LOG( f'   [ {time.time() - tic:.1f} seconds ]' )
 
         # Preprocessing
         LOG( '\n-> Preprocessing:' )
@@ -191,7 +194,7 @@ class Evaluation :
             norm_factor[ idx ] = 0
             for i in range(self.scheme.nS) :
                 self.niiDWI_img[:,:,:,i] *= norm_factor
-            print('[ min=%.2f,  mean=%.2f, max=%.2f ]' % ( self.niiDWI_img.min(), self.niiDWI_img.mean(), self.niiDWI_img.max() ))
+            print(f'[ min={self.niiDWI_img.min():.2f},  mean={self.niiDWI_img.mean():.2f}, max={self.niiDWI_img.max():.2f} ]')
 
         if self.get_config('doMergeB0') :
             print('\t* Merging multiple b0 volume(s)')
@@ -229,16 +232,16 @@ class Evaluation :
 
             print('\t* Acquisition scheme')
             self.scheme = amico.scheme.Scheme( scheme_table, b0_thr )
-            print('\t\t- %d samples, %d shells' % ( self.scheme.nS, len(self.scheme.shells) ))
-            print('\t\t- %d @ b=0' % ( self.scheme.b0_count ), end=' ')
+            print(f'\t\t- {self.scheme.nS} samples, {len(self.scheme.shells)} shells')
+            print(f'\t\t- {self.scheme.b0_count} @ b=0', end=' ')
             for i in range(len(self.scheme.shells)) :
-                print(', %d @ b=%.1f' % ( len(self.scheme.shells[i]['idx']), self.scheme.shells[i]['b'] ), end=' ')
+                print(f', {len(self.scheme.shells[i]["idx"])} @ b={self.scheme.shells[i]["b"]:.1f}', end=' ')
             print()
 
             if self.scheme.nS != self.niiDWI_img.shape[3] :
                 ERROR( 'Scheme does not match with DWI data' )
 
-        LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
+        LOG( f'   [ {time.time() - tic:.1f} seconds ]' )
 
 
     def set_model( self, model_name ) :
@@ -253,7 +256,7 @@ class Evaluation :
         if hasattr(amico.models, model_name ) :
             self.model = getattr(amico.models,model_name)()
         else :
-            ERROR( 'Model "%s" not recognized' % model_name )
+            ERROR( f'Model "{model_name}" not recognized' )
 
         self.set_config('ATOMS_path', pjoin( self.get_config('study_path'), 'kernels', self.model.id ))
 
@@ -294,7 +297,7 @@ class Evaluation :
         self.set_config('lmax', lmax)
         self.set_config('ndirs', ndirs)
         self.model.scheme = self.scheme
-        LOG( '\n-> Creating LUT for "%s" model:' % self.model.name )
+        LOG( f'\n-> Creating LUT for "{self.model.name}" model:' )
 
         # check if kernels were already generated
         tmp = glob.glob( pjoin(self.get_config('ATOMS_path'),'A_*.npy') )
@@ -316,7 +319,7 @@ class Evaluation :
         # Dispatch to the right handler for each model
         tic = time.time()
         self.model.generate( self.get_config('ATOMS_path'), aux, idx_IN, idx_OUT, ndirs )
-        LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
+        LOG( f'   [ {time.time() - tic:.1f} seconds ]' )
 
 
     def load_kernels( self ) :
@@ -329,7 +332,7 @@ class Evaluation :
             ERROR( 'Scheme not loaded; call "load_data()" first' )
 
         tic = time.time()
-        LOG( '\n-> Resampling LUT for subject "%s":' % self.get_config('subject') )
+        LOG( f'\n-> Resampling LUT for subject "{self.get_config("subject")}":' )
 
         # auxiliary data structures
         idx_OUT, Ylm_OUT = amico.lut.aux_structures_resample( self.scheme, self.get_config('lmax') )
@@ -340,13 +343,61 @@ class Evaluation :
         # Dispatch to the right handler for each model
         self.KERNELS = self.model.resample( self.get_config('ATOMS_path'), idx_OUT, Ylm_OUT, self.get_config('doMergeB0'), self.get_config('ndirs') )
 
-        LOG( '   [ %.1f seconds ]' % ( time.time() - tic ) )
+        LOG( f'   [ {time.time() - tic:.1f} seconds ]')
 
 
     def fit( self ) :
         """Fit the model to the data iterating over all voxels (in the mask) one after the other.
         Call the appropriate fit() method of the actual model used.
         """
+        def fit_voxel(self, ix, iy, iz, dirs, DTI) :
+            """Perform the fit in a single voxel.
+            """
+            # prepare the signal
+            y = self.niiDWI_img[ix, iy, iz, :].astype(np.float64)
+            y[y < 0] = 0  # [NOTE] this should not happen!
+
+            # fitting directions if not
+            if not self.get_config('doDirectionalAverage') and DTI is not None :
+                dirs = DTI.fit( y ).directions[0].reshape(-1, 3)
+
+            # dispatch to the right handler for each model
+            results, dirs, x, A = self.model.fit( y, dirs, self.KERNELS, self.get_config('solver_params'), self.htable)
+
+            # compute fitting error
+            if self.get_config('doComputeNRMSE') :
+                y_est = np.dot( A, x )
+                den = np.sum(y**2)
+                NRMSE = np.sqrt( np.sum((y-y_est)**2) / den ) if den > 1e-16 else 0
+            else :
+                NRMSE = 0.0
+
+            y_fw_corrected = None
+            if self.get_config('doSaveCorrectedDWI') :
+
+                if self.model.name == 'Free-Water' :
+                    n_iso = len(self.model.d_isos)
+                    
+                    # keep only FW components of the estimate
+                    x[0:x.shape[0]-n_iso] = 0
+                    
+                    # y_fw_corrected below is the predicted signal by the anisotropic part (no iso part)
+                    y_fw_part = np.dot( A, x )
+                    
+                    # y is the original signal
+                    y_fw_corrected = y - y_fw_part
+                    y_fw_corrected[ y_fw_corrected < 0 ] = 0 # [NOTE] this should not happen!
+
+                    if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
+                        y_fw_corrected = y_fw_corrected * self.mean_b0s[ix,iy,iz]
+                        
+                    if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
+                        # put original b0 data back in.
+                        y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*self.mean_b0s[ix,iy,iz]
+
+            return results, dirs, NRMSE, y_fw_corrected
+
+
         if self.niiDWI is None :
             ERROR( 'Data not loaded; call "load_data()" first' )
         if self.model is None :
@@ -355,10 +406,18 @@ class Evaluation :
             ERROR( 'Response functions not generated; call "generate_kernels()" and "load_kernels()" first' )
         if self.KERNELS['model'] != self.model.id :
             ERROR( 'Response functions were not created with the same model' )
-
+        n_jobs = self.get_config( 'parallel_jobs' )
+        if n_jobs == -1 :
+            n_jobs = cpu_count()
+        elif n_jobs == 0 or n_jobs < -1:
+            ERROR( 'Number of parallel jobs must be positive or -1' )
+        parallel_backend = self.get_config( 'parallel_backend' )
+        if parallel_backend not in ['loky','multiprocessing','threading']:
+            ERROR( f'Backend "{parallel_backend}" is not recognized by joblib' )
+            
         self.set_config('fit_time', None)
         totVoxels = np.count_nonzero(self.niiMASK_img)
-        LOG( '\n-> Fitting "%s" model to %d voxels:' % ( self.model.name, totVoxels ) )
+        LOG( f'\n-> Fitting "{self.model.name}" model to {totVoxels} voxels:' )
 
         # setup fitting directions
         peaks_filename = self.get_config('peaks_filename')
@@ -379,86 +438,47 @@ class Evaluation :
             print('\t* peaks dim = %d x %d x %d x %d' % DIRs.shape[:4])
             if DIRs.shape[:3] != self.niiMASK_img.shape[:3] :
                 ERROR( 'PEAKS geometry does not match with DWI data' )
+            DTI = None
 
         # setup other output files
-        MAPs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1],
-                          self.get_config('dim')[2], len(self.model.maps_name)], dtype=np.float32 )
-
-        if self.get_config('doComputeNRMSE') :
-            NRMSE = np.zeros( [self.get_config('dim')[0],
-                               self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32 )
-
-        if self.get_config('doSaveCorrectedDWI') :
-            DWI_corrected = np.zeros(self.niiDWI.shape, dtype=np.float32)
+        MAPs = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], len(self.model.maps_name)], dtype=np.float32 )
 
         # fit the model to the data
         # =========================
         t = time.time()
-        progress = ProgressBar( n=totVoxels, prefix="   ", erase=False )
-        for iz in range(self.niiMASK_img.shape[2]) :
-            for iy in range(self.niiMASK_img.shape[1]) :
-                for ix in range(self.niiMASK_img.shape[0]) :
-                    if self.niiMASK_img[ix,iy,iz]==0 :
-                        continue
 
-                    # prepare the signal
-                    y = self.niiDWI_img[ix,iy,iz,:].astype(np.float64)
-                    y[ y < 0 ] = 0 # [NOTE] this should not happen!
+        ix, iy, iz = np.nonzero(self.niiMASK_img)
+        n_per_thread = np.floor(totVoxels / n_jobs)
+        idx = np.arange(0, totVoxels+1, n_per_thread, dtype=np.int32)
+        idx[-1] = totVoxels
 
-                    if not self.get_config('doDirectionalAverage'):
-                        # fitting directions
-                        if peaks_filename is None :
-                            dirs = DTI.fit( y ).directions[0]
-                        else :
-                            dirs = DIRs[ix,iy,iz,:]
-                    else :
-                        dirs = np.zeros( (1, 3), dtype=np.float32 )
-
-                    # dispatch to the right handler for each model
-                    MAPs[ix,iy,iz,:], DIRs[ix,iy,iz,:], x, A = self.model.fit( y, dirs.reshape(-1,3), self.KERNELS, self.get_config('solver_params'), self.htable )
-
-                    # compute fitting error
-                    if self.get_config('doComputeNRMSE') :
-                        y_est = np.dot( A, x )
-                        den = np.sum(y**2)
-                        NRMSE[ix,iy,iz] = np.sqrt( np.sum((y-y_est)**2) / den ) if den > 1e-16 else 0
-
-                    if self.get_config('doSaveCorrectedDWI') :
-
-                        if self.model.name == 'Free-Water' :
-                            n_iso = len(self.model.d_isos)
-                            
-                            # keep only FW components of the estimate
-                            x[0:x.shape[0]-n_iso] = 0
-                            
-                            # y_fw_corrected below is the predicted signal by the anisotropic part (no iso part)
-                            y_fw_part = np.dot( A, x )
-                            
-                            # y is the original signal
-                            y_fw_corrected = y - y_fw_part
-                            y_fw_corrected[ y_fw_corrected < 0 ] = 0 # [NOTE] this should not happen!
-
-                            if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0 :
-                                y_fw_corrected = y_fw_corrected * self.mean_b0s[ix,iy,iz]
-                                
-                            if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0 :
-                                # put original b0 data back in.
-                                y_fw_corrected[self.scheme.b0_idx] = y[self.scheme.b0_idx]*self.mean_b0s[ix,iy,iz]
-
-                            DWI_corrected[ix,iy,iz,:] = y_fw_corrected
-
-                    progress.update()
+        estimates = Parallel(n_jobs=n_jobs, backend=parallel_backend)(
+            delayed(fit_voxel)(self, ix[i], iy[i], iz[i], DIRs[ix[i],iy[i],iz[i],:], DTI)
+            for i in tqdm(range(totVoxels), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%')
+        )
 
         self.set_config('fit_time', time.time()-t)
         LOG( '   [ %s ]' % ( time.strftime("%Hh %Mm %Ss", time.gmtime(self.get_config('fit_time')) ) ) )
 
         # store results
         self.RESULTS = {}
+
+        for i in range(totVoxels) :
+            MAPs[ix[i],iy[i],iz[i],:] = estimates[i][0]
+            DIRs[ix[i],iy[i],iz[i],:] = estimates[i][1]
         self.RESULTS['DIRs']  = DIRs
         self.RESULTS['MAPs']  = MAPs
+
         if self.get_config('doComputeNRMSE') :
+            NRMSE = np.zeros( [self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32 )
+            for i in range(totVoxels) :
+                NRMSE[ix[i],iy[i],iz[i]] = estimates[i][2]
             self.RESULTS['NRMSE'] = NRMSE
+
         if self.get_config('doSaveCorrectedDWI') :
+            DWI_corrected = np.zeros(self.niiDWI.shape, dtype=np.float32)
+            for i in range(totVoxels):
+                DWI_corrected[ix,iy,iz,:] = estimates[i][3]
             self.RESULTS['DWI_corrected'] = DWI_corrected
 
 
@@ -481,7 +501,7 @@ class Evaluation :
             if path_suffix :
                 RESULTS_path = RESULTS_path +'_'+ path_suffix
             self.RESULTS['RESULTS_path'] = RESULTS_path
-            LOG( '\n-> Saving output to "%s/*":' % RESULTS_path )
+            LOG( f'\n-> Saving output to "{RESULTS_path}/*":' )
 
             # delete previous output
             RESULTS_path = pjoin( self.get_config('DATA_path'), RESULTS_path )
@@ -490,7 +510,7 @@ class Evaluation :
             if path_suffix :
                 RESULTS_path = RESULTS_path +'_'+ path_suffix
             self.RESULTS['RESULTS_path'] = RESULTS_path
-            LOG( '\n-> Saving output to "%s/*":' % RESULTS_path )
+            LOG( f'\n-> Saving output to "{RESULTS_path}/*":' )
 
         if not exists( RESULTS_path ) :
             makedirs( RESULTS_path )
@@ -546,20 +566,20 @@ class Evaluation :
                 nibabel.save( niiMAP, pjoin(RESULTS_path, 'dwi_fw_corrected.nii.gz') )
                 print(' [OK]')
             else :
-                WARNING( '"doSaveCorrectedDWI" option not supported for "%s" model' % self.model.name )
+                WARNING( f'"doSaveCorrectedDWI" option not supported for "{self.model.name}" model' )
 
         # voxelwise maps
         for i in range( len(self.model.maps_name) ) :
-            print('\t- FIT_%s.nii.gz' % self.model.maps_name[i], end=' ')
+            print(f'\t- FIT_{self.model.maps_name[i]}.nii.gz', end=' ')
             niiMAP_img = self.RESULTS['MAPs'][:,:,:,i]
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
-            niiMAP_hdr['descrip'] = self.model.maps_descr[i] + ' (AMICO v%s)'%self.get_config('version')
+            niiMAP_hdr['descrip'] = self.model.maps_descr[i] + f' (AMICO v{self.get_config("version")})'
             niiMAP_hdr['cal_min'] = niiMAP_img.min()
             niiMAP_hdr['cal_max'] = niiMAP_img.max()
             niiMAP_hdr['scl_slope'] = 1
             niiMAP_hdr['scl_inter'] = 0
-            nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_%s.nii.gz' % self.model.maps_name[i] ) )
+            nibabel.save( niiMAP, pjoin(RESULTS_path, f'FIT_{self.model.maps_name[i]}.nii.gz' ) )
             print(' [OK]')
         
         # Directional average signal
@@ -568,12 +588,12 @@ class Evaluation :
                 print('\t- dir_avg_signal.nii.gz', end=' ')
                 niiMAP     = nibabel.Nifti1Image( self.niiDWI_img, affine, hdr )
                 niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
-                niiMAP_hdr['descrip'] = 'Directional average signal of each shell' + ' (AMICO v%s)'%self.get_config('version')
+                niiMAP_hdr['descrip'] = 'Directional average signal of each shell' + f' (AMICO v{self.get_config("version")})'
                 nibabel.save( niiMAP , pjoin(RESULTS_path, 'dir_avg_signal.nii.gz' ) ) 
                 print(' [OK]') 
 
                 print('\t- dir_avg.scheme', end=' ')
-                np.savetxt( pjoin(RESULTS_path, 'dir_avg.scheme' ), self.scheme.get_table(), fmt="%.06f", delimiter="\t", header="VERSION: {}".format(self.scheme.version), comments='' )
+                np.savetxt( pjoin(RESULTS_path, 'dir_avg.scheme' ), self.scheme.get_table(), fmt="%.06f", delimiter="\t", header=f"VERSION: {self.scheme.version}", comments='' )
                 print(' [OK]')
             else:
                 WARNING('The directional average signal was not created (The option doDirectionalAverage is False).')

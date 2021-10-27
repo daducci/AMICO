@@ -5,7 +5,6 @@ from . import core
 from . import scheme
 from . import lut
 from . import models
-from . import progressbar
 from . import util
 
 from pkg_resources import get_distribution
