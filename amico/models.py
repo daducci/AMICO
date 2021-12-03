@@ -1269,18 +1269,11 @@ class VolumeFractions( BaseModel ) :
         self.maps_name  = [ ]
         self.maps_descr = [ ]
 
-        self.hasISO = False                   # Simulate free water compartment?
-
-
-    def set( self, hasISO ) :
-        self.hasISO = hasISO
-
 
     def get_params( self ) :
         params = {}
         params['id'] = self.id
         params['name'] = self.name
-        params['hasISO'] = self.hasISO
         return params
 
 
@@ -1304,7 +1297,7 @@ class VolumeFractions( BaseModel ) :
         KERNELS['model'] = self.id
         KERNELS['wmr']   = np.ones( (1,ndirs,nS), dtype=np.float32 )
         KERNELS['wmh']   = np.ones( (0,ndirs,nS), dtype=np.float32 )
-        KERNELS['iso']   = np.ones( (1 if self.hasISO else 0,nS), dtype=np.float32 )
+        KERNELS['iso']   = np.ones( (0,nS), dtype=np.float32 )
 
         return KERNELS
 
