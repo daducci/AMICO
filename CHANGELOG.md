@@ -4,7 +4,10 @@ All notable changes to AMICO will be documented in this file.
 ## [1.3.1] - 2021-12-03
 
 ### Fixed
-- Removed unused hasIso parameter in experimental VolumeFractions model
+- Removed unused hasISO parameter in experimental VolumeFractions model
+
+### Changed
+- Install information are stored (and taken from) amico/info.py
 
 ## [1.3.0] - 2021-10-27
 
