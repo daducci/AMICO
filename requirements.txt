@@ -1,6 +1,6 @@
 wheel
 setuptools>=46.1
-numpy>=1.12
+numpy>=1.12,<1.22
 scipy>=1.0
 dipy>=1.0
 python-spams>=2.6.1
