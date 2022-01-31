@@ -22,7 +22,7 @@ from joblib import Parallel, delayed, cpu_count
 from tqdm import tqdm
 
 
-def setup( lmax=12 ) :
+def setup( lmax=12, ndirs=None ) :
     """General setup/initialization of the AMICO framework.
 
     Parameters
@@ -30,10 +30,14 @@ def setup( lmax=12 ) :
     lmax : int
         Maximum SH order to use for the rotation phase (default : 12).
         NB: change only if you know what you are doing.
+     ndirs : int
+        DEPRECATED. Now, all directions are precomputed.
     """
+    if ndirs is not None:
+        WARNING('"ndirs" parameter is deprecated')
     LOG( f'\n-> Precomputing rotation matrices:' )
-    for ndirs in tqdm(valid_dirs(), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%'):
-        amico.lut.precompute_rotation_matrices( lmax, ndirs )
+    for n in tqdm(valid_dirs(), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%'):
+        amico.lut.precompute_rotation_matrices( lmax, n )
     LOG('   [ DONE ]')
 
 
