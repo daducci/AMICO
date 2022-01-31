@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
-## [1.3.2] - 2022-02-31
+## [1.3.2] - 2022-01-31
 
 ### Changed
 - Changed required dependency numpy>=1.12,<1.22
