@@ -22,7 +22,7 @@ from joblib import Parallel, delayed, cpu_count
 from tqdm import tqdm
 
 
-def setup( lmax = 12 ) :
+def setup( lmax=12 ) :
     """General setup/initialization of the AMICO framework.
 
     Parameters
@@ -31,7 +31,7 @@ def setup( lmax = 12 ) :
         Maximum SH order to use for the rotation phase (default : 12).
         NB: change only if you know what you are doing.
     """
-    LOG( f'\n-> Precomputing rotation matrices for l_max={lmax}:' )
+    LOG( f'\n-> Precomputing rotation matrices:' )
     for ndirs in tqdm(valid_dirs(), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%'):
         amico.lut.precompute_rotation_matrices( lmax, ndirs )
     LOG('   [ DONE ]')
@@ -95,7 +95,7 @@ class Evaluation :
         return self.CONFIG.get( key )
 
 
-    def load_data( self, dwi_filename = 'DWI.nii', scheme_filename = 'DWI.scheme', mask_filename = None, b0_thr = 0 ) :
+    def load_data( self, dwi_filename='DWI.nii', scheme_filename='DWI.scheme', mask_filename=None, b0_thr=0 ) :
         """Load the diffusion signal and its corresponding acquisition scheme.
 
         Parameters
