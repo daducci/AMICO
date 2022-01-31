@@ -11,7 +11,18 @@ from dipy.reconst.shm import real_sym_sh_basis
 import amico.scheme
 from amico.util import LOG, NOTE, WARNING, ERROR
 
-def is_valid(ndirs):
+
+def valid_dirs():
+    """Return the list of the supported number of directions.
+
+    Returns
+    -------
+    List of the supported number of directions
+    """
+    return np.arange(start=500, stop=10500, step=500).tolist() + [1, 32761]
+
+
+def is_valid( ndirs ):
     """Check if the given ndirs value is supported by AMICO
 
     Parameters
@@ -23,15 +34,14 @@ def is_valid(ndirs):
     -------
     A bool value which indicates if the number of directions is supported
     """
-    valid_values = np.arange(start=500, stop=10500, step=500).tolist() + [1, 32761]
-
-    for value in valid_values:
+    for value in valid_dirs():
         if ndirs == value:
             return True
 
     return False
 
-def load_directions(ndirs):
+
+def load_directions( ndirs ):
     """Load the directions on the half of the sphere
 
     Parameters
@@ -58,7 +68,8 @@ def load_directions(ndirs):
 
     return directions
 
-def load_precomputed_hash_table(ndirs):
+
+def load_precomputed_hash_table( ndirs ):
     """Load the pre-computed hash table to map high resolution directions into low resolution directions
 
     Parameters
@@ -84,6 +95,7 @@ def load_precomputed_hash_table(ndirs):
 
     return hash_table
 
+
 def precompute_rotation_matrices( lmax, ndirs ) :
     """Precompute the rotation matrices to rotate the high-resolution kernels (500 directions/shell).
 
@@ -102,7 +114,6 @@ def precompute_rotation_matrices( lmax, ndirs ) :
 
     directions = load_directions(ndirs)
 
-    LOG('\n-> Precomputing rotation matrices for l_max=%d:' % lmax)
     AUX = {}
     AUX['lmax'] = lmax
     AUX['ndirs'] = ndirs
@@ -133,8 +144,6 @@ def precompute_rotation_matrices( lmax, ndirs ) :
 
     with open( filename, 'wb+' ) as fid :
         pickle.dump( AUX, fid, protocol=2 )
-
-    LOG('   [ DONE ]')
 
 
 def load_precomputed_rotation_matrices( lmax, ndirs ) :

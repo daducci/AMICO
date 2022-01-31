@@ -1,10 +1,14 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
-## [1.3.2] - 2022-01-14
+## [1.3.2] - 2022-02-31
 
 ### Changed
- - Changed required dependency numpy>=1.12,<1.22 
+- Changed required dependency numpy>=1.12,<1.22
+- amico.core.setup: removed 'ndirs' parameter, now precomputes all directions
+
+### Added
+- Shortcut 'amico.core.setup' to 'amico.setup'
 
 ## [1.3.1] - 2021-12-03
 
@@ -39,12 +43,12 @@ All notable changes to AMICO will be documented in this file.
 - Controls if files exist before opening
 
 ### Fixed
-- Wrong datatype when saving results 
+- Wrong datatype when saving results
 
 ## [1.2.8] - 2021-01-29
 
 ### Added
-- SANDI model 
+- SANDI model
 
 ## [1.2.7] - 2020-10-28
 
@@ -86,11 +90,11 @@ All notable changes to AMICO will be documented in this file.
 
 ### Added
 - Functions to colorize the output messages.
- 
+
 ## [1.1.0] - 2019-10-30
 
 This version of AMICO *is not compatible* with [COMMIT](https://github.com/daducci/COMMIT) v1.2 of below. If you update AMICO to this version, please update COMMIT to version 1.3 or above.
- 
+
 ### Added
 - Changelog file to keep tracking of the AMICO versions.
 - New feature that allows to decrease the LUT resolution. [Example here.](https://github.com/ErickHernandezGutierrez/AMICO/blob/lowresLUT/doc/demos/NODDI_lowres.md)
