@@ -60,6 +60,7 @@ class BaseModel( object ) :
         self.maps_name  = []
         self.maps_descr = []
         self.scheme = None
+        self.show_progress = True
         return
 
 
@@ -235,7 +236,8 @@ class StickZeppelinBall( BaseModel ) :
 
         nATOMS = 1 + len(self.d_perps_zep) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
+                  disable=not self.show_progress) as progress:
             # Stick
             signal = single_tensor( gtab, evals=[self.d_perp, self.d_perp, self.d_par] )
             lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
@@ -273,7 +275,8 @@ class StickZeppelinBall( BaseModel ) :
 
         nATOMS = 1 + len(self.d_perps_zep) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
+                  disable=not self.show_progress) as progress:
             # Stick
             lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
             if lm.shape[0] != ndirs:
@@ -382,7 +385,8 @@ class CylinderZeppelinBall( BaseModel ) :
 
         nATOMS = len(self.Rs) + len(self.d_perps) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
+                  disable=not self.show_progress) as progress:
             # Cylinder(s)
             for R in self.Rs :
                 CMD = 'datasynth -synthmodel compartment 1 CYLINDERGPD %E 0 0 %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null' % ( self.d_par*1E-6, R, filename_scheme, filename_signal )
@@ -444,7 +448,8 @@ class CylinderZeppelinBall( BaseModel ) :
 
         nATOMS = len(self.Rs) + len(self.d_perps) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
+                  disable=not self.show_progress) as progress:
             # Cylinder(s)
             for i in range(len(self.Rs)) :
                 lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
@@ -578,7 +583,8 @@ class NODDI( BaseModel ) :
 
         nATOMS = len(self.IC_ODs)*len(self.IC_VFs) + 1
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
+                  disable=not self.show_progress) as progress:
             # Coupled contributions
             IC_KAPPAs = 1 / np.tan(self.IC_ODs*np.pi/2)
             for kappa in IC_KAPPAs:
@@ -617,7 +623,8 @@ class NODDI( BaseModel ) :
         KERNELS['norms'] = np.zeros( (self.scheme.dwi_count, nATOMS-1) )
 
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
+                  disable=not self.show_progress) as progress:
             # Coupled contributions
             for i in range( len(self.IC_ODs) ):
                 for j in range( len(self.IC_VFs) ):
@@ -1170,7 +1177,8 @@ class FreeWater( BaseModel ) :
 
         nATOMS = len(self.d_perps) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
+                  disable=not self.show_progress) as progress:
             # Tensor compartment(s)
             for d in self.d_perps :
                 signal = single_tensor( gtab, evals=[d, d, self.d_par] )
@@ -1202,7 +1210,8 @@ class FreeWater( BaseModel ) :
 
         nATOMS = len(self.d_perps) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
+                  disable=not self.show_progress) as progress:
             # Tensor compartment(s)
             for i in range(len(self.d_perps)) :
                 lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
@@ -1378,7 +1387,8 @@ class SANDI( BaseModel ) :
 
         nATOMS = len(self.Rs) + len(self.d_in) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
+                  disable=not self.show_progress) as progress:
             # Soma = SPHERE
             for R in self.Rs :
                 CMD = 'datasynth -synthmodel compartment 1 SPHEREGPD %E %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null' % ( self.d_is*1E-6, R, filename_scheme, filename_signal )
@@ -1434,7 +1444,8 @@ class SANDI( BaseModel ) :
         KERNELS['norms']  = np.zeros( nATOMS, dtype=np.float64 )
 
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
+                  disable=not self.show_progress) as progress:
             # Soma = SPHERE
             for i in range(len(self.Rs)) :
                 lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
