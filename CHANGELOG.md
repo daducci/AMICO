@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.4.0] - 2022-03-04
+
+### Added
+- Function 'amico.set_verbose' to control what is printed during execution
+
 ## [1.3.2] - 2022-01-31
 
 ### Changed

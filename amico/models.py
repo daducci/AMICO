@@ -12,7 +12,7 @@ from tqdm import tqdm
 from dipy.core.gradients import gradient_table
 from dipy.sims.voxel import single_tensor
 import abc
-from amico.util import LOG, NOTE, WARNING, ERROR
+from amico.util import PRINT, LOG, NOTE, WARNING, ERROR, get_verbose
 
 import warnings
 warnings.filterwarnings("ignore") # needed for a problem with spams
@@ -60,7 +60,6 @@ class BaseModel( object ) :
         self.maps_name  = []
         self.maps_descr = []
         self.scheme = None
-        self.show_progress = True
         return
 
 
@@ -236,8 +235,7 @@ class StickZeppelinBall( BaseModel ) :
 
         nATOMS = 1 + len(self.d_perps_zep) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
-                  disable=not self.show_progress) as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Stick
             signal = single_tensor( gtab, evals=[self.d_perp, self.d_perp, self.d_par] )
             lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
@@ -275,8 +273,7 @@ class StickZeppelinBall( BaseModel ) :
 
         nATOMS = 1 + len(self.d_perps_zep) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
-                  disable=not self.show_progress) as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Stick
             lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
             if lm.shape[0] != ndirs:
@@ -385,8 +382,7 @@ class CylinderZeppelinBall( BaseModel ) :
 
         nATOMS = len(self.Rs) + len(self.d_perps) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
-                  disable=not self.show_progress) as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Cylinder(s)
             for R in self.Rs :
                 CMD = 'datasynth -synthmodel compartment 1 CYLINDERGPD %E 0 0 %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null' % ( self.d_par*1E-6, R, filename_scheme, filename_signal )
@@ -448,8 +444,7 @@ class CylinderZeppelinBall( BaseModel ) :
 
         nATOMS = len(self.Rs) + len(self.d_perps) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
-                  disable=not self.show_progress) as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Cylinder(s)
             for i in range(len(self.Rs)) :
                 lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
@@ -583,8 +578,7 @@ class NODDI( BaseModel ) :
 
         nATOMS = len(self.IC_ODs)*len(self.IC_VFs) + 1
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
-                  disable=not self.show_progress) as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Coupled contributions
             IC_KAPPAs = 1 / np.tan(self.IC_ODs*np.pi/2)
             for kappa in IC_KAPPAs:
@@ -623,8 +617,7 @@ class NODDI( BaseModel ) :
         KERNELS['norms'] = np.zeros( (self.scheme.dwi_count, nATOMS-1) )
 
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
-                  disable=not self.show_progress) as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Coupled contributions
             for i in range( len(self.IC_ODs) ):
                 for j in range( len(self.IC_VFs) ):
@@ -1177,8 +1170,7 @@ class FreeWater( BaseModel ) :
 
         nATOMS = len(self.d_perps) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
-                  disable=not self.show_progress) as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Tensor compartment(s)
             for d in self.d_perps :
                 signal = single_tensor( gtab, evals=[d, d, self.d_par] )
@@ -1210,8 +1202,7 @@ class FreeWater( BaseModel ) :
 
         nATOMS = len(self.d_perps) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
-                  disable=not self.show_progress) as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Tensor compartment(s)
             for i in range(len(self.d_perps)) :
                 lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
@@ -1387,8 +1378,7 @@ class SANDI( BaseModel ) :
 
         nATOMS = len(self.Rs) + len(self.d_in) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
-                  disable=not self.show_progress) as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Soma = SPHERE
             for R in self.Rs :
                 CMD = 'datasynth -synthmodel compartment 1 SPHEREGPD %E %E -schemefile %s -voxels 1 -outputfile %s 2> /dev/null' % ( self.d_is*1E-6, R, filename_scheme, filename_signal )
@@ -1444,8 +1434,7 @@ class SANDI( BaseModel ) :
         KERNELS['norms']  = np.zeros( nATOMS, dtype=np.float64 )
 
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%',
-                  disable=not self.show_progress) as progress:
+        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Soma = SPHERE
             for i in range(len(self.Rs)) :
                 lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
@@ -1475,7 +1464,7 @@ class SANDI( BaseModel ) :
 
 
     def fit( self, y, dirs, KERNELS, params, htable ) :
-        # if dictionary is empty 
+        # if dictionary is empty
         if KERNELS['signal'].shape[1] == 0 :
             return [0, 0, 0, 0, 0, 0], None, None, None
 
@@ -1489,10 +1478,10 @@ class SANDI( BaseModel ) :
         xsph = x[:n1]
         xstk = x[n1:n1+n2]
         xiso = x[n1+n2:]
-        
+
         fsoma    = xsph.sum()/(x.sum()+1e-16)
         fneurite = xstk.sum()/(x.sum()+1e-16)
-        fextra   = xiso.sum()/(x.sum()+1e-16)        
+        fextra   = xiso.sum()/(x.sum()+1e-16)
         Rsoma    = 1E6*np.dot(self.Rs,xsph)/(xsph.sum()+1e-16 )     # Sphere radius [micron]
         Din      = 1E3*np.dot(self.d_in,xstk)/(xstk.sum()+1e-16 )   # Intra-stick diffusivity [micron^2/ms]
         De       = 1E3*np.dot(self.d_isos,xiso)/(xiso.sum()+1e-16 ) # Extra-cellular diffusivity [micron^2/ms]
