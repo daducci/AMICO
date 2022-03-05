@@ -26,9 +26,9 @@ def set_verbose( verbose: int ):
 def get_verbose():
     return __VERBOSE_LEVEL__
 
-def PRINT( msg='', prefix='', end='\n' ):
+def PRINT( *args, **kwargs ):
     if __VERBOSE_LEVEL__ >= 2:
-        print( prefix+msg+end, end='' )
+        print( *args, **kwargs )
 
 def LOG( msg, prefix='' ):
     if __VERBOSE_LEVEL__ >= 2:
