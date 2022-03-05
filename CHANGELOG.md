@@ -6,10 +6,13 @@ All notable changes to AMICO will be documented in this file.
 ### Added
 - Function 'amico.set_verbose' to control what is printed during execution
 
+### Changed
+- Required dependency from 'python-spams' to 'spams'
+
 ## [1.3.2] - 2022-01-31
 
 ### Changed
-- Changed required dependency numpy>=1.12,<1.22
+- Required dependency numpy>=1.12,<1.22
 - amico.core.setup: removed 'ndirs' parameter, now precomputes all directions
 
 ### Added

@@ -14,6 +14,6 @@ setup(name=info.NAME,
       url=info.URL,
       license=info.LICENSE,
       packages=find_packages(),
-      setup_requires=['numpy>=1.12,<1.22'],
-      install_requires=['wheel', 'numpy>=1.12,<1.22', 'scipy>=1.0', 'dipy>=1.0', 'python-spams>=2.6.1', 'tqdm>=4.56.0', 'joblib>=1.0.1'],
+      setup_requires=['numpy>=1.12'],
+      install_requires=['wheel', 'numpy>=1.12', 'scipy>=1.0', 'dipy>=1.0', 'spams>=2.6.3.1', 'tqdm>=4.56.0', 'joblib>=1.0.1'],
       package_data={'': ['*.bin', 'directions/*.bin']})
