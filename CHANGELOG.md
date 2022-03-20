@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.4.1] - 2022-03-20
+
+### Fixed
+- Replace all 'print' with 'PRINT'
+
 ## [1.4.0] - 2022-03-04
 
 ### Added

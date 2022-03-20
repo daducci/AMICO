@@ -92,10 +92,10 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = 
     # if requested, round the b-values
     bStep = np.array(bStep, dtype = np.float)
     if bStep.size == 1 and bStep > 1.0:
-        print("-> Rounding b-values to nearest multiple of %s" % np.array_str(bStep))
+        PRINT("-> Rounding b-values to nearest multiple of %s" % np.array_str(bStep))
         bvals = np.round(bvals/bStep) * bStep
     elif bStep.size > 1:
-        print("-> Setting b-values to the closest shell in %s" % np.array_str(bStep))
+        PRINT("-> Setting b-values to the closest shell in %s" % np.array_str(bStep))
         for i in range(0, bvals.size):
             diff = min(abs(bvals[i] - bStep))
             ind = np.argmin(abs(bvals[i] - bStep))
@@ -109,7 +109,7 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = 
 
     # write corresponding scheme file
     np.savetxt( schemeFilename, np.c_[bvecs.T, bvals], fmt="%.06f", delimiter="\t", header="VERSION: BVECTOR", comments='' )
-    print("-> Writing scheme file to [ %s ]" % schemeFilename)
+    PRINT("-> Writing scheme file to [ %s ]" % schemeFilename)
     return schemeFilename
 
 
@@ -203,10 +203,10 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
     # if requested, round the b-values
     bStep = np.array(bStep, dtype = np.float)
     if bStep.size == 1 and bStep > 1.0:
-        print("-> Rounding b-values to nearest multiple of %s" % np.array_str(bStep))
+        PRINT("-> Rounding b-values to nearest multiple of %s" % np.array_str(bStep))
         bvals = np.round(bvals/bStep) * bStep
     elif bStep.size > 1:
-        print("-> Setting b-values to the closest shell in %s" % np.array_str(bStep))
+        PRINT("-> Setting b-values to the closest shell in %s" % np.array_str(bStep))
         for i in range(0, bvals.size):
             diff = min(abs(bvals[i] - bStep))
             ind = np.argmin(abs(bvals[i] - bStep))
@@ -222,5 +222,5 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
 
     # write corresponding scheme file
     np.savetxt( schemeFilename, np.c_[bvecs.T, G, delta, smalldel, TE], fmt="%.06f", delimiter="\t", header="VERSION: 1", comments='' )
-    print("-> Writing scheme file to [ %s ]" % schemeFilename)
+    PRINT("-> Writing scheme file to [ %s ]" % schemeFilename)
     return schemeFilename
