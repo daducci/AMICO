@@ -1,8 +1,8 @@
 wheel
 setuptools>=46.1
-numpy>=1.12,<1.22
+numpy>=1.12
 scipy>=1.0
 dipy>=1.0
-python-spams>=2.6.1
+spams>=2.6.5.2
 tqdm>=4.56.0
 joblib>=1.0.1

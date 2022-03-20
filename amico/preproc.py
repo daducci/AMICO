@@ -4,6 +4,7 @@ import numpy as np
 from scipy.optimize import minimize
 import scipy.special
 from tqdm import tqdm
+from amico.util import get_verbose
 
 # Kaden's functionals
 def F_norm_Diff_K(E0,Signal,sigma_diff):
@@ -24,7 +25,7 @@ def der_Diff(E0,Signal,sigma_diff):
 def debiasRician(DWI,SNR,mask,scheme):
     debiased_DWI = np.zeros(DWI.shape)
     idx = 0
-    with tqdm(total=mask.sum(), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%') as progress:
+    with tqdm(total=mask.sum(), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
         for ix in range(DWI.shape[0]):
             for iy in range(DWI.shape[1]):
                 for iz in range(DWI.shape[2]):

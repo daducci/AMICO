@@ -16,7 +16,7 @@ import amico.models
 from amico.lut import is_valid, valid_dirs
 from dipy.core.gradients import gradient_table
 import dipy.reconst.dti as dti
-from amico.util import LOG, NOTE, WARNING, ERROR
+from amico.util import PRINT, LOG, NOTE, WARNING, ERROR, get_verbose
 from pkg_resources import get_distribution
 from joblib import Parallel, delayed, cpu_count
 from tqdm import tqdm
@@ -36,7 +36,7 @@ def setup( lmax=12, ndirs=None ) :
     if ndirs is not None:
         WARNING('"ndirs" parameter is deprecated')
     LOG( f'\n-> Precomputing rotation matrices:' )
-    for n in tqdm(valid_dirs(), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%'):
+    for n in tqdm(valid_dirs(), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)):
         amico.lut.precompute_rotation_matrices( lmax, n )
     LOG('   [ DONE ]')
 
@@ -47,7 +47,7 @@ class Evaluation :
     evaluation with the AMICO framework.
     """
 
-    def __init__( self, study_path, subject, output_path=None ) :
+    def __init__( self, study_path, subject, output_path=None, verbose=2 ) :
         """Setup the data structure with default values.
 
         Parameters
@@ -59,9 +59,9 @@ class Evaluation :
         output_path : string
             Optionally sets a custom full path for the output. Leave as None
             for default behaviour - output in study_path/subject/AMICO/<MODEL>
+        verbose : int
+            Possible values: 2->show all, 1->hide progress bars, 0->hide all
         """
-        self.htable = None
-
         self.niiDWI      = None # set by "load_data" method
         self.niiDWI_img  = None
         self.scheme      = None
@@ -71,6 +71,7 @@ class Evaluation :
         self.KERNELS     = None # set by "load_kernels" method
         self.RESULTS     = None # set by "fit" method
         self.mean_b0s    = None # set by "load_data" method
+        self.htable      = None
 
         # store all the parameters of an evaluation with AMICO
         self.CONFIG = {}
@@ -91,6 +92,7 @@ class Evaluation :
         self.set_config('doDirectionalAverage', False)  # To perform the directional average on the signal of each shell
         self.set_config('parallel_jobs', -1)            # Number of jobs to be used in multithread-enabled parts of code
         self.set_config('parallel_backend', 'loky')     # Backend to use for the joblib library
+        self.set_config('verbose', verbose)
 
     def set_config( self, key, value ) :
         self.CONFIG[ key ] = value
@@ -118,7 +120,7 @@ class Evaluation :
         LOG( '\n-> Loading data:' )
         tic = time.time()
 
-        print('\t* DWI signal')
+        PRINT('\t* DWI signal')
         if not isfile( pjoin(self.get_config('DATA_path'), dwi_filename) ):
             ERROR( 'DWI file not found' )
         self.set_config('dwi_filename', dwi_filename)
@@ -127,39 +129,39 @@ class Evaluation :
         hdr = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
         self.set_config('dim', self.niiDWI_img.shape[:3])
         self.set_config('pixdim', tuple( hdr.get_zooms()[:3] ))
-        print('\t\t- dim    = %d x %d x %d x %d' % self.niiDWI_img.shape)
-        print('\t\t- pixdim = %.3f x %.3f x %.3f' % self.get_config('pixdim'))
+        PRINT('\t\t- dim    = %d x %d x %d x %d' % self.niiDWI_img.shape)
+        PRINT('\t\t- pixdim = %.3f x %.3f x %.3f' % self.get_config('pixdim'))
         # Scale signal intensities (if necessary)
         if ( np.isfinite(hdr['scl_slope']) and np.isfinite(hdr['scl_inter']) and hdr['scl_slope'] != 0 and
             ( hdr['scl_slope'] != 1 or hdr['scl_inter'] != 0 ) ):
-            print('\t\t- rescaling data ', end='')
+            PRINT('\t\t- rescaling data ', end='')
             self.niiDWI_img = self.niiDWI_img * hdr['scl_slope'] + hdr['scl_inter']
-            print('[OK]')
+            PRINT('[OK]')
 
-        print('\t* Acquisition scheme')
+        PRINT('\t* Acquisition scheme')
         if not isfile( pjoin(self.get_config('DATA_path'), scheme_filename) ):
             ERROR( 'SCHEME file not found' )
         self.set_config('scheme_filename', scheme_filename)
         self.set_config('b0_thr', b0_thr)
         self.scheme = amico.scheme.Scheme( pjoin( self.get_config('DATA_path'), scheme_filename), b0_thr )
-        print(f'\t\t- {self.scheme.nS} samples, {len(self.scheme.shells)} shells')
-        print(f'\t\t- {self.scheme.b0_count} @ b=0', end=' ')
+        PRINT(f'\t\t- {self.scheme.nS} samples, {len(self.scheme.shells)} shells')
+        PRINT(f'\t\t- {self.scheme.b0_count} @ b=0', end=' ')
         for i in range(len(self.scheme.shells)) :
-            print(f', {len(self.scheme.shells[i]["idx"])} @ b={self.scheme.shells[i]["b"]:.1f}', end=' ')
-        print()
+            PRINT(f', {len(self.scheme.shells[i]["idx"])} @ b={self.scheme.shells[i]["b"]:.1f}', end=' ')
+        PRINT()
 
         if self.scheme.nS != self.niiDWI_img.shape[3] :
             ERROR( 'Scheme does not match with DWI data' )
 
-        print('\t* Binary mask')
+        PRINT('\t* Binary mask')
         if mask_filename is not None :
             if not isfile( pjoin(self.get_config('DATA_path'), mask_filename) ):
                 ERROR( 'MASK file not found' )
             self.niiMASK  = nibabel.load( pjoin( self.get_config('DATA_path'), mask_filename) )
             self.niiMASK_img = self.niiMASK.get_data().astype(np.uint8)
             niiMASK_hdr = self.niiMASK.header if nibabel.__version__ >= '2.0.0' else self.niiMASK.get_header()
-            print('\t\t- dim    = %d x %d x %d' % self.niiMASK_img.shape[:3])
-            print('\t\t- pixdim = %.3f x %.3f x %.3f' % niiMASK_hdr.get_zooms()[:3])
+            PRINT('\t\t- dim    = %d x %d x %d' % self.niiMASK_img.shape[:3])
+            PRINT('\t\t- pixdim = %.3f x %.3f x %.3f' % niiMASK_hdr.get_zooms()[:3])
             if self.niiMASK.ndim != 3 :
                 ERROR( 'The provided MASK if 4D, but a 3D dataset is expected' )
             if self.get_config('dim') != self.niiMASK_img.shape[:3] :
@@ -167,8 +169,8 @@ class Evaluation :
         else :
             self.niiMASK = None
             self.niiMASK_img = np.ones( self.get_config('dim') )
-            print('\t\t- not specified')
-        print(f'\t\t- voxels = {np.count_nonzero(self.niiMASK_img)}')
+            PRINT('\t\t- not specified')
+        PRINT(f'\t\t- voxels = {np.count_nonzero(self.niiMASK_img)}')
 
         LOG( f'   [ {time.time() - tic:.1f} seconds ]' )
 
@@ -177,15 +179,15 @@ class Evaluation :
         tic = time.time()
 
         if self.get_config('doDebiasSignal') :
-            print('\t* Debiasing signal... ', end='')
+            PRINT('\t* Debiasing signal... ', end='')
             sys.stdout.flush()
             if self.get_config('DWI-SNR') == None:
                 ERROR( "Set noise variance for debiasing (eg. ae.set_config('RicianNoiseSigma', sigma))" )
             self.niiDWI_img = debiasRician(self.niiDWI_img,self.get_config('DWI-SNR'),self.niiMASK_img,self.scheme)
-            print(' [OK]')
+            PRINT(' [OK]')
 
         if self.get_config('doNormalizeSignal') :
-            print('\t* Normalizing to b0... ', end='')
+            PRINT('\t* Normalizing to b0... ', end='')
             sys.stdout.flush()
             if self.scheme.b0_count > 0 :
                 self.mean_b0s = np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 )
@@ -198,17 +200,17 @@ class Evaluation :
             norm_factor[ idx ] = 0
             for i in range(self.scheme.nS) :
                 self.niiDWI_img[:,:,:,i] *= norm_factor
-            print(f'[ min={self.niiDWI_img.min():.2f},  mean={self.niiDWI_img.mean():.2f}, max={self.niiDWI_img.max():.2f} ]')
+            PRINT(f'[ min={self.niiDWI_img.min():.2f},  mean={self.niiDWI_img.mean():.2f}, max={self.niiDWI_img.max():.2f} ]')
 
         if self.get_config('doMergeB0') :
-            print('\t* Merging multiple b0 volume(s)')
+            PRINT('\t* Merging multiple b0 volume(s)')
             mean = np.expand_dims( np.mean( self.niiDWI_img[:,:,:,self.scheme.b0_idx], axis=3 ), axis=3 )
             self.niiDWI_img = np.concatenate( (mean, self.niiDWI_img[:,:,:,self.scheme.dwi_idx]), axis=3 )
         else :
-            print('\t* Keeping all b0 volume(s)')
+            PRINT('\t* Keeping all b0 volume(s)')
 
         if self.get_config('doDirectionalAverage') :
-            print('\t* Performing the directional average on the signal of each shell... ')
+            PRINT('\t* Performing the directional average on the signal of each shell... ')
             numShells = len(self.scheme.shells)
             dir_avg_img = self.niiDWI_img[:,:,:,:(numShells + 1)]
             scheme_table = np.zeros([numShells + 1, 7])
@@ -231,16 +233,16 @@ class Evaluation :
 
             self.niiDWI_img = dir_avg_img.astype(np.float32)
             self.set_config('dim', self.niiDWI_img.shape[:3])
-            print('\t\t- dim    = %d x %d x %d x %d' % self.niiDWI_img.shape)
-            print('\t\t- pixdim = %.3f x %.3f x %.3f' % self.get_config('pixdim'))
+            PRINT('\t\t- dim    = %d x %d x %d x %d' % self.niiDWI_img.shape)
+            PRINT('\t\t- pixdim = %.3f x %.3f x %.3f' % self.get_config('pixdim'))
 
-            print('\t* Acquisition scheme')
+            PRINT('\t* Acquisition scheme')
             self.scheme = amico.scheme.Scheme( scheme_table, b0_thr )
-            print(f'\t\t- {self.scheme.nS} samples, {len(self.scheme.shells)} shells')
-            print(f'\t\t- {self.scheme.b0_count} @ b=0', end=' ')
+            PRINT(f'\t\t- {self.scheme.nS} samples, {len(self.scheme.shells)} shells')
+            PRINT(f'\t\t- {self.scheme.b0_count} @ b=0', end=' ')
             for i in range(len(self.scheme.shells)) :
-                print(f', {len(self.scheme.shells[i]["idx"])} @ b={self.scheme.shells[i]["b"]:.1f}', end=' ')
-            print()
+                PRINT(f', {len(self.scheme.shells[i]["idx"])} @ b={self.scheme.shells[i]["b"]:.1f}', end=' ')
+            PRINT()
 
             if self.scheme.nS != self.niiDWI_img.shape[3] :
                 ERROR( 'Scheme does not match with DWI data' )
@@ -439,7 +441,7 @@ class Evaluation :
             niiPEAKS = nibabel.load( pjoin( self.get_config('DATA_path'), peaks_filename) )
             DIRs = niiPEAKS.get_data().astype(np.float32)
             nDIR = np.floor( DIRs.shape[3]/3 )
-            print('\t* peaks dim = %d x %d x %d x %d' % DIRs.shape[:4])
+            PRINT('\t* peaks dim = %d x %d x %d x %d' % DIRs.shape[:4])
             if DIRs.shape[:3] != self.niiMASK_img.shape[:3] :
                 ERROR( 'PEAKS geometry does not match with DWI data' )
             DTI = None
@@ -458,7 +460,7 @@ class Evaluation :
 
         estimates = Parallel(n_jobs=n_jobs, backend=parallel_backend)(
             delayed(fit_voxel)(self, ix[i], iy[i], iz[i], DIRs[ix[i],iy[i],iz[i],:], DTI)
-            for i in tqdm(range(totVoxels), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%')
+            for i in tqdm(range(totVoxels), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3))
         )
 
         self.set_config('fit_time', time.time()-t)
@@ -523,10 +525,10 @@ class Evaluation :
                 remove( f )
 
         # configuration
-        print('\t- configuration', end=' ')
+        PRINT('\t- configuration', end=' ')
         with open( pjoin(RESULTS_path,'config.pickle'), 'wb+' ) as fid :
             pickle.dump( self.CONFIG, fid, protocol=2 )
-        print(' [OK]')
+        PRINT(' [OK]')
 
         affine  = self.niiDWI.affine if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_affine()
         hdr     = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
@@ -535,7 +537,7 @@ class Evaluation :
 
         # estimated orientations
         if not self.get_config('doDirectionalAverage'):
-            print('\t- FIT_dir.nii.gz', end=' ')
+            PRINT('\t- FIT_dir.nii.gz', end=' ')
             niiMAP_img = self.RESULTS['DIRs']
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
@@ -544,11 +546,11 @@ class Evaluation :
             niiMAP_hdr['scl_slope'] = 1
             niiMAP_hdr['scl_inter'] = 0
             nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_dir.nii.gz') )
-            print(' [OK]')
+            PRINT(' [OK]')
 
         # fitting error
         if self.get_config('doComputeNRMSE') :
-            print('\t- FIT_nrmse.nii.gz', end=' ')
+            PRINT('\t- FIT_nrmse.nii.gz', end=' ')
             niiMAP_img = self.RESULTS['NRMSE']
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
@@ -557,24 +559,24 @@ class Evaluation :
             niiMAP_hdr['scl_slope'] = 1
             niiMAP_hdr['scl_inter'] = 0
             nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_nrmse.nii.gz') )
-            print(' [OK]')
+            PRINT(' [OK]')
 
         if self.get_config('doSaveCorrectedDWI') :
             if self.model.name == 'Free-Water' :
-                print('\t- dwi_fw_corrected.nii.gz', end=' ')
+                PRINT('\t- dwi_fw_corrected.nii.gz', end=' ')
                 niiMAP_img = self.RESULTS['DWI_corrected']
                 niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
                 niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
                 niiMAP_hdr['cal_min'] = 0
                 niiMAP_hdr['cal_max'] = 1
                 nibabel.save( niiMAP, pjoin(RESULTS_path, 'dwi_fw_corrected.nii.gz') )
-                print(' [OK]')
+                PRINT(' [OK]')
             else :
                 WARNING( f'"doSaveCorrectedDWI" option not supported for "{self.model.name}" model' )
 
         # voxelwise maps
         for i in range( len(self.model.maps_name) ) :
-            print(f'\t- FIT_{self.model.maps_name[i]}.nii.gz', end=' ')
+            PRINT(f'\t- FIT_{self.model.maps_name[i]}.nii.gz', end=' ')
             niiMAP_img = self.RESULTS['MAPs'][:,:,:,i]
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
@@ -584,21 +586,21 @@ class Evaluation :
             niiMAP_hdr['scl_slope'] = 1
             niiMAP_hdr['scl_inter'] = 0
             nibabel.save( niiMAP, pjoin(RESULTS_path, f'FIT_{self.model.maps_name[i]}.nii.gz' ) )
-            print(' [OK]')
+            PRINT(' [OK]')
 
         # Directional average signal
         if save_dir_avg:
             if self.get_config('doDirectionalAverage'):
-                print('\t- dir_avg_signal.nii.gz', end=' ')
+                PRINT('\t- dir_avg_signal.nii.gz', end=' ')
                 niiMAP     = nibabel.Nifti1Image( self.niiDWI_img, affine, hdr )
                 niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
                 niiMAP_hdr['descrip'] = 'Directional average signal of each shell' + f' (AMICO v{self.get_config("version")})'
                 nibabel.save( niiMAP , pjoin(RESULTS_path, 'dir_avg_signal.nii.gz' ) )
-                print(' [OK]')
+                PRINT(' [OK]')
 
-                print('\t- dir_avg.scheme', end=' ')
+                PRINT('\t- dir_avg.scheme', end=' ')
                 np.savetxt( pjoin(RESULTS_path, 'dir_avg.scheme' ), self.scheme.get_table(), fmt="%.06f", delimiter="\t", header=f"VERSION: {self.scheme.version}", comments='' )
-                print(' [OK]')
+                PRINT(' [OK]')
             else:
                 WARNING('The directional average signal was not created (The option doDirectionalAverage is False).')
 

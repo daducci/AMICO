@@ -5,18 +5,46 @@ import os.path
 from os import EX_USAGE
 from sys import exit
 
+__VERBOSE_LEVEL__ = 3
+
+def set_verbose( verbose: int ):
+	"""Set the verbosity of all functions.
+
+	Parameters
+	----------
+	verbose : int
+        3 = show everything
+		2 = show messages but no progress bars
+        1 = show only warnings/errors
+        0 = hide everything
+	"""
+	global __VERBOSE_LEVEL__
+	if type(verbose) != int or verbose not in [0,1,2,3]:
+		raise TypeError( '"verbose" must be either 0, 1, 2 or 3' )
+	__VERBOSE_LEVEL__ = verbose
+
+def get_verbose():
+    return __VERBOSE_LEVEL__
+
+def PRINT( *args, **kwargs ):
+    if __VERBOSE_LEVEL__ >= 2:
+        print( *args, **kwargs )
 
 def LOG( msg, prefix='' ):
-    print( prefix+"\033[0;32m%s\033[0m" % msg )
+    if __VERBOSE_LEVEL__ >= 2:
+        print( prefix+"\033[0;32m%s\033[0m" % msg )
 
 def NOTE( msg, prefix='' ):
-    print( prefix+"\033[0;30;44m[ NOTE ]\033[0;34m %s\033[0m" % msg )
+    if __VERBOSE_LEVEL__ == 2:
+        print( prefix+"\033[0;30;44m[ NOTE ]\033[0;34m %s\033[0m" % msg )
 
 def WARNING( msg, prefix='' ):
-    print( prefix+"\033[0;30;43m[ WARNING ]\033[0;33m %s\033[0m" % msg )
+    if __VERBOSE_LEVEL__ >= 1:
+        print( prefix+"\033[0;30;43m[ WARNING ]\033[0;33m %s\033[0m" % msg )
 
 def ERROR( msg, prefix='' ):
-    print( prefix+"\033[0;30;41m[ ERROR ]\033[0;31m %s\033[0m\n" % msg )
+    if __VERBOSE_LEVEL__ >= 1:
+        print( prefix+"\033[0;30;41m[ ERROR ]\033[0;31m %s\033[0m\n" % msg )
     exit(EX_USAGE)
 
 
@@ -110,10 +138,10 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
     if type(Delta_data) is str :
         if not os.path.exists(Delta_data):
             ERROR( 'delta file not exist:' + Delta_data )
-    if type(smalldel_data) is str :    
+    if type(smalldel_data) is str :
         if not os.path.exists(smalldel_data):
             ERROR( 'small delta file not exist:' + smalldel_data )
-    
+
     if schemeFilename is None:
         schemeFilename = os.path.splitext(bvalsFilename)[0]+".scheme"
 
@@ -135,7 +163,7 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
         if Delta_data > 0.1:
             WARNING('The delta value is {:.4f}, this value must be in seconds.'.format(delta.mean()))
 
-    if type(smalldel_data) is str : 
+    if type(smalldel_data) is str :
         smalldel = np.loadtxt( smalldel_data, delimiter=delimiter)
         if smalldel.ndim !=1 or  smalldel.shape[0] != bvals.shape[0]:
             ERROR('incorrect/incompatible small delta files')
@@ -146,7 +174,7 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
         if smalldel_data > 0.1:
             WARNING('The small delta value is {:.4f}, this value must be in seconds.'.format(smalldel.mean()))
 
-    
+
 
     if TE_data is None:
         TE = delta + smalldel
@@ -155,9 +183,9 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
         if type(TE_data) is str :
             TE = np.loadtxt( TE_data, delimiter=delimiter)
             if TE.ndim !=1  or  TE.shape[0] != bvals.shape[0]:
-                ERROR('incorrect/incompatible TE files')            
+                ERROR('incorrect/incompatible TE files')
         else:
-            TE = np.ones_like(bvals) * TE_data            
+            TE = np.ones_like(bvals) * TE_data
         if not (TE >= (delta + smalldel)).all():
                 ERROR('The value TE < (Delta + delta) ')
 
@@ -195,4 +223,4 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
     # write corresponding scheme file
     np.savetxt( schemeFilename, np.c_[bvecs.T, G, delta, smalldel, TE], fmt="%.06f", delimiter="\t", header="VERSION: 1", comments='' )
     print("-> Writing scheme file to [ %s ]" % schemeFilename)
-    return schemeFilename    
+    return schemeFilename
