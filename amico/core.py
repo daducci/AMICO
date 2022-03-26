@@ -484,7 +484,7 @@ class Evaluation :
         if self.get_config('doSaveCorrectedDWI') :
             DWI_corrected = np.zeros(self.niiDWI.shape, dtype=np.float32)
             for i in range(totVoxels):
-                DWI_corrected[ix,iy,iz,:] = estimates[i][3]
+                DWI_corrected[ix[i],iy[i],iz[i],:] = estimates[i][3]
             self.RESULTS['DWI_corrected'] = DWI_corrected
 
 

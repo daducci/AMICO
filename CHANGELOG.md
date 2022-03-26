@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.4.2] - 2022-03-26
+
+### Fixed
+- Bug when using 'doSaveCorrectedDWI' (issue #134)
+
 ## [1.4.1] - 2022-03-20
 
 ### Fixed
