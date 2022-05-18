@@ -6,6 +6,9 @@ All notable changes to AMICO will be documented in this file.
 ### Fixed
 - Problems with joblib and pickle on some systems (issue #136)
 
+### Changed
+- Removed config option 'parallel_backend' as only 'loky' works in current implementation
+
 ## [1.4.2] - 2022-03-26
 
 ### Fixed

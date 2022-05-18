@@ -91,7 +91,6 @@ class Evaluation :
         self.set_config('DWI-SNR', None)                # SNR of DWI image: SNR = b0/sigma
         self.set_config('doDirectionalAverage', False)  # To perform the directional average on the signal of each shell
         self.set_config('parallel_jobs', -1)            # Number of jobs to be used in multithread-enabled parts of code
-        self.set_config('parallel_backend', 'loky')     # Backend to use for the joblib library
         self.set_config('verbose', verbose)
 
     def set_config( self, key, value ) :
@@ -420,9 +419,6 @@ class Evaluation :
             n_jobs = cpu_count()
         elif n_jobs == 0 or n_jobs < -1:
             ERROR( 'Number of parallel jobs must be positive or -1' )
-        parallel_backend = self.get_config( 'parallel_backend' )
-        if parallel_backend not in ['loky','multiprocessing','threading']:
-            ERROR( f'Backend "{parallel_backend}" is not recognized by joblib' )
 
         self.set_config('fit_time', None)
         totVoxels = np.count_nonzero(self.niiMASK_img)
@@ -461,7 +457,7 @@ class Evaluation :
         idx = np.arange(0, totVoxels+1, n_per_thread, dtype=np.int32)
         idx[-1] = totVoxels
 
-        estimates = Parallel(n_jobs=n_jobs, backend=parallel_backend)(
+        estimates = Parallel(n_jobs=n_jobs)(
             fit_voxel(self, ix[i], iy[i], iz[i], DIRs[ix[i],iy[i],iz[i],:], DTI)
             for i in tqdm(range(totVoxels), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3))
         )
