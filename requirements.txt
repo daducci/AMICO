@@ -1,3 +1,4 @@
+packaging
 wheel
 setuptools>=46.1
 numpy>=1.12

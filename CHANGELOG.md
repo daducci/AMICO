@@ -5,6 +5,7 @@ All notable changes to AMICO will be documented in this file.
 
 ### Fixed
 - Problems with joblib and pickle on some systems (issue #136)
+- Added 'packaging' to requirements as it is not present by default on some systems
 
 ### Changed
 - Removed config option 'parallel_backend' as only 'loky' works in current implementation
