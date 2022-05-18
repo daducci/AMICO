@@ -58,14 +58,10 @@ def load_directions( ndirs ):
     pos = len(amicopath) - 1
     while(amicopath[pos] != '/'):
         pos = pos - 1
-
     amicopath = amicopath[0 : pos] + '/directions/'
-
-    filename = 'ndirs=%d.bin' % ndirs
-
+    filename = f'ndirs={ndirs}.bin'
     directions = np.fromfile(amicopath + filename, dtype=np.float64)
     directions = np.reshape(directions, (ndirs, 3))
-
     return directions
 
 
@@ -86,13 +82,9 @@ def load_precomputed_hash_table( ndirs ):
     pos = len(amicopath) - 1
     while(amicopath[pos] != '/'):
         pos = pos - 1
-
     amicopath = amicopath[0 : pos] + '/directions/'
-
-    filename = 'htable_ndirs=%d.bin' % ndirs
-
+    filename = f'htable_ndirs={ndirs}.bin'
     hash_table = np.fromfile(amicopath + filename, dtype=np.int16)
-
     return hash_table
 
 
@@ -108,7 +100,7 @@ def precompute_rotation_matrices( lmax, ndirs ) :
     """
     if not isdir(dipy_home) :
         makedirs(dipy_home)
-    filename = pjoin( dipy_home, 'AMICO_aux_matrices_lmax=%d_ndirs=%d.pickle' % (lmax,ndirs) )
+    filename = pjoin( dipy_home, f'AMICO_aux_matrices_lmax={lmax}_ndirs={ndirs}.pickle' )
     if isfile( filename ) :
         return
 
@@ -156,18 +148,9 @@ def load_precomputed_rotation_matrices( lmax, ndirs ) :
     ndirs : int
         Number of directions on the half of the sphere representing the possible orientations of the response functions
     """
-    filename = pjoin( dipy_home, 'AMICO_aux_matrices_lmax=%d_ndirs=%d.pickle' % (lmax,ndirs) )
+    filename = pjoin( dipy_home, f'AMICO_aux_matrices_lmax={lmax}_ndirs={ndirs}.pickle' )
     if not isfile( filename ) :
-        str_lmax = ''
-        str_ndirs = ''
-        str_sep = ''
-        if lmax != 12:
-            str_lmax = 'lmax={}'.format(lmax)
-        if ndirs != 32761:
-            str_ndirs = 'ndirs={}'.format(ndirs)
-        if str_lmax != '' and str_ndirs != '':
-            str_sep = ' , '
-        ERROR( 'Auxiliary matrices not found; call "amico.core.setup({}{}{})" first.'.format(str_lmax, str_sep, str_ndirs) )
+        ERROR( 'Auxiliary matrices not found; call "amico.setup()" first' )
     with open( filename, 'rb' ) as rotation_matrices_file:
         if sys.version_info.major == 3:
             aux = pickle.load( rotation_matrices_file, fix_imports=True, encoding='bytes' )
@@ -359,7 +342,7 @@ def dir_TO_lut_idx( direction, htable ) :
     i1 = np.round( i1/np.pi*180.0 ).astype(int)
     i2 = np.round( i2/np.pi*180.0 ).astype(int)
     if i1<0 or i1>180 or i2<0 or i2>180 :
-        raise RuntimeError( '"amico.lut.dir_TO_lut_idx" index out of bounds (%d,%d)' % (i1,i2) )
+        raise RuntimeError( f'"amico.lut.dir_TO_lut_idx" index out of bounds ({i1},{i2})' )
 
     return htable[i1*181 + i2]
 

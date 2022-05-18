@@ -35,7 +35,7 @@ def setup( lmax=12, ndirs=None ) :
     """
     if ndirs is not None:
         WARNING('"ndirs" parameter is deprecated')
-    LOG( f'\n-> Precomputing rotation matrices:' )
+    LOG( '\n-> Precomputing rotation matrices:' )
     for n in tqdm(valid_dirs(), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)):
         amico.lut.precompute_rotation_matrices( lmax, n )
     LOG('   [ DONE ]')
@@ -422,7 +422,7 @@ class Evaluation :
 
         self.set_config('fit_time', None)
         totVoxels = np.count_nonzero(self.niiMASK_img)
-        LOG( f'\n-> Fitting "{self.model.name}" model to {totVoxels} voxels:' )
+        LOG( f'\n-> Fitting "{self.model.name}" model to {totVoxels} voxels (using {n_jobs} job{"s" if n_jobs>1 else ""}):' )
 
         # setup fitting directions
         peaks_filename = self.get_config('peaks_filename')
