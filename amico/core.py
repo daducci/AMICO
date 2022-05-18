@@ -18,7 +18,7 @@ from dipy.core.gradients import gradient_table
 import dipy.reconst.dti as dti
 from amico.util import PRINT, LOG, NOTE, WARNING, ERROR, get_verbose
 from pkg_resources import get_distribution
-from joblib import Parallel, delayed, cpu_count
+from joblib import Parallel, delayed, cpu_count, wrap_non_picklable_objects
 from tqdm import tqdm
 
 
@@ -356,6 +356,9 @@ class Evaluation :
         """Fit the model to the data iterating over all voxels (in the mask) one after the other.
         Call the appropriate fit() method of the actual model used.
         """
+
+        @delayed
+        @wrap_non_picklable_objects
         def fit_voxel(self, ix, iy, iz, dirs, DTI) :
             """Perform the fit in a single voxel.
             """
@@ -459,7 +462,7 @@ class Evaluation :
         idx[-1] = totVoxels
 
         estimates = Parallel(n_jobs=n_jobs, backend=parallel_backend)(
-            delayed(fit_voxel)(self, ix[i], iy[i], iz[i], DIRs[ix[i],iy[i],iz[i],:], DTI)
+            fit_voxel(self, ix[i], iy[i], iz[i], DIRs[ix[i],iy[i],iz[i],:], DTI)
             for i in tqdm(range(totVoxels), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3))
         )
 

@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.4.3] - 2022-05-18
+
+### Fixed
+- Problems with joblib and pickle on some systems (issue #136)
+
 ## [1.4.2] - 2022-03-26
 
 ### Fixed
