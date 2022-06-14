@@ -2,7 +2,6 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 import os.path
-from os import EX_USAGE
 from sys import exit
 
 __VERBOSE_LEVEL__ = 3
@@ -45,7 +44,11 @@ def WARNING( msg, prefix='' ):
 def ERROR( msg, prefix='' ):
     if __VERBOSE_LEVEL__ >= 1:
         print( prefix+"\033[0;30;41m[ ERROR ]\033[0;31m %s\033[0m\n" % msg )
-    exit(EX_USAGE)
+    try:
+        from os import EX_USAGE # Only available on UNIX systems
+        exit(EX_USAGE)
+    except ImportError:
+        exit(1) # Exit with error code 1 if on Windows system
 
 
 def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = [False,False,False], bStep = 1.0, delimiter = None ):
