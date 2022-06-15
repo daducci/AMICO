@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.4.4] - 2022-06-14
+
+### Fixed
+- Import error in 'util.py' on Windows systems
+- Loading errors in 'lut.py' on Windows systems
+
 ## [1.4.3] - 2022-05-18
 
 ### Fixed

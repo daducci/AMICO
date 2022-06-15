@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 from os import makedirs
 import sys
-from os.path import isdir, isfile, join as pjoin
+from os.path import isdir, isfile, dirname, join as pjoin
 import pickle
 from dipy.data.fetcher import dipy_home
 from dipy.core.geometry import cart2sphere
@@ -54,14 +54,14 @@ def load_directions( ndirs ):
     directions : np.array(shape=(ndirs, 3))
         Array with the 3D directions in cartesian coordinates
     """
-    amicopath = amico.__file__
-    pos = len(amicopath) - 1
-    while(amicopath[pos] != '/'):
-        pos = pos - 1
-    amicopath = amicopath[0 : pos] + '/directions/'
-    filename = f'ndirs={ndirs}.bin'
-    directions = np.fromfile(amicopath + filename, dtype=np.float64)
+    amicopath = dirname(amico.__file__)
+
+    filename = 'ndirs=%d.bin' % ndirs
+    directions_path = pjoin(amicopath, 'directions', filename)
+
+    directions = np.fromfile(directions_path, dtype=np.float64)
     directions = np.reshape(directions, (ndirs, 3))
+
     return directions
 
 
@@ -78,13 +78,13 @@ def load_precomputed_hash_table( ndirs ):
     hash_table : np.array(shape=ndirs)
         Array with the indexes for every high resolution direction
     """
-    amicopath = amico.__file__
-    pos = len(amicopath) - 1
-    while(amicopath[pos] != '/'):
-        pos = pos - 1
-    amicopath = amicopath[0 : pos] + '/directions/'
-    filename = f'htable_ndirs={ndirs}.bin'
-    hash_table = np.fromfile(amicopath + filename, dtype=np.int16)
+    amicopath = dirname(amico.__file__)
+
+    filename = 'htable_ndirs=%d.bin' % ndirs
+    hash_table_path = pjoin(amicopath, 'directions', filename)
+
+    hash_table = np.fromfile(hash_table_path, dtype=np.int16)
+
     return hash_table
 
 
