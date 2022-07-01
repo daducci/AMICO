@@ -235,14 +235,14 @@ class StickZeppelinBall( BaseModel ) :
         idx = 0
         with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Stick
-            signal = stick.get_signal(diff=self.d_par, theta=0, phi=0)
+            signal = stick.get_signal(diff=self.d_par)
             lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
             np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
             idx += 1
             progress.update()
             # Zeppelin(s)
             for d in self.d_perps_zep :
-                signal = zeppelin.get_signal(diff_par=self.d_par_zep, diff_perp=d, theta=0, phi=0)
+                signal = zeppelin.get_signal(diff_par=self.d_par_zep, diff_perp=d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
@@ -380,7 +380,7 @@ class CylinderZeppelinBall( BaseModel ) :
         with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Cylinder(s)
             for R in self.Rs :
-                signal = cylinder.get_signal(diff=self.d_par, theta=0, phi=0, radius=R)
+                signal = cylinder.get_signal(diff=self.d_par, radius=R)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
@@ -388,7 +388,7 @@ class CylinderZeppelinBall( BaseModel ) :
 
             # Zeppelin(s)
             for d in self.d_perps :
-                signal = zeppelin.get_signal(diff_par=self.d_par, diff_perp=d, theta=0, phi=0)
+                signal = zeppelin.get_signal(diff_par=self.d_par, diff_perp=d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
@@ -758,7 +758,7 @@ class FreeWater( BaseModel ) :
         with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Tensor compartment(s)
             for d in self.d_perps :
-                signal = zeppelin.get_signal(diff_par=self.d_par, diff_perp=d, theta=0, phi=0)
+                signal = zeppelin.get_signal(diff_par=self.d_par, diff_perp=d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1

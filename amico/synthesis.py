@@ -91,7 +91,7 @@ class Zeppelin():
         self.g_dir = self.scheme.raw[:, :3]
         self.b = self.scheme.b
 
-    def get_signal(self, diff_par, diff_perp, theta, phi):
+    def get_signal(self, diff_par, diff_perp, theta=0, phi=0):
         n = np.array([np.cos(phi) * np.sin(theta), np.sin(phi) * np.sin(theta), np.cos(theta)])
         gn = np.dot(self.g_dir, n)
         signal = np.exp(-self.b * ((diff_par - diff_perp) * gn * gn + diff_perp))
@@ -104,7 +104,7 @@ class Stick():
         self.g_dir = self.scheme.raw[:, :3]
         self.b = self.scheme.b
 
-    def get_signal(self, diff, theta, phi):
+    def get_signal(self, diff, theta=0, phi=0):
         n = np.array([np.cos(phi) * np.sin(theta), np.sin(phi) * np.sin(theta), np.cos(theta)])
         gn = np.dot(self.g_dir, n)
         signal = np.exp(-self.b * diff * gn * gn)
@@ -173,7 +173,7 @@ class CylinderGPD():
     def __init__(self, scheme):
         self.scheme = scheme
 
-    def get_signal(self, diff, theta, phi, radius):
+    def get_signal(self, diff, radius, theta=0, phi=0):
         diff *= 1e-6
         am = self.__AM / radius
         n = np.array([np.cos(phi) * np.sin(theta), np.sin(phi) * np.sin(theta), np.cos(theta)])
