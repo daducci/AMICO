@@ -316,10 +316,6 @@ class CylinderZeppelinBall( BaseModel ) :
     NB: this model works only with schemes containing the full specification of
         the diffusion gradients (eg gradient strength, small delta etc).
 
-    NB: this model requires Camino to be installed and properly configured
-        in the system; in particular, the script "datasynth" must be placed
-        in your system path.
-
     References
     ----------
     .. [1] Panagiotaki et al. (2012) Compartment models of the diffusion MR signal
@@ -906,10 +902,6 @@ class SANDI( BaseModel ) :
 
     NB: this model works only with direction-averaged signal and schemes containing the full specification of
         the diffusion gradients (eg gradient strength, small delta etc).
-
-    NB: this model requires Camino to be installed and properly configured
-        in the system; in particular, the script "datasynth" must be placed
-        in your system path.
 
     References
     ----------
