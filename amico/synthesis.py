@@ -6,9 +6,7 @@ from amico.util import ERROR
 __REQUIRED_PRECISION = 1e-7
 
 # Proton gyromagnetic ratio
-# __GAMMA = 2.675153151e8 # https://physics.nist.gov/cgi-bin/cuu/Results?search_for=proton+gyromagnetic+ratio
-# __GAMMA = 2.6751525e8 # this is used in camino
-__GAMMA = 2.675987e8 # this is used in NODDI
+__GAMMA = 2.675987e8
 
 def __gpd_sum(am, big_delta, small_delta, diff, radius, n):
     sum = 0.0
@@ -81,11 +79,6 @@ class SphereGPD():
             else:
                 g_mods = g_dir * g
                 g_mod = np.sqrt(np.dot(g_mods, g_mods))
-                # if big_delta == self.__last_big_delta and small_delta == self.__last_small_delta and self.diff == self.__last_diff and self.radius == self.__last_radius:
-                #     sum = self.__last_sum
-                # else:
-                #     self.__last_big_delta, self.__last_small_delta, self.__last_diff, self.__last_radius, self.__last_sum = __gpd_sum(self.am, big_delta, small_delta, self.diff, self.radius, 2)
-                #     sum = self.__last_sum
                 if big_delta != self.__last_big_delta or small_delta != self.__last_small_delta or diff != self.__last_diff or radius != self.__last_radius:
                     self.__last_big_delta, self.__last_small_delta, self.__last_diff, self.__last_radius, self.__last_sum = __gpd_sum(am, big_delta, small_delta, diff, radius, 2)
                 signal[i] = np.exp(-2 * __GAMMA * __GAMMA * g_mod * g_mod * self.__last_sum)
@@ -203,11 +196,6 @@ class CylinderGPD():
                 else:
                     unit_gn = gn / (g_mod * n_mod)
                 omega = np.arccos(unit_gn)
-                # if big_delta == self.__last_big_delta and small_delta == self.__last_small_delta and self.diff == self.__last_diff and self.radius == self.__last_radius:
-                #     sum = self.__last_sum
-                # else:
-                #     self.__last_big_delta, self.__last_small_delta, self.__last_diff, self.__last_radius, self.__last_sum = __gpd_sum(am, big_delta, small_delta, self.diff, self.radius, 1)
-                #     sum = self.__last_sum
                 if big_delta != self.__last_big_delta or small_delta != self.__last_small_delta or diff != self.__last_diff or radius != self.__last_radius:
                     self.__last_big_delta, self.__last_small_delta, self.__last_diff, self.__last_radius, self.__last_sum = __gpd_sum(am, big_delta, small_delta, diff, radius, 1)
                 sr_perp = np.exp(-2 * __GAMMA * __GAMMA * g_mod * g_mod * np.sin(omega) * np.sin(omega) * self.__last_sum)
