@@ -76,7 +76,6 @@ class SphereGPD():
             g = raw[3]
             big_delta = raw[4]
             small_delta = raw[5]
-            
             if np.all(g_dir == 0):
                 signal[i] = 1
             else:
@@ -96,7 +95,6 @@ class SphereGPD():
 class Zeppelin():
     def __init__(self, scheme):
         self.scheme = scheme
-
         self.g_dir = self.scheme.raw[:, :3]
         self.b = self.scheme.b
 
@@ -110,7 +108,6 @@ class Zeppelin():
 class Stick():
     def __init__(self, scheme):
         self.scheme = scheme
-
         self.g_dir = self.scheme.raw[:, :3]
         self.b = self.scheme.b
 
@@ -131,7 +128,6 @@ class Astrosticks():
             g_dir = raw[0:3]
             g = raw[3]
             b = self.scheme.b[i]
-            
             if np.all(g_dir == 0):
                 signal[i] = 1
             else:
@@ -144,7 +140,6 @@ class Astrosticks():
 class Ball():
     def __init__(self, scheme):
         self.scheme = scheme
-        
         self.b = self.scheme.b
 
     def get_signal(self, diff):
@@ -196,7 +191,6 @@ class CylinderGPD():
             g = raw[3]
             big_delta = raw[4]
             small_delta = raw[5]
-
             if np.all(g_dir == 0):
                 signal[i] = 1
             else:
@@ -226,7 +220,6 @@ class CylinderGPD():
 class NODDISignal():
     def __init__(self, scheme):
         self.scheme = scheme
-
         self.protocol_hr = self.__scheme2noddi(self.scheme)
 
     def get_ic_signal(self, diff_par, kappa):
