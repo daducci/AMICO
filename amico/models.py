@@ -7,7 +7,7 @@ import amico.lut
 from tqdm import tqdm
 import abc
 from amico.util import PRINT, ERROR, get_verbose
-from amico.synthesis import Stick, Zeppelin, Ball, CylinderGPD, SphereGPD, Astrosticks, NODDISignal
+from amico.synthesis import Stick, Zeppelin, Ball, CylinderGPD, SphereGPD, Astrosticks, NODDIIntraCellular, NODDIExtraCellular, NODDIIsotropic
 
 import warnings
 warnings.filterwarnings("ignore") # needed for a problem with spams
@@ -368,8 +368,9 @@ class CylinderZeppelinBall( BaseModel ) :
             ERROR( 'This model requires a "VERSION: STEJSKALTANNER" scheme' )
 
         scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1E6 )
-        filename_scheme = pjoin( out_path, 'scheme.txt' )
-        np.savetxt( filename_scheme, scheme_high.raw, fmt='%15.8e', delimiter=' ', header='VERSION: STEJSKALTANNER', comments='' )
+        # TODO delete this
+        # filename_scheme = pjoin( out_path, 'scheme.txt' )
+        # np.savetxt( filename_scheme, scheme_high.raw, fmt='%15.8e', delimiter=' ', header='VERSION: STEJSKALTANNER', comments='' )
 
         cylinder = CylinderGPD(scheme=scheme_high)
         zeppelin = Zeppelin(scheme=scheme_high)
@@ -549,7 +550,9 @@ class NODDI( BaseModel ) :
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ):
         scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale = 1 )
 
-        noddi = NODDISignal(scheme=scheme_high)
+        noddi_ic = NODDIIntraCellular(scheme=scheme_high)
+        noddi_ec = NODDIExtraCellular(scheme=scheme_high)
+        noddi_iso = NODDIIsotropic(scheme=scheme_high)
 
         nATOMS = len(self.IC_ODs)*len(self.IC_VFs) + 1
         idx = 0
@@ -557,16 +560,16 @@ class NODDI( BaseModel ) :
             # Coupled contributions
             IC_KAPPAs = 1 / np.tan(self.IC_ODs*np.pi/2)
             for kappa in IC_KAPPAs:
-                signal_ic = noddi.get_ic_signal(diff_par=self.dPar, kappa=kappa)
+                signal_ic = noddi_ic.get_signal(diff_par=self.dPar, kappa=kappa)
                 for v_ic in self.IC_VFs:
-                    signal_ec = noddi.get_ec_signal(diff_par=self.dPar, kappa=kappa, vol_ic=v_ic)
+                    signal_ec = noddi_ec.get_signal(diff_par=self.dPar, kappa=kappa, vol_ic=v_ic)
                     signal = v_ic*signal_ic + (1-v_ic)*signal_ec
                     lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                     np.save( pjoin( out_path, f'A_{idx+1:03d}.npy') , lm )
                     idx += 1
                     progress.update()
             # Isotropic
-            signal = noddi.get_iso_signal(diff_iso=self.dIso)
+            signal = noddi_iso.get_signal(diff_iso=self.dIso)
             lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
             np.save( pjoin( out_path, f'A_{nATOMS:03d}.npy') , lm )
             progress.update()
@@ -952,8 +955,9 @@ class SANDI( BaseModel ) :
             ERROR( 'This model requires a "VERSION: STEJSKALTANNER" scheme' )
 
         scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1E6 )
-        filename_scheme = pjoin( out_path, 'scheme.txt' )
-        np.savetxt( filename_scheme, scheme_high.raw, fmt='%15.8e', delimiter=' ', header='VERSION: STEJSKALTANNER', comments='' )
+        # TODO delete this
+        # filename_scheme = pjoin( out_path, 'scheme.txt' )
+        # np.savetxt( filename_scheme, scheme_high.raw, fmt='%15.8e', delimiter=' ', header='VERSION: STEJSKALTANNER', comments='' )
 
         sphere = SphereGPD(scheme=scheme_high)
         astrosticks = Astrosticks(scheme=scheme_high)

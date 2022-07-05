@@ -26,6 +26,69 @@ def __gpd_sum(am, big_delta, small_delta, diff, radius, n):
             break
     return big_delta, small_delta, diff, radius, sum
 
+def __scheme2noddi(scheme):
+    protocol = {}
+    protocol['pulseseq'] = 'PGSE'
+    protocol['schemetype'] = 'multishellfixedG'
+    protocol['teststrategy'] = 'fixed'
+    bval = scheme.b.copy()
+
+    # set total number of measurements
+    protocol['totalmeas'] = len(bval)
+
+    # set the b=0 indices
+    protocol['b0_Indices'] = np.nonzero(bval==0)[0]
+    protocol['numZeros'] = len(protocol['b0_Indices'])
+
+    # find the unique non-zero b-values
+    B = np.unique(bval[bval>0])
+
+    # set the number of shells
+    protocol['M'] = len(B)
+    protocol['N'] = np.zeros((len(B)))
+    for i in range(len(B)):
+        protocol['N'][i] = np.sum(bval==B[i])
+
+    # maximum b-value in the s/mm^2 unit
+    maxB = np.max(B)
+
+    # set maximum G = 40 mT/m
+    Gmax = 0.04
+
+    # set smalldel and delta and G
+    tmp = np.power(3*maxB*1E6/(2*__GAMMA*__GAMMA*Gmax*Gmax),1.0/3.0)
+    protocol['udelta'] = np.zeros((len(B)))
+    protocol['usmalldel'] = np.zeros((len(B)))
+    protocol['uG'] = np.zeros((len(B)))
+    for i in range(len(B)):
+        protocol['udelta'][i] = tmp
+        protocol['usmalldel'][i] = tmp
+        protocol['uG'][i] = np.sqrt(B[i]/maxB)*Gmax
+
+    protocol['delta'] = np.zeros(bval.shape)
+    protocol['smalldel'] = np.zeros(bval.shape)
+    protocol['gradient_strength'] = np.zeros(bval.shape)
+
+    for i in range(len(B)):
+        tmp = np.nonzero(bval==B[i])
+        for j in range(len(tmp[0])):
+                protocol['delta'][tmp[0][j]] = protocol['udelta'][i]
+                protocol['smalldel'][tmp[0][j]] = protocol['usmalldel'][i]
+                protocol['gradient_strength'][tmp[0][j]] = protocol['uG'][i]
+
+    # load bvec
+    protocol['grad_dirs'] = scheme.raw[:,0:3].copy()
+
+    # make the gradient directions for b=0's [1 0 0]
+    for i in range(protocol['numZeros']):
+        protocol['grad_dirs'][protocol['b0_Indices'][i],:] = [1, 0, 0]
+
+    # make sure the gradient directions are unit vectors
+    for i in range(protocol['totalmeas']):
+        protocol['grad_dirs'][i,:] = protocol['grad_dirs'][i,:]/np.linalg.norm(protocol['grad_dirs'][i,:])
+
+    return protocol
+
 # SPHERE
 class SphereGPD():
     __AM = np.array([
@@ -205,12 +268,12 @@ class CylinderGPD():
         return signal
 
 # NODDI
-class NODDISignal():
+class NODDIIntraCellular():
     def __init__(self, scheme):
         self.scheme = scheme
-        self.protocol_hr = self.__scheme2noddi(self.scheme)
+        self.protocol_hr = __scheme2noddi(self.scheme)
 
-    def get_ic_signal(self, diff_par, kappa):
+    def get_signal(self, diff_par, kappa):
         diff_par *= 1e-6
         return self.__synth_meas_watson_SH_cyl_neuman_PGSE(
             np.array([diff_par, 0, kappa]),
@@ -220,22 +283,7 @@ class NODDISignal():
             np.squeeze(self.protocol_hr['smalldel']),
             np.array([0, 0, 1]))
 
-    def get_ec_signal(self, diff_par, kappa, vol_ic):
-        diff_par *= 1e-6
-        diff_perp = diff_par * (1 - vol_ic)
-        return self.__synth_meas_watson_hindered_diffusion_PGSE(
-            np.array([diff_par, diff_perp, kappa]),
-            self.protocol_hr['grad_dirs'],
-            np.squeeze(self.protocol_hr['gradient_strength']),
-            np.squeeze(self.protocol_hr['delta']),
-            np.squeeze(self.protocol_hr['smalldel']),
-            np.array([0, 0, 1]))
-
-    def get_iso_signal(self, diff_iso):
-        diff_iso *= 1e-6
-        return self.__synth_meas_iso_GPD(diff_iso, self.protocol_hr)
-
-    # intra-cellular signal
+    # Intra-cellular signal
     def __synth_meas_watson_SH_cyl_neuman_PGSE(self, x, grad_dirs, G, delta, smalldel, fibredir):
         d=x[0]
         R=x[1]
@@ -486,8 +534,23 @@ class NODDISignal():
             C[6] = 128*np.sqrt(np.pi)*k6/152108775
         return C
 
-    
-    # extra-cellular signal
+class NODDIExtraCellular():
+    def __init__(self, scheme):
+        self.scheme = scheme
+        self.protocol_hr = __scheme2noddi(self.scheme)
+
+    def get_signal(self, diff_par, kappa, vol_ic):
+        diff_par *= 1e-6
+        diff_perp = diff_par * (1 - vol_ic)
+        return self.__synth_meas_watson_hindered_diffusion_PGSE(
+            np.array([diff_par, diff_perp, kappa]),
+            self.protocol_hr['grad_dirs'],
+            np.squeeze(self.protocol_hr['gradient_strength']),
+            np.squeeze(self.protocol_hr['delta']),
+            np.squeeze(self.protocol_hr['smalldel']),
+            np.array([0, 0, 1]))
+
+    # Extra-cellular signal
     def __synth_meas_watson_hindered_diffusion_PGSE(self, x, grad_dirs, G, delta, smalldel, fibredir):
         dPar = x[0]
         dPerp = x[1]
@@ -538,7 +601,16 @@ class NODDISignal():
         E=np.exp(-bval*((dPar - dPerp)*cosThetaSq + dPerp))
         return E
 
-    # isotropic signal
+class NODDIIsotropic():
+    def __init__(self, scheme):
+        self.scheme = scheme
+        self.protocol_hr = __scheme2noddi(self.scheme)
+
+    def get_signal(self, diff_iso, kappa):
+        diff_iso *= 1e-6
+        return self.__synth_meas_iso_GPD(diff_iso, self.protocol_hr)
+
+    # Isotropic signal
     def __synth_meas_iso_GPD(self, d, protocol):
         if protocol['pulseseq'] != 'PGSE' and protocol['pulseseq'] != 'STEAM':
             ERROR( 'synth_meas_iso_GPD() : Protocol %s not translated from NODDI matlab code yet' % protocol['pulseseq'] )
@@ -547,68 +619,3 @@ class NODDISignal():
         modQ_Sq = np.power(modQ,2)
         difftime = protocol['delta'].transpose()-protocol['smalldel']/3.0
         return np.exp(-difftime*modQ_Sq*d)
-
-    # schemefile
-    def __scheme2noddi(self, scheme):
-        protocol = {}
-        protocol['pulseseq'] = 'PGSE'
-        protocol['schemetype'] = 'multishellfixedG'
-        protocol['teststrategy'] = 'fixed'
-        bval = scheme.b.copy()
-
-        # set total number of measurements
-        protocol['totalmeas'] = len(bval)
-
-        # set the b=0 indices
-        protocol['b0_Indices'] = np.nonzero(bval==0)[0]
-        protocol['numZeros'] = len(protocol['b0_Indices'])
-
-        # find the unique non-zero b-values
-        B = np.unique(bval[bval>0])
-
-        # set the number of shells
-        protocol['M'] = len(B)
-        protocol['N'] = np.zeros((len(B)))
-        for i in range(len(B)):
-            protocol['N'][i] = np.sum(bval==B[i])
-
-        # maximum b-value in the s/mm^2 unit
-        maxB = np.max(B)
-
-        # set maximum G = 40 mT/m
-        Gmax = 0.04
-
-        # set smalldel and delta and G
-        __GAMMA = 2.675987E8
-        tmp = np.power(3*maxB*1E6/(2*__GAMMA*__GAMMA*Gmax*Gmax),1.0/3.0)
-        protocol['udelta'] = np.zeros((len(B)))
-        protocol['usmalldel'] = np.zeros((len(B)))
-        protocol['uG'] = np.zeros((len(B)))
-        for i in range(len(B)):
-            protocol['udelta'][i] = tmp
-            protocol['usmalldel'][i] = tmp
-            protocol['uG'][i] = np.sqrt(B[i]/maxB)*Gmax
-
-        protocol['delta'] = np.zeros(bval.shape)
-        protocol['smalldel'] = np.zeros(bval.shape)
-        protocol['gradient_strength'] = np.zeros(bval.shape)
-
-        for i in range(len(B)):
-            tmp = np.nonzero(bval==B[i])
-            for j in range(len(tmp[0])):
-                    protocol['delta'][tmp[0][j]] = protocol['udelta'][i]
-                    protocol['smalldel'][tmp[0][j]] = protocol['usmalldel'][i]
-                    protocol['gradient_strength'][tmp[0][j]] = protocol['uG'][i]
-
-        # load bvec
-        protocol['grad_dirs'] = scheme.raw[:,0:3].copy()
-
-        # make the gradient directions for b=0's [1 0 0]
-        for i in range(protocol['numZeros']):
-            protocol['grad_dirs'][protocol['b0_Indices'][i],:] = [1, 0, 0]
-
-        # make sure the gradient directions are unit vectors
-        for i in range(protocol['totalmeas']):
-            protocol['grad_dirs'][i,:] = protocol['grad_dirs'][i,:]/np.linalg.norm(protocol['grad_dirs'][i,:])
-
-        return protocol
