@@ -225,31 +225,31 @@ class StickZeppelinBall( BaseModel ) :
 
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
-        scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1 )
+        scheme_high = amico.lut.create_high_resolution_scheme( self.scheme )
 
-        stick = Stick(scheme=scheme_high)
-        zeppelin = Zeppelin(scheme=scheme_high)
-        ball = Ball(scheme=scheme_high)
+        stick = Stick(scheme_high)
+        zeppelin = Zeppelin(scheme_high)
+        ball = Ball(scheme_high)
 
         nATOMS = 1 + len(self.d_perps_zep) + len(self.d_isos)
         idx = 0
         with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Stick
-            signal = stick.get_signal(diff=self.d_par)
+            signal = stick.get_signal(self.d_par)
             lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
             np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
             idx += 1
             progress.update()
             # Zeppelin(s)
             for d in self.d_perps_zep :
-                signal = zeppelin.get_signal(diff_par=self.d_par_zep, diff_perp=d)
+                signal = zeppelin.get_signal(self.d_par_zep, d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
                 progress.update()
             # Ball(s)
             for d in self.d_isos :
-                signal = ball.get_signal(diff=d)
+                signal = ball.get_signal(d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
@@ -367,21 +367,18 @@ class CylinderZeppelinBall( BaseModel ) :
         if self.scheme.version != 1 :
             ERROR( 'This model requires a "VERSION: STEJSKALTANNER" scheme' )
 
-        scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1E6 )
-        # TODO delete this
-        # filename_scheme = pjoin( out_path, 'scheme.txt' )
-        # np.savetxt( filename_scheme, scheme_high.raw, fmt='%15.8e', delimiter=' ', header='VERSION: STEJSKALTANNER', comments='' )
+        scheme_high = amico.lut.create_high_resolution_scheme( self.scheme )
 
-        cylinder = CylinderGPD(scheme=scheme_high)
-        zeppelin = Zeppelin(scheme=scheme_high)
-        ball = Ball(scheme=scheme_high)
+        cylinder = CylinderGPD(scheme_high)
+        zeppelin = Zeppelin(scheme_high)
+        ball = Ball(scheme_high)
 
         nATOMS = len(self.Rs) + len(self.d_perps) + len(self.d_isos)
         idx = 0
         with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Cylinder(s)
             for R in self.Rs :
-                signal = cylinder.get_signal(diff=self.d_par, radius=R)
+                signal = cylinder.get_signal(self.d_par, R)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
@@ -389,7 +386,7 @@ class CylinderZeppelinBall( BaseModel ) :
 
             # Zeppelin(s)
             for d in self.d_perps :
-                signal = zeppelin.get_signal(diff_par=self.d_par, diff_perp=d)
+                signal = zeppelin.get_signal(self.d_par, d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
@@ -397,7 +394,7 @@ class CylinderZeppelinBall( BaseModel ) :
 
             # Ball(s)
             for d in self.d_isos :
-                signal = ball.get_signal(diff=d)
+                signal = ball.get_signal(d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
@@ -548,11 +545,11 @@ class NODDI( BaseModel ) :
 
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ):
-        scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale = 1 )
+        scheme_high = amico.lut.create_high_resolution_scheme( self.scheme )
 
-        noddi_ic = NODDIIntraCellular(scheme=scheme_high)
-        noddi_ec = NODDIExtraCellular(scheme=scheme_high)
-        noddi_iso = NODDIIsotropic(scheme=scheme_high)
+        noddi_ic = NODDIIntraCellular(scheme_high)
+        noddi_ec = NODDIExtraCellular(scheme_high)
+        noddi_iso = NODDIIsotropic(scheme_high)
 
         nATOMS = len(self.IC_ODs)*len(self.IC_VFs) + 1
         idx = 0
@@ -560,16 +557,16 @@ class NODDI( BaseModel ) :
             # Coupled contributions
             IC_KAPPAs = 1 / np.tan(self.IC_ODs*np.pi/2)
             for kappa in IC_KAPPAs:
-                signal_ic = noddi_ic.get_signal(diff_par=self.dPar, kappa=kappa)
+                signal_ic = noddi_ic.get_signal(self.dPar, kappa)
                 for v_ic in self.IC_VFs:
-                    signal_ec = noddi_ec.get_signal(diff_par=self.dPar, kappa=kappa, vol_ic=v_ic)
+                    signal_ec = noddi_ec.get_signal(self.dPar, kappa, v_ic)
                     signal = v_ic*signal_ic + (1-v_ic)*signal_ec
                     lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                     np.save( pjoin( out_path, f'A_{idx+1:03d}.npy') , lm )
                     idx += 1
                     progress.update()
             # Isotropic
-            signal = noddi_iso.get_signal(diff_iso=self.dIso)
+            signal = noddi_iso.get_signal(self.dIso)
             lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
             np.save( pjoin( out_path, f'A_{nATOMS:03d}.npy') , lm )
             progress.update()
@@ -751,17 +748,17 @@ class FreeWater( BaseModel ) :
 
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
-        scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1 )
+        scheme_high = amico.lut.create_high_resolution_scheme( self.scheme )
 
-        zeppelin = Zeppelin(scheme=scheme_high)
-        ball = Ball(scheme=scheme_high)
+        zeppelin = Zeppelin(scheme_high)
+        ball = Ball(scheme_high)
 
         nATOMS = len(self.d_perps) + len(self.d_isos)
         idx = 0
         with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Tensor compartment(s)
             for d in self.d_perps :
-                signal = zeppelin.get_signal(diff_par=self.d_par, diff_perp=d)
+                signal = zeppelin.get_signal(self.d_par, d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
@@ -769,7 +766,7 @@ class FreeWater( BaseModel ) :
 
             # Isotropic compartment(s)
             for d in self.d_isos :
-                signal = ball.get_signal(diff=d)
+                signal = ball.get_signal(d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
@@ -954,35 +951,32 @@ class SANDI( BaseModel ) :
         if self.scheme.version != 1 :
             ERROR( 'This model requires a "VERSION: STEJSKALTANNER" scheme' )
 
-        scheme_high = amico.lut.create_high_resolution_scheme( self.scheme, b_scale=1E6 )
-        # TODO delete this
-        # filename_scheme = pjoin( out_path, 'scheme.txt' )
-        # np.savetxt( filename_scheme, scheme_high.raw, fmt='%15.8e', delimiter=' ', header='VERSION: STEJSKALTANNER', comments='' )
+        scheme_high = amico.lut.create_high_resolution_scheme( self.scheme )
 
-        sphere = SphereGPD(scheme=scheme_high)
-        astrosticks = Astrosticks(scheme=scheme_high)
-        ball = Ball(scheme=scheme_high)
+        sphere = SphereGPD(scheme_high)
+        astrosticks = Astrosticks(scheme_high)
+        ball = Ball(scheme_high)
 
         nATOMS = len(self.Rs) + len(self.d_in) + len(self.d_isos)
         idx = 0
         with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
             # Soma = SPHERE
             for R in self.Rs :
-                signal = sphere.get_signal(diff=self.d_is, radius=R)
+                signal = sphere.get_signal(self.d_is, R)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
                 progress.update()
             # Neurites = ASTRO STICKS
             for d in self.d_in :
-                signal = astrosticks.get_signal(diff=d)
+                signal = astrosticks.get_signal(d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
                 progress.update()
             # Extra-cellular = BALL
             for d in self.d_isos :
-                signal = ball.get_signal(diff=d)
+                signal = ball.get_signal(d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1

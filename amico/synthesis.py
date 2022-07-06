@@ -1,17 +1,18 @@
 import numpy as np
+import numpy.matlib as matlib
 import scipy
 from amico.util import ERROR
 
 # Limits the required precision in gpd sum
-__REQUIRED_PRECISION = 1e-7
+_REQUIRED_PRECISION = 1e-7
 
 # Proton gyromagnetic ratio
-__GAMMA = 2.675987e8
+_GAMMA = 2.675987e8
 
-def __gpd_sum(am, big_delta, small_delta, diff, radius, n):
+def _gpd_sum(am, big_delta, small_delta, diff, radius, n):
     sum = 0.0
-    for _am in am:
-        dam = diff * _am * _am
+    for am_ in am:
+        dam = diff * am_ * am_
         e11 = -dam * small_delta
         e2 = -dam * big_delta
         dif = big_delta - small_delta
@@ -19,14 +20,14 @@ def __gpd_sum(am, big_delta, small_delta, diff, radius, n):
         plus = big_delta + small_delta
         e4 = -dam * plus
         nom = 2 * dam * small_delta - 2 + (2 * np.exp(e11)) + (2 * np.exp(e2)) - np.exp(e3) - np.exp(e4)
-        denom = dam * dam * _am * _am * (radius * radius * _am * _am - n)
+        denom = dam * dam * am_ * am_ * (radius * radius * am_ * am_ - n)
         term = nom / denom
         sum += term
-        if term < __REQUIRED_PRECISION * sum:
+        if term < _REQUIRED_PRECISION * sum:
             break
     return big_delta, small_delta, diff, radius, sum
 
-def __scheme2noddi(scheme):
+def _scheme2noddi(scheme):
     protocol = {}
     protocol['pulseseq'] = 'PGSE'
     protocol['schemetype'] = 'multishellfixedG'
@@ -56,7 +57,7 @@ def __scheme2noddi(scheme):
     Gmax = 0.04
 
     # set smalldel and delta and G
-    tmp = np.power(3*maxB*1E6/(2*__GAMMA*__GAMMA*Gmax*Gmax),1.0/3.0)
+    tmp = np.power(3*maxB*1E6/(2*_GAMMA*_GAMMA*Gmax*Gmax),1.0/3.0)
     protocol['udelta'] = np.zeros((len(B)))
     protocol['usmalldel'] = np.zeros((len(B)))
     protocol['uG'] = np.zeros((len(B)))
@@ -91,7 +92,7 @@ def __scheme2noddi(scheme):
 
 # SPHERE
 class SphereGPD():
-    __AM = np.array([
+    _AM = np.array([
     2.081575978, 5.940369990, 9.205840145, 12.40444502,
     15.57923641, 18.74264558, 21.89969648, 25.05282528,
     28.20336100, 31.35209173, 34.49951492, 37.64596032,
@@ -119,18 +120,18 @@ class SphereGPD():
     304.7279241, 307.8695837, 311.0112420, 314.1528990
     ])
 
-    __last_big_delta = 0.0
-    __last_small_delta = 0.0
-    __last_diff = 0.0
-    __last_radius = 0.0
-    __last_sum = 0.0
+    _last_big_delta = 0.0
+    _last_small_delta = 0.0
+    _last_diff = 0.0
+    _last_radius = 0.0
+    _last_sum = 0.0
 
     def __init__(self, scheme):
         self.scheme = scheme
 
     def get_signal(self, diff, radius):
         diff *= 1e-6
-        am = self.__AM / radius
+        am = self._AM / radius
         signal = np.zeros(len(self.scheme.raw))
         for i, raw in enumerate(self.scheme.raw):
             g_dir = raw[0:3]
@@ -142,9 +143,9 @@ class SphereGPD():
             else:
                 g_mods = g_dir * g
                 g_mod = np.sqrt(np.dot(g_mods, g_mods))
-                if big_delta != self.__last_big_delta or small_delta != self.__last_small_delta or diff != self.__last_diff or radius != self.__last_radius:
-                    self.__last_big_delta, self.__last_small_delta, self.__last_diff, self.__last_radius, self.__last_sum = __gpd_sum(am, big_delta, small_delta, diff, radius, 2)
-                signal[i] = np.exp(-2 * __GAMMA * __GAMMA * g_mod * g_mod * self.__last_sum)
+                if big_delta != self._last_big_delta or small_delta != self._last_small_delta or diff != self._last_diff or radius != self._last_radius:
+                    self._last_big_delta, self._last_small_delta, self._last_diff, self._last_radius, self._last_sum = _gpd_sum(am, big_delta, small_delta, diff, radius, 2)
+                signal[i] = np.exp(-2 * _GAMMA * _GAMMA * g_mod * g_mod * self._last_sum)
         return signal
 
 # ZEPPELIN
@@ -204,7 +205,7 @@ class Ball():
 
 # CYLINDER
 class CylinderGPD():
-    __AM = np.array([
+    _AM = np.array([
     1.84118307861360, 5.33144196877749,  8.53631578218074,
     11.7060038949077, 14.8635881488839, 18.0155278304879,
     21.1643671187891, 24.3113254834588, 27.4570501848623,
@@ -227,18 +228,18 @@ class CylinderGPD():
     181.422152668422, 184.563828222242, 187.705499575101
     ])
 
-    __last_big_delta = 0.0
-    __last_small_delta = 0.0
-    __last_diff = 0.0
-    __last_radius = 0.0
-    __last_sum = 0.0
+    _last_big_delta = 0.0
+    _last_small_delta = 0.0
+    _last_diff = 0.0
+    _last_radius = 0.0
+    _last_sum = 0.0
 
     def __init__(self, scheme):
         self.scheme = scheme
 
     def get_signal(self, diff, radius, theta=0, phi=0):
         diff *= 1e-6
-        am = self.__AM / radius
+        am = self._AM / radius
         n = np.array([np.cos(phi) * np.sin(theta), np.sin(phi) * np.sin(theta), np.cos(theta)])
         n_mod = np.sqrt(np.sum(n * n))
         signal = np.zeros(len(self.scheme.raw))
@@ -259,11 +260,11 @@ class CylinderGPD():
                 else:
                     unit_gn = gn / (g_mod * n_mod)
                 omega = np.arccos(unit_gn)
-                if big_delta != self.__last_big_delta or small_delta != self.__last_small_delta or diff != self.__last_diff or radius != self.__last_radius:
-                    self.__last_big_delta, self.__last_small_delta, self.__last_diff, self.__last_radius, self.__last_sum = __gpd_sum(am, big_delta, small_delta, diff, radius, 1)
-                sr_perp = np.exp(-2 * __GAMMA * __GAMMA * g_mod * g_mod * np.sin(omega) * np.sin(omega) * self.__last_sum)
+                if big_delta != self._last_big_delta or small_delta != self._last_small_delta or diff != self._last_diff or radius != self._last_radius:
+                    self._last_big_delta, self._last_small_delta, self._last_diff, self._last_radius, self._last_sum = _gpd_sum(am, big_delta, small_delta, diff, radius, 1)
+                sr_perp = np.exp(-2 * _GAMMA * _GAMMA * g_mod * g_mod * np.sin(omega) * np.sin(omega) * self._last_sum)
                 t = big_delta - small_delta / 3
-                sr_par = np.exp(-t * (__GAMMA * small_delta * g_mod * np.cos(omega) * (__GAMMA * small_delta * g_mod * np.cos(omega))) * diff)
+                sr_par = np.exp(-t * (_GAMMA * small_delta * g_mod * np.cos(omega) * (_GAMMA * small_delta * g_mod * np.cos(omega))) * diff)
                 signal[i]= sr_perp * sr_par
         return signal
 
@@ -271,11 +272,11 @@ class CylinderGPD():
 class NODDIIntraCellular():
     def __init__(self, scheme):
         self.scheme = scheme
-        self.protocol_hr = __scheme2noddi(self.scheme)
+        self.protocol_hr = _scheme2noddi(self.scheme)
 
     def get_signal(self, diff_par, kappa):
         diff_par *= 1e-6
-        return self.__synth_meas_watson_SH_cyl_neuman_PGSE(
+        return self._synth_meas_watson_SH_cyl_neuman_PGSE(
             np.array([diff_par, 0, kappa]),
             self.protocol_hr['grad_dirs'],
             np.squeeze(self.protocol_hr['gradient_strength']),
@@ -284,7 +285,7 @@ class NODDIIntraCellular():
             np.array([0, 0, 1]))
 
     # Intra-cellular signal
-    def __synth_meas_watson_SH_cyl_neuman_PGSE(self, x, grad_dirs, G, delta, smalldel, fibredir):
+    def _synth_meas_watson_SH_cyl_neuman_PGSE(self, x, grad_dirs, G, delta, smalldel, fibredir):
         d=x[0]
         R=x[1]
         kappa=x[2]
@@ -292,20 +293,20 @@ class NODDIIntraCellular():
         l_q = grad_dirs.shape[0]
 
         # Parallel component
-        LePar = self.__cyl_neuman_le_par_PGSE(d, G, delta, smalldel)
+        LePar = self._cyl_neuman_le_par_PGSE(d, G, delta, smalldel)
 
         # Perpendicular component
-        LePerp = self.__cyl_neuman_le_perp_PGSE(d, R, G)
+        LePerp = self._cyl_neuman_le_perp_PGSE(d, R, G)
 
         ePerp = np.exp(LePerp)
 
         # Compute the Legendre weighted signal
         Lpmp = LePerp - LePar
-        lgi = self.__legendre_gaussian_integral(Lpmp, 6)
+        lgi = self._legendre_gaussian_integral(Lpmp, 6)
 
         # Compute the spherical harmonic coefficients of the Watson's distribution
-        coeff = self.__watson_SH_coeff(kappa)
-        coeffMatrix = np.matlib.repmat(coeff, l_q, 1)
+        coeff = self._watson_SH_coeff(kappa)
+        coeffMatrix = matlib.repmat(coeff, l_q, 1)
 
         # Compute the dot product between the symmetry axis of the Watson's distribution
         # and the gradient direction
@@ -324,7 +325,7 @@ class NODDIIntraCellular():
 
         # Compute the SH values at cosTheta
         sh = np.zeros(coeff.shape)
-        shMatrix = np.matlib.repmat(sh, l_q, 1)
+        shMatrix = matlib.repmat(sh, l_q, 1)
         for i in range(7):
             shMatrix[:,i] = np.sqrt((i+1 - .75)/np.pi)
             # legendre function returns coefficients of all m from 0 to l
@@ -344,12 +345,12 @@ class NODDIIntraCellular():
         E = 0.5*E*ePerp
         return E
 
-    def __cyl_neuman_le_par_PGSE(self, d, G, delta, smalldel):
+    def _cyl_neuman_le_par_PGSE(self, d, G, delta, smalldel):
         # Line bellow used in matlab version removed as cyl_neuman_le_par_PGSE is called from synth_meas_watson_SH_cyl_neuman_PGSE which already casts x to d, R and kappa -> x replaced by d in arguments
         #d=x[0]
 
         # Radial wavenumbers
-        modQ = __GAMMA*smalldel*G
+        modQ = _GAMMA*smalldel*G
         modQ_Sq = modQ*modQ
 
         # diffusion time for PGSE, in a matrix for the computation below.
@@ -365,7 +366,7 @@ class NODDIIntraCellular():
         #end
         return LE
 
-    def __cyl_neuman_le_perp_PGSE(self, d, R, G):
+    def _cyl_neuman_le_perp_PGSE(self, d, R, G):
         # When R=0, no need to do any calculation
         if (R == 0.00):
             LE = np.zeros(G.shape) # np.size(R) = 1
@@ -373,7 +374,7 @@ class NODDIIntraCellular():
         else:
             ERROR( '"cyl_neuman_le_perp_PGSE" not yet validated for non-zero values' )
 
-    def __legendre_gaussian_integral(self, Lpmp, n):
+    def _legendre_gaussian_integral(self, Lpmp, n):
         if n > 6:
             ERROR( 'The maximum value for n is 6, which corresponds to the 12th order Legendre polynomial' )
         exact = Lpmp>0.05
@@ -431,7 +432,7 @@ class NODDIIntraCellular():
                 L[approx,6] = 128*x6/760543875
         return L
 
-    def __watson_SH_coeff(self, kappa):
+    def _watson_SH_coeff(self, kappa):
         if isinstance(kappa,np.ndarray):
             ERROR( '"watson_SH_coeff()" not implemented for multiple kappa input yet' )
 
@@ -537,12 +538,12 @@ class NODDIIntraCellular():
 class NODDIExtraCellular():
     def __init__(self, scheme):
         self.scheme = scheme
-        self.protocol_hr = __scheme2noddi(self.scheme)
+        self.protocol_hr = _scheme2noddi(self.scheme)
 
     def get_signal(self, diff_par, kappa, vol_ic):
         diff_par *= 1e-6
         diff_perp = diff_par * (1 - vol_ic)
-        return self.__synth_meas_watson_hindered_diffusion_PGSE(
+        return self._synth_meas_watson_hindered_diffusion_PGSE(
             np.array([diff_par, diff_perp, kappa]),
             self.protocol_hr['grad_dirs'],
             np.squeeze(self.protocol_hr['gradient_strength']),
@@ -551,20 +552,20 @@ class NODDIExtraCellular():
             np.array([0, 0, 1]))
 
     # Extra-cellular signal
-    def __synth_meas_watson_hindered_diffusion_PGSE(self, x, grad_dirs, G, delta, smalldel, fibredir):
+    def _synth_meas_watson_hindered_diffusion_PGSE(self, x, grad_dirs, G, delta, smalldel, fibredir):
         dPar = x[0]
         dPerp = x[1]
         kappa = x[2]
 
         # get the equivalent diffusivities
-        dw = self.__watson_hindered_diffusion_coeff(dPar, dPerp, kappa)
+        dw = self._watson_hindered_diffusion_coeff(dPar, dPerp, kappa)
 
         xh = np.array([dw[0], dw[1]])
 
-        E = self.__synth_meas_hindered_diffusion_PGSE(xh, grad_dirs, G, delta, smalldel, fibredir)
+        E = self._synth_meas_hindered_diffusion_PGSE(xh, grad_dirs, G, delta, smalldel, fibredir)
         return E
 
-    def __watson_hindered_diffusion_coeff(self, dPar, dPerp, kappa):
+    def _watson_hindered_diffusion_coeff(self, dPar, dPerp, kappa):
         dw = np.zeros(2)
         dParMdPerp = dPar - dPerp
 
@@ -581,12 +582,12 @@ class NODDIExtraCellular():
             dw[1] = (dParMdPerp+2.0*(dPar+dPerp)*kappa-dParMdPerp*factor)/(4.0*kappa)
         return dw
 
-    def __synth_meas_hindered_diffusion_PGSE(self, x, grad_dirs, G, delta, smalldel, fibredir):
+    def _synth_meas_hindered_diffusion_PGSE(self, x, grad_dirs, G, delta, smalldel, fibredir):
         dPar=x[0]
         dPerp=x[1]
 
         # Radial wavenumbers
-        modQ = __GAMMA*smalldel*G
+        modQ = _GAMMA*smalldel*G
         modQ_Sq = np.power(modQ,2.0)
 
         # Angles between gradient directions and fibre direction.
@@ -604,18 +605,18 @@ class NODDIExtraCellular():
 class NODDIIsotropic():
     def __init__(self, scheme):
         self.scheme = scheme
-        self.protocol_hr = __scheme2noddi(self.scheme)
+        self.protocol_hr = _scheme2noddi(self.scheme)
 
-    def get_signal(self, diff_iso, kappa):
+    def get_signal(self, diff_iso):
         diff_iso *= 1e-6
-        return self.__synth_meas_iso_GPD(diff_iso, self.protocol_hr)
+        return self._synth_meas_iso_GPD(diff_iso, self.protocol_hr)
 
     # Isotropic signal
-    def __synth_meas_iso_GPD(self, d, protocol):
+    def _synth_meas_iso_GPD(self, d, protocol):
         if protocol['pulseseq'] != 'PGSE' and protocol['pulseseq'] != 'STEAM':
             ERROR( 'synth_meas_iso_GPD() : Protocol %s not translated from NODDI matlab code yet' % protocol['pulseseq'] )
 
-        modQ = __GAMMA*protocol['smalldel'].transpose()*protocol['gradient_strength'].transpose()
+        modQ = _GAMMA*protocol['smalldel'].transpose()*protocol['gradient_strength'].transpose()
         modQ_Sq = np.power(modQ,2)
         difftime = protocol['delta'].transpose()-protocol['smalldel']/3.0
         return np.exp(-difftime*modQ_Sq*d)
