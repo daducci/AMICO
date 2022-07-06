@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.5.0] - 2022-07-06
+
+### Changed
+- Implemented the 'synthesis.py' module for kernels generation
+- 'datasynth' tool (CAMINO) no more needed
+
 ## [1.4.4] - 2022-06-14
 
 ### Fixed
