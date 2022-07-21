@@ -91,7 +91,7 @@ def _scheme2noddi(scheme):
 
     return protocol
 
-# TENSOR
+# TENSOR-BASED
 class BaseTensor(ABC):
     def __init__(self, scheme):
         self.scheme = scheme
@@ -110,21 +110,25 @@ class BaseTensor(ABC):
             signal[i] = np.exp(-b[i] * np.linalg.multi_dot([g.T, d, g]))
         return signal
 
+# TENSOR
 class Tensor(BaseTensor):
     def get_signal(self, diff_par, diff_perp1, diff_perp2):
         evals = np.array([diff_perp1, diff_perp2, diff_par])
         return super()._get_signal(evals)
 
+# STICK
 class Stick(BaseTensor):
     def get_signal(self, diff):
         evals = np.array([0, 0, diff])
         return super()._get_signal(evals)
 
+# ZEPPELIN
 class Zeppelin(BaseTensor):
     def get_signal(self, diff_par, diff_perp):
         evals = np.array([diff_perp, diff_perp, diff_par])
         return super()._get_signal(evals)
 
+# BALL
 class Ball(BaseTensor):
     def get_signal(self, diff):
         evals = np.array([diff, diff, diff])
@@ -183,32 +187,6 @@ class SphereGPD():
                 signal[i] = np.exp(-2 * _GAMMA * _GAMMA * g_mod * g_mod * self._last_sum)
         return signal
 
-# ZEPPELIN
-class Zeppelin():
-    def __init__(self, scheme):
-        self.scheme = scheme
-        self.g_dir = self.scheme.raw[:, :3]
-        self.b = self.scheme.b
-
-    def get_signal(self, diff_par, diff_perp, theta=0, phi=0):
-        n = np.array([np.cos(phi) * np.sin(theta), np.sin(phi) * np.sin(theta), np.cos(theta)])
-        gn = np.dot(self.g_dir, n)
-        signal = np.exp(-self.b * ((diff_par - diff_perp) * gn * gn + diff_perp))
-        return signal
-
-# STICK
-class Stick():
-    def __init__(self, scheme):
-        self.scheme = scheme
-        self.g_dir = self.scheme.raw[:, :3]
-        self.b = self.scheme.b
-
-    def get_signal(self, diff, theta=0, phi=0):
-        n = np.array([np.cos(phi) * np.sin(theta), np.sin(phi) * np.sin(theta), np.cos(theta)])
-        gn = np.dot(self.g_dir, n)
-        signal = np.exp(-self.b * diff * gn * gn)
-        return signal
-
 # ASTROSTICKS
 class Astrosticks():
     def __init__(self, scheme):
@@ -226,16 +204,6 @@ class Astrosticks():
                 l_perp = 0
                 l_par = -b / (g * g) * diff
                 signal[i] = np.sqrt(np.pi) * 1 / (2 * g * np.sqrt(l_perp - l_par)) * np.exp(g * g * l_perp) * scipy.special.erf(g * np.sqrt(l_perp - l_par))
-        return signal
-
-# BALL
-class Ball():
-    def __init__(self, scheme):
-        self.scheme = scheme
-        self.b = self.scheme.b
-
-    def get_signal(self, diff):
-        signal = np.exp(-self.b * diff)
         return signal
 
 # CYLINDER

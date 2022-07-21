@@ -3,7 +3,9 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 import os.path
 from sys import exit
-from amico.synthesis import _GAMMA
+# TODO: fix this circular import error
+# from amico.synthesis import _GAMMA
+_GAMMA = 2.675987e8
 
 __VERBOSE_LEVEL__ = 3
 
