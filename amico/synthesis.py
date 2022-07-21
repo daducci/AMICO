@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import numpy as np
 import numpy.matlib as matlib
 import scipy
@@ -6,7 +7,7 @@ from amico.util import ERROR
 # Limits the required precision in gpd sum
 _REQUIRED_PRECISION = 1e-7
 
-# Proton gyromagnetic ratio
+# Proton gyromagnetic ratio (used in NODDI toolbox)
 _GAMMA = 2.675987e8
 
 def _gpd_sum(am, big_delta, small_delta, diff, radius, n):
@@ -89,6 +90,45 @@ def _scheme2noddi(scheme):
         protocol['grad_dirs'][i,:] = protocol['grad_dirs'][i,:]/np.linalg.norm(protocol['grad_dirs'][i,:])
 
     return protocol
+
+# TENSOR
+class BaseTensor(ABC):
+    def __init__(self, scheme):
+        self.scheme = scheme
+
+    @abstractmethod
+    def get_signal(self):
+        pass
+
+    def _get_signal(self, evals):
+        evecs = np.eye(3)
+        d = np.linalg.multi_dot([evecs, np.diag(evals), evecs.T])
+        g_dir = self.scheme.raw[:, :3]
+        b = self.scheme.b
+        signal = np.zeros(len(self.scheme.raw))
+        for i, g in enumerate(g_dir):
+            signal[i] = np.exp(-b[i] * np.linalg.multi_dot([g.T, d, g]))
+        return signal
+
+class Tensor(BaseTensor):
+    def get_signal(self, diff_par, diff_perp1, diff_perp2):
+        evals = np.array([diff_perp1, diff_perp2, diff_par])
+        return super()._get_signal(evals)
+
+class Stick(BaseTensor):
+    def get_signal(self, diff):
+        evals = np.array([0, 0, diff])
+        return super()._get_signal(evals)
+
+class Zeppelin(BaseTensor):
+    def get_signal(self, diff_par, diff_perp):
+        evals = np.array([diff_perp, diff_perp, diff_par])
+        return super()._get_signal(evals)
+
+class Ball(BaseTensor):
+    def get_signal(self, diff):
+        evals = np.array([diff, diff, diff])
+        return super()._get_signal(evals)
 
 # SPHERE
 class SphereGPD():
