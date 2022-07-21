@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 from re import match as re_match
 from amico.util import LOG, NOTE, WARNING, ERROR
+from amico.synthesis import _GAMMA
 
 class Scheme :
     """A class to hold information about an acquisition scheme.
@@ -77,7 +78,7 @@ class Scheme :
             self.b = self.raw[:,3]
         elif self.raw.shape[1] == 7 :
             self.version = 1
-            self.b = ( 267.513e6 * self.raw[:,3] * self.raw[:,5] )**2 * (self.raw[:,4] - self.raw[:,5]/3.0) * 1e-6 # in mm^2/s
+            self.b = ( _GAMMA * self.raw[:,3] * self.raw[:,5] )**2 * (self.raw[:,4] - self.raw[:,5]/3.0) * 1e-6 # in mm^2/s
         else :
             ERROR( 'Unrecognized scheme format' )
 
