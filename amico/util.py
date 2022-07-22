@@ -221,7 +221,8 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
 
             bvals[i] = bStep[ind]
 
-    G = np.sqrt( bvals*1e6 / (267.513e6**2 *  smalldel**2 * (delta - smalldel/3.0) ) )
+    from amico.synthesis import _GAMMA
+    G = np.sqrt( bvals*1e6 / (_GAMMA**2 *  smalldel**2 * (delta - smalldel/3.0) ) )
 
     # write corresponding scheme file
     np.savetxt( schemeFilename, np.c_[bvecs.T, G, delta, smalldel, TE], fmt="%.06f", delimiter="\t", header="VERSION: 1", comments='' )
