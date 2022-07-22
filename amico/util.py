@@ -3,9 +3,6 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 import os.path
 from sys import exit
-# TODO: fix this circular import error
-# from amico.synthesis import _GAMMA
-_GAMMA = 2.675987e8
 
 __VERBOSE_LEVEL__ = 3
 
@@ -224,6 +221,7 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
 
             bvals[i] = bStep[ind]
 
+    from amico.synthesis import _GAMMA
     G = np.sqrt( bvals*1e6 / (_GAMMA**2 *  smalldel**2 * (delta - smalldel/3.0) ) )
 
     # write corresponding scheme file
