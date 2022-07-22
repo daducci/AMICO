@@ -93,14 +93,47 @@ def _scheme2noddi(scheme):
 
 # TENSOR-BASED
 class BaseTensor(ABC):
+    """
+    Abstract class for tensor-based compartments.
+
+    Attributes
+    ----------
+    scheme : amico.scheme.Scheme
+        A scheme object containing the acquisition information.
+    """
     def __init__(self, scheme):
+        """
+        Initialize the tensor-based compartment.
+
+        Parameters
+        ----------
+        scheme : amico.scheme.Scheme
+            A scheme object containing the acquisition information.
+        """
         self.scheme = scheme
 
     @abstractmethod
     def get_signal(self):
+        """
+        Return the computed signal.
+        NOTE: Subclasses must implement this method.
+        """
         pass
 
     def _get_signal(self, evals):
+        """
+        Compute the signal from the tensor-based compartment.
+
+        Parameters
+        ----------
+        evals : ndarray
+            The eigenvalues of the tensor.
+
+        Returns
+        -------
+        signal : ndarray
+            The computed signal.
+        """
         evecs = np.eye(3)
         d = np.linalg.multi_dot([evecs, np.diag(evals), evecs.T])
         g_dir = self.scheme.raw[:, :3]
@@ -112,30 +145,128 @@ class BaseTensor(ABC):
 
 # TENSOR
 class Tensor(BaseTensor):
+    """
+    Class to generate the signal from a tensor model.
+
+    Attributes
+    ----------
+    scheme : amico.scheme.Scheme
+        A scheme object containing the acquisition information.
+    """
     def get_signal(self, diff_par, diff_perp1, diff_perp2):
+        """
+        Compute the signal from the tensor compartment.
+
+        Parameters
+        ----------
+        diff_par : float
+            The parallel diffusivity of the tensor.
+        diff_perp1 : float
+            The first perpendicular diffusivity of the tensor.
+        diff_perp2 : float
+            The second perpendicular diffusivity of the tensor.
+
+        Returns
+        -------
+        signal : ndarray
+            The computed signal.
+        """
         evals = np.array([diff_perp1, diff_perp2, diff_par])
         return super()._get_signal(evals)
 
 # STICK
 class Stick(BaseTensor):
+    """
+    Class to generate the signal from a stick compartment.
+
+    Attributes
+    ----------
+    scheme : amico.scheme.Scheme
+        A scheme object containing the acquisition information.
+    """
     def get_signal(self, diff):
+        """
+        Compute the signal from the stick compartment.
+
+        Parameters
+        ----------
+        diff : float
+            The parallel diffusivity of the stick.
+
+        Returns
+        -------
+        signal : ndarray
+            The computed signal.
+        """
         evals = np.array([0, 0, diff])
         return super()._get_signal(evals)
 
 # ZEPPELIN
 class Zeppelin(BaseTensor):
+    """
+    Class to generate the signal from a zeppelin compartment.
+
+    Attributes
+    ----------
+    scheme : amico.scheme.Scheme
+        A scheme object containing the acquisition information.
+    """
     def get_signal(self, diff_par, diff_perp):
+        """
+        Compute the signal from the zeppelin compartment.
+
+        Parameters
+        ----------
+        diff_par : float
+            The parallel diffusivity of the zeppelin.
+        diff_perp : float
+            The perpendicular diffusivity of the zeppelin.
+
+        Returns
+        -------
+        signal : ndarray
+            The computed signal.
+        """
         evals = np.array([diff_perp, diff_perp, diff_par])
         return super()._get_signal(evals)
 
 # BALL
 class Ball(BaseTensor):
+    """
+    Class to generate the signal from a ball compartment.
+
+    Attributes
+    ----------
+    scheme : amico.scheme.Scheme
+        A scheme object containing the acquisition information.
+    """
     def get_signal(self, diff):
+        """
+        Compute the signal from the ball compartment.
+
+        Parameters
+        ----------
+        diff : float
+            The diffusivity of the ball.
+
+        Returns
+        -------
+        signal : ndarray
+            The computed signal.
+        """
         evals = np.array([diff, diff, diff])
         return super()._get_signal(evals)
 
 # SPHERE
 class SphereGPD():
+    """
+    Class to generate the signal from a sphere compartment with GPD approximation.
+
+    Attributes
+    ----------
+    scheme : amico.scheme.Scheme
+        A scheme object containing the acquisition information.
+    """
     _AM = np.array([
     2.08157597781810, 5.94036999057271, 9.20584014293667,
     12.4044450219020, 15.5792364103872, 18.7426455847748,
@@ -166,9 +297,32 @@ class SphereGPD():
     _last_sum = 0.0
 
     def __init__(self, scheme):
+        """
+        Initialize the sphere compartment.
+
+        Parameters
+        ----------
+        scheme : amico.scheme.Scheme
+            A scheme object containing the acquisition information.
+        """
         self.scheme = scheme
 
     def get_signal(self, diff, radius):
+        """
+        Compute the signal from the sphere compartment.
+
+        Parameters
+        ----------
+        diff : float
+            The diffusivity of the sphere.
+        radius : float
+            The radius of the sphere.
+
+        Returns
+        -------
+        signal : ndarray
+            The computed signal.
+        """
         diff *= 1e-6
         am = self._AM / radius
         signal = np.zeros(len(self.scheme.raw))
@@ -189,10 +343,39 @@ class SphereGPD():
 
 # ASTROSTICKS
 class Astrosticks():
+    """
+    Class to generate the signal from an astrosticks compartment (sticks with distributed orientations).
+
+    Attributes
+    ----------
+    scheme : amico.scheme.Scheme
+        A scheme object containing the acquisition information.
+    """
     def __init__(self, scheme):
+        """
+        Initialize the astrosticks compartment.
+
+        Parameters
+        ----------
+        scheme : amico.scheme.Scheme
+            A scheme object containing the acquisition information.
+        """
         self.scheme = scheme
 
     def get_signal(self, diff):
+        """
+        Compute the signal from the astrosticks compartment.
+
+        Parameters
+        ----------
+        diff : float
+            The diffusivity of the sticks.
+
+        Returns
+        -------
+        signal : ndarray
+            The computed signal.
+        """
         signal = np.zeros(len(self.scheme.raw))
         for i, raw in enumerate(self.scheme.raw):
             g_dir = raw[0:3]
@@ -208,6 +391,14 @@ class Astrosticks():
 
 # CYLINDER
 class CylinderGPD():
+    """
+    Class to generate the signal from a cylinder compartment with GPD approximation.
+
+    Attributes
+    ----------
+    scheme : amico.scheme.Scheme
+        A scheme object containing the acquisition information.
+    """
     _AM = np.array([
     1.84118307861360, 5.33144196877749,  8.53631578218074,
     11.7060038949077, 14.8635881488839, 18.0155278304879,
@@ -238,9 +429,31 @@ class CylinderGPD():
     _last_sum = 0.0
 
     def __init__(self, scheme):
+        """
+        Initialize the cylinder compartment.
+
+        Parameters
+        ----------
+        scheme : amico.scheme.Scheme
+            A scheme object containing the acquisition information.
+        """
         self.scheme = scheme
 
     def get_signal(self, diff, radius, theta=0, phi=0):
+        """
+        Compute the signal from the cylinder compartment.
+
+        Parameters
+        ----------
+        diff : float
+            The diffusivity of the cylinder.
+        radius : float
+            The radius of the cylinder.
+        theta : float
+            The angle theta of the cylinder.
+        phi : float
+            The angle phi of the cylinder.
+        """
         diff *= 1e-6
         am = self._AM / radius
         n = np.array([np.cos(phi) * np.sin(theta), np.sin(phi) * np.sin(theta), np.cos(theta)])
