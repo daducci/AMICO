@@ -47,7 +47,7 @@ class Evaluation :
     evaluation with the AMICO framework.
     """
 
-    def __init__( self, study_path, subject, output_path=None, verbose=2 ) :
+    def __init__( self, study_path, subject, output_path=None ) :
         """Setup the data structure with default values.
 
         Parameters
@@ -59,8 +59,6 @@ class Evaluation :
         output_path : string
             Optionally sets a custom full path for the output. Leave as None
             for default behaviour - output in study_path/subject/AMICO/<MODEL>
-        verbose : int
-            Possible values: 2->show all, 1->hide progress bars, 0->hide all
         """
         self.niiDWI      = None # set by "load_data" method
         self.niiDWI_img  = None
@@ -91,7 +89,6 @@ class Evaluation :
         self.set_config('DWI-SNR', None)                # SNR of DWI image: SNR = b0/sigma
         self.set_config('doDirectionalAverage', False)  # To perform the directional average on the signal of each shell
         self.set_config('parallel_jobs', -1)            # Number of jobs to be used in multithread-enabled parts of code
-        self.set_config('verbose', verbose)
 
     def set_config( self, key, value ) :
         self.CONFIG[ key ] = value
