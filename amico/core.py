@@ -123,6 +123,8 @@ class Evaluation :
         self.niiDWI  = nibabel.load( pjoin(self.get_config('DATA_path'), dwi_filename) )
         self.niiDWI_img = self.niiDWI.get_data().astype(np.float32)
         hdr = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
+        if self.niiDWI_img.ndim != 4 :
+            ERROR( 'DWI file is not a 4D image' )
         self.set_config('dim', self.niiDWI_img.shape[:3])
         self.set_config('pixdim', tuple( hdr.get_zooms()[:3] ))
         PRINT('\t\t- dim    = %d x %d x %d x %d' % self.niiDWI_img.shape)
@@ -159,7 +161,7 @@ class Evaluation :
             PRINT('\t\t- dim    = %d x %d x %d' % self.niiMASK_img.shape[:3])
             PRINT('\t\t- pixdim = %.3f x %.3f x %.3f' % niiMASK_hdr.get_zooms()[:3])
             if self.niiMASK.ndim != 3 :
-                ERROR( 'The provided MASK if 4D, but a 3D dataset is expected' )
+                ERROR( 'MASK file is not a 3D image' )
             if self.get_config('dim') != self.niiMASK_img.shape[:3] :
                 ERROR( 'MASK geometry does not match with DWI data' )
         else :

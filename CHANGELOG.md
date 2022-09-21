@@ -4,7 +4,7 @@ All notable changes to AMICO will be documented in this file.
 ## [1.5.1] - 2022-09-21
 
 ### Fixed
--
+- Check if DWI file is a 4D image
 - Removed unused 'verbose' option in __init__ (now all is controleld by 'set_verbose')
 
 ## [1.5.0] - 2022-07-06
