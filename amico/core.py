@@ -97,7 +97,7 @@ class Evaluation :
         return self.CONFIG.get( key )
 
 
-    def load_data( self, dwi_filename='DWI.nii', scheme_filename='DWI.scheme', mask_filename=None, b0_thr=0 ) :
+    def load_data( self, dwi_filename='DWI.nii', scheme_filename='DWI.scheme', mask_filename=None, b0_thr=0, b0_min_signal=0, replace_bad_voxels=None ) :
         """Load the diffusion signal and its corresponding acquisition scheme.
 
         Parameters
@@ -110,6 +110,10 @@ class Evaluation :
             The file name of the (optional) binary mask (default : None)
         b0_thr : float
             The threshold below which a b-value is considered a b0 (default : 0)
+        b0_min_signal : float, optional
+            Crop to zero the signal in voxels where the b0 <= b0_min_signal * mean(b0[b0>0]). (default : 0)
+        replace_bad_voxels : float, optional
+            Value to be used to fill NaN and Inf values in the signal. (default : None)
         """
 
         # Loading data, acquisition scheme and mask (optional)
@@ -174,6 +178,8 @@ class Evaluation :
 
         # Preprocessing
         LOG( '\n-> Preprocessing:' )
+        if replace_bad_voxels is not None:
+            WARNING('Nan and Inf values in the signal will be replaced with: {0}'.format(replace_bad_voxels))
         tic = time.time()
 
         if self.get_config('doDebiasSignal') :
@@ -192,12 +198,17 @@ class Evaluation :
             else:
                 ERROR( 'No b0 volume to normalize signal with' )
             norm_factor = self.mean_b0s.copy()
-            idx = self.mean_b0s <= 0
+            idx = norm_factor <= b0_min_signal * norm_factor[norm_factor > 0].mean()
             norm_factor[ idx ] = 1
             norm_factor = 1 / norm_factor
             norm_factor[ idx ] = 0
             for i in range(self.scheme.nS) :
                 self.niiDWI_img[:,:,:,i] *= norm_factor
+            if self.niiDWI_img[np.isnan(self.niiDWI_img)].any() or self.niiDWI_img[np.isinf(self.niiDWI_img)].any():
+                if replace_bad_voxels is not None:
+                    np.nan_to_num(self.niiDWI_img, copy=False, nan=replace_bad_voxels, posinf=replace_bad_voxels, neginf=replace_bad_voxels)
+                else:
+                    ERROR('Nan or Inf values in the signal. Try using the "replace_bad_voxels" parameter when calling "load_data()"', '\n')
             PRINT(f'[ min={self.niiDWI_img.min():.2f},  mean={self.niiDWI_img.mean():.2f}, max={self.niiDWI_img.max():.2f} ]')
 
         if self.get_config('doMergeB0') :
