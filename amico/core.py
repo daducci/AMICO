@@ -124,6 +124,8 @@ class Evaluation :
         if not isfile( pjoin(self.get_config('DATA_path'), dwi_filename) ):
             ERROR( 'DWI file not found' )
         self.set_config('dwi_filename', dwi_filename)
+        self.set_config('b0_min_signal', b0_min_signal)
+        self.set_config('replace_bad_voxels', replace_bad_voxels)
         self.niiDWI  = nibabel.load( pjoin(self.get_config('DATA_path'), dwi_filename) )
         self.niiDWI_img = self.niiDWI.get_data().astype(np.float32)
         hdr = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
@@ -181,6 +183,7 @@ class Evaluation :
             self.niiMASK = None
             self.niiMASK_img = np.ones( self.get_config('dim') )
             PRINT('\t\t- not specified')
+        self.set_config('mask_filename', mask_filename)
         PRINT(f'\t\t- voxels = {np.count_nonzero(self.niiMASK_img)}')
 
         LOG( f'   [ {time.time() - tic:.1f} seconds ]' )
