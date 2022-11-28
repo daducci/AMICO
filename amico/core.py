@@ -97,7 +97,7 @@ class Evaluation :
         return self.CONFIG.get( key )
 
 
-    def load_data( self, dwi_filename='DWI.nii', scheme_filename='DWI.scheme', mask_filename=None, b0_thr=0 ) :
+    def load_data( self, dwi_filename='DWI.nii', scheme_filename='DWI.scheme', mask_filename=None, b0_thr=0, b0_min_signal=0, replace_bad_voxels=None ) :
         """Load the diffusion signal and its corresponding acquisition scheme.
 
         Parameters
@@ -110,6 +110,10 @@ class Evaluation :
             The file name of the (optional) binary mask (default : None)
         b0_thr : float
             The threshold below which a b-value is considered a b0 (default : 0)
+        b0_min_signal : float, optional
+            Crop to zero the signal in voxels where the b0 <= b0_min_signal * mean(b0[b0>0]). (default : 0)
+        replace_bad_voxels : float, optional
+            Value to be used to fill NaN and Inf values in the signal. (default : do nothing)
         """
 
         # Loading data, acquisition scheme and mask (optional)
@@ -120,6 +124,8 @@ class Evaluation :
         if not isfile( pjoin(self.get_config('DATA_path'), dwi_filename) ):
             ERROR( 'DWI file not found' )
         self.set_config('dwi_filename', dwi_filename)
+        self.set_config('b0_min_signal', b0_min_signal)
+        self.set_config('replace_bad_voxels', replace_bad_voxels)
         self.niiDWI  = nibabel.load( pjoin(self.get_config('DATA_path'), dwi_filename) )
         self.niiDWI_img = self.niiDWI.get_data().astype(np.float32)
         hdr = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
@@ -129,12 +135,21 @@ class Evaluation :
         self.set_config('pixdim', tuple( hdr.get_zooms()[:3] ))
         PRINT('\t\t- dim    = %d x %d x %d x %d' % self.niiDWI_img.shape)
         PRINT('\t\t- pixdim = %.3f x %.3f x %.3f' % self.get_config('pixdim'))
+
         # Scale signal intensities (if necessary)
         if ( np.isfinite(hdr['scl_slope']) and np.isfinite(hdr['scl_inter']) and hdr['scl_slope'] != 0 and
             ( hdr['scl_slope'] != 1 or hdr['scl_inter'] != 0 ) ):
             PRINT('\t\t- rescaling data ', end='')
             self.niiDWI_img = self.niiDWI_img * hdr['scl_slope'] + hdr['scl_inter']
             PRINT('[OK]')
+
+        # Check for Nan or Inf values in raw data
+        if np.isnan(self.niiDWI_img).any() or np.isinf(self.niiDWI_img).any():
+            if replace_bad_voxels is not None:
+                WARNING(f'Nan or Inf values in the raw signal. They will be replaced with: {replace_bad_voxels}')
+                np.nan_to_num(self.niiDWI_img, copy=False, nan=replace_bad_voxels, posinf=replace_bad_voxels, neginf=replace_bad_voxels)
+            else:
+                ERROR('Nan or Inf values in the raw signal. Try using the "replace_bad_voxels" or "b0_min_signal" parameters when calling "load_data()"')
 
         PRINT('\t* Acquisition scheme')
         if not isfile( pjoin(self.get_config('DATA_path'), scheme_filename) ):
@@ -168,6 +183,7 @@ class Evaluation :
             self.niiMASK = None
             self.niiMASK_img = np.ones( self.get_config('dim') )
             PRINT('\t\t- not specified')
+        self.set_config('mask_filename', mask_filename)
         PRINT(f'\t\t- voxels = {np.count_nonzero(self.niiMASK_img)}')
 
         LOG( f'   [ {time.time() - tic:.1f} seconds ]' )
@@ -192,7 +208,7 @@ class Evaluation :
             else:
                 ERROR( 'No b0 volume to normalize signal with' )
             norm_factor = self.mean_b0s.copy()
-            idx = self.mean_b0s <= 0
+            idx = norm_factor <= b0_min_signal * norm_factor[norm_factor > 0].mean()
             norm_factor[ idx ] = 1
             norm_factor = 1 / norm_factor
             norm_factor[ idx ] = 0
@@ -244,6 +260,14 @@ class Evaluation :
 
             if self.scheme.nS != self.niiDWI_img.shape[3] :
                 ERROR( 'Scheme does not match with DWI data' )
+
+        # Check for Nan or Inf values in pre-processed data
+        if np.isnan(self.niiDWI_img).any() or np.isinf(self.niiDWI_img).any():
+            if replace_bad_voxels is not None:
+                WARNING(f'Nan or Inf values in the signal after the pre-processing. They will be replaced with: {replace_bad_voxels}')
+                np.nan_to_num(self.niiDWI_img, copy=False, nan=replace_bad_voxels, posinf=replace_bad_voxels, neginf=replace_bad_voxels)
+            else:
+                ERROR('Nan or Inf values in the signal after the pre-processing. Try using the "replace_bad_voxels" or "b0_min_signal" parameters when calling "load_data()"')
 
         LOG( f'   [ {time.time() - tic:.1f} seconds ]' )
 

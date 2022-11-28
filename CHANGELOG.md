@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.5.2] - 2022-10-21
+
+### Added
+- 'b0_min_signal' parameter in 'load_data()' to crop to zero the signal in voxels where the b0 <= b0_min_signal * mean(b0[b0 > 0])
+- 'replace_bad_voxels' parameter in 'load_data()' to replace NaN and Inf values in the signal
+
 ## [1.5.1] - 2022-09-21
 
 ### Fixed
