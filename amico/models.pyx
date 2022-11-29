@@ -1,29 +1,47 @@
+# distutils: language = c++
+# cython: language_level = 3
+
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
-import scipy
 from os.path import join as pjoin
 import amico.lut
 from tqdm import tqdm
-import abc
+from abc import ABC, abstractmethod
 from amico.util import PRINT, ERROR, get_verbose
 from amico.synthesis import Stick, Zeppelin, Ball, CylinderGPD, SphereGPD, Astrosticks, NODDIIntraCellular, NODDIExtraCellular, NODDIIsotropic
+from joblib import Parallel, delayed
 
-import warnings
-warnings.filterwarnings("ignore") # needed for a problem with spams
-warnings.formatwarning = lambda message, category, filename, lineno, line=None: \
-    "[WARNING] %s " % message
+cimport cython
+from libc.stdlib cimport malloc, free
+from libc.math cimport pi, atan2, sqrt, pow as cpow
+from amico.lut cimport dir_to_lut_idx
 
-# import the spams module, which is used only to fit the models in AMICO.
-# But, on the other hand, using the models from COMMIT does not require that!
-try :
-    import spams
-except ImportError:
-    warnings.warn('Module "spams" does not seems to be installed; perhaps you will not be able to call the fit() functions of some models.')
+cdef extern from 'wrappers.h':
+    cdef void nnls(const double *A, const double *y, const int m, const int n, double *x, double &rnorm) nogil
+    cdef void lasso(double *A, double *y, const int m, const int p, const int n, const double lambda1, const double lambda2, double *x) nogil
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void _compute_nrmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *nrmse_view) nogil:
+    cdef double den = 0.0
+    cdef double *y_est = <double *>malloc(sizeof(double) * y_view.shape[0])
+
+    cdef Py_ssize_t i, j
+    for i in range(A_view.shape[0]):
+        y_est[i] = 0.0
+        den += cpow(y_view[i], 2.0)
+        for j in range(A_view.shape[1]):
+            y_est[i] += A_view[i, j] * x_view[j]
+    if den > 1e-16:
+        for i in range(A_view.shape[0]):
+            nrmse_view[0] += cpow(y_view[i] - y_est[i], 2.0) / den
+        nrmse_view[0] = sqrt(nrmse_view[0])
+    free(y_est)
 
 
-class BaseModel( object ) :
-#class BaseModel( object, metaclass=abc.ABCMeta ) :
+
+class BaseModel(ABC) :
     """Basic class to build a model; new models should inherit from this class.
     All the methods need to be overloaded to account for the specific needs of the model.
     Each method will then be called by a dispatcher when needed.
@@ -43,9 +61,7 @@ class BaseModel( object ) :
     maps_descr : list of strings
         Description of each map (will be saved in the description of the NIFTI header)
     """
-    __metaclass__ = abc.ABCMeta
-
-    @abc.abstractmethod
+    @abstractmethod
     def __init__( self ) :
         """To define the parameters of the model, e.g. id and name, returned maps,
         model-specific parameters etc.
@@ -58,7 +74,7 @@ class BaseModel( object ) :
         return
 
 
-    @abc.abstractmethod
+    @abstractmethod
     def set( self, *args, **kwargs ) :
         """For setting all the parameters specific to the model.
         NB: the parameters are model-dependent.
@@ -66,7 +82,7 @@ class BaseModel( object ) :
         return
 
 
-    @abc.abstractmethod
+    @abstractmethod
     def get_params( self ) :
         """For getting the actual values of all the parameters specific to the model.
         NB: the parameters are model-dependent.
@@ -74,7 +90,7 @@ class BaseModel( object ) :
         return
 
 
-    @abc.abstractmethod
+    @abstractmethod
     def set_solver( self, *args, **kwargs ) :
         """For setting the parameters required by the solver to fit the model.
         NB: the parameters are model-dependent.
@@ -87,7 +103,7 @@ class BaseModel( object ) :
         return
 
 
-    @abc.abstractmethod
+    @abstractmethod
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
         """For generating the signal response-functions and createing the LUT.
         NB: do not change the signature!
@@ -108,7 +124,7 @@ class BaseModel( object ) :
         return
 
 
-    @abc.abstractmethod
+    @abstractmethod
     def resample( self, in_path, idx_out, Ylm_out, doMergeB0, ndirs ) :
         """For projecting the LUT to the subject space.
         NB: do not change the signature!
@@ -135,34 +151,32 @@ class BaseModel( object ) :
         return
 
 
-    @abc.abstractmethod
-    def fit( self, y, dirs, KERNELS, params ) :
+    @abstractmethod
+    def fit(self, evaluation):
         """For fitting the model to the data.
         NB: do not change the signature!
 
         Parameters
         ----------
-        y : array
-            Diffusion signal at this voxel
-        dirs : list of arrays
-            Directions fitted in the voxel
-        KERNELS : dictionary
-            Contains the LUT and all corresponding details
-        params : dictionary
-            Parameters to be used by the solver
+        evaluation: amico.core.Evaluation
+            AMICO Evaluaton instance
 
         Returns
         -------
-        MAPs : list of floats
+        estiamtes: np.ndarray
             Scalar values eastimated in each voxel
-        dirs_mod : list of arrays
-            Updated directions (if applicable), otherwise just return dirs
-        x : array
-            Coefficients of the fitting
-        A : array
-            Actual dictionary used in the fitting
+        nrmse: np.ndarray (optional)
+            Fitting error
+        y_corrected: np.ndarray (optional)
+            Corrected y
         """
-        return
+        n = evaluation.y.shape[0]
+        c = n // evaluation.n_threads
+        self.chunks = []
+        for i, j in zip(range(0, n, c), range(c, n+1, c)):
+            self.chunks.append((i, j))
+        if self.chunks[-1][1] != n:
+            self.chunks[-1] = (self.chunks[-1][0], n)
 
 
 
@@ -445,43 +459,125 @@ class CylinderZeppelinBall( BaseModel ) :
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params, htable ) :
-        nD = dirs.shape[0]
-        n1 = len(self.Rs)
-        n2 = len(self.d_perps)
-        n3 = len(self.d_isos)
-        if self.isExvivo:
-            nATOMS = nD*(n1+n2)+n3+1
+    def fit(self, evaluation):
+        super().fit(evaluation)
+        configs = {
+            'compute_nrmse': evaluation.get_config('doComputeNRMSE')
+        }
+
+        # fit chunks in parallel
+        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, evaluation.get_config('solver_params'), configs) for i, j in self.chunks)
+
+        # return estimates, nrmse(optional)
+        results = (np.concatenate([cr[0] for cr in chunked_results]),)
+        if configs['compute_nrmse']:
+            results += (np.concatenate([cr[1] for cr in chunked_results]),)
         else:
-            nATOMS = nD*(n1+n2)+n3
-        # prepare DICTIONARY from dirs and lookup tables
-        A = np.ones( (len(y), nATOMS ), dtype=np.float64, order='F' )
-        o = 0
-        for i in range(nD) :
-            lut_idx = amico.lut.dir_TO_lut_idx( dirs[i], htable )
-            A[:,o:(o+n1)] = KERNELS['wmr'][:,lut_idx,:].T
-            o += n1
-        for i in range(nD) :
-            lut_idx = amico.lut.dir_TO_lut_idx( dirs[i], htable )
-            A[:,o:(o+n2)] = KERNELS['wmh'][:,lut_idx,:].T
-            o += n2
-        A[:,o:] = KERNELS['iso'].T
+            results += (None,)
+        return results
 
-        # empty dictionary
-        if A.shape[1] == 0 :
-            return [0, 0, 0], None, None, None
 
-        # fit
-        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, numThreads=1, **params ).todense().A1
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def _fit(self, y, dirs, hash_table, kernels, solver_params, configs):
+        # configs
+        cdef bint is_exvivo = 1 if self.isExvivo else 0
+        cdef bint compute_nrmse = 1 if configs['compute_nrmse'] else 0
+        cdef int n_rs = len(self.Rs)
+        cdef int n_perp = len(self.d_perps)
+        cdef int n_iso = len(self.d_isos)
+        cdef int n_atoms = n_rs + n_perp + n_iso
+        # NOTE not implemented
+        if is_exvivo:
+            n_atoms += 1
 
-        # return estimates
-        f1 = x[ :(nD*n1) ].sum()
-        f2 = x[ (nD*n1):(nD*(n1+n2)) ].sum()
-        v = f1 / ( f1 + f2 + 1e-16 )
-        xIC = x[:nD*n1].reshape(-1,n1).sum(axis=0)
-        a = 1E6 * 2.0 * np.dot(self.Rs,xIC) / ( f1 + 1e-16 )
-        d = (4.0*v) / ( np.pi*a**2 + 1e-16 )
-        return [v, a, d], dirs, x, A
+        # solver params
+        cdef double lambda1 = solver_params['lambda1']
+        cdef double lambda2 = solver_params['lambda2']
+
+        # directions
+        if not dirs.flags['C_CONTIGUOUS']:
+            dirs = np.ascontiguousarray(dirs)
+        cdef double [:, ::1]directions_view = dirs
+        cdef short [::1]hash_table_view = hash_table
+        cdef int lut_index
+
+        # kernels
+        cdef double [::1, :, :]kernels_wmr_view = np.asfortranarray(np.swapaxes(kernels['wmr'].T, 1, 2)).astype(np.double)
+        cdef double [::1, :, :]kernels_wmh_view = np.asfortranarray(np.swapaxes(kernels['wmh'].T, 1, 2)).astype(np.double)
+        cdef double [::1, :]kernels_iso_view = np.asfortranarray(kernels['iso'].T).astype(np.double)
+
+        # y
+        if not y.flags['C_CONTIGUOUS']:
+            y = np.ascontiguousarray(y)
+        cdef double [:, ::1]y_view = y
+        # A
+        cdef double [::1, :]A_view = np.zeros((kernels_wmr_view.shape[0], n_atoms), dtype=np.double, order='F')
+        # x
+        cdef double [::1]x_view = np.zeros(n_atoms, dtype=np.double)
+
+        # return
+        cdef double v = 0.0
+        cdef double a = 0.0
+        cdef double d = 0.0
+        estimates = np.zeros((y_view.shape[0], len(self.maps_name)), dtype=np.double, order='F')
+        cdef double [::1, :]estimates_view = estimates
+
+        # support variables
+        cdef double f1 = 0.0
+        cdef double f2 = 0.0
+        cdef double ic_sum = 0.0
+        cdef double [::1]rs_view = self.Rs
+
+        # fitting error
+        cdef double [::1]nrmse_view
+        if compute_nrmse:
+            nrmse = np.zeros(y_view.shape[0], dtype=np.double)
+            nrmse_view = nrmse
+        
+        cdef Py_ssize_t i, j
+        with nogil:
+            for i in range(y_view.shape[0]):
+                # prepare dictionary
+                lut_index = dir_to_lut_idx(directions_view[i, :], hash_table_view)
+                A_view[:, :n_rs] = kernels_wmr_view[:, :, lut_index]
+                A_view[:, n_rs:n_rs + n_perp] = kernels_wmh_view[:, :, lut_index]
+                A_view[:, n_rs + n_perp:] = kernels_iso_view[:, :]
+
+                # fit
+                lasso(&A_view[0, 0], &y_view[i, 0], A_view.shape[0], A_view.shape[1], 1, lambda1, lambda2, &x_view[0])
+
+                # estimates
+                f1 = 0.0
+                f2 = 0.0
+                ic_sum = 0.0
+                a = 0.0
+                for j in range(n_rs + n_perp):
+                    if j < n_rs:
+                        f1 += x_view[j]
+                    if j >= n_rs and j < n_rs + n_perp:
+                        f2 += x_view[j]
+                f2 += 1e-16
+                v = f1 / (f1 + f2 + 1e-16)
+                f1 += 1e-16
+                for j in range(rs_view.shape[0]):
+                    a += rs_view[j] * x_view[j]
+                a = 1e6 * 2.0 * a / f1
+                d = (4.0 * v) / (pi * cpow(a, 2.0) + 1e-16)
+                estimates_view[i, 0] = v
+                estimates_view[i, 1] = a
+                estimates_view[i, 2] = d
+
+                # fitting error
+                if compute_nrmse:
+                    _compute_nrmse(A_view, y_view[i, :], x_view, &nrmse_view[i])
+
+        results = (estimates,)
+        if compute_nrmse:
+            results += (nrmse,)
+        else:
+            results += (None,)
+        return results
 
 
 
@@ -613,61 +709,181 @@ class NODDI( BaseModel ) :
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params, htable ) :
-        singleb0 = True if len(y) == (1+self.scheme.dwi_count) else False
-        nD = dirs.shape[0]
-        if nD != 1 :
-            ERROR( '"%s" model requires exactly 1 orientation' % self.name )
+    def fit(self, evaluation):
+        super().fit(evaluation)
+        configs = {
+            'compute_nrmse': evaluation.get_config('doComputeNRMSE')
+        }
 
-        # prepare DICTIONARY from dir and lookup tables
-        nWM = len(self.IC_ODs)*len(self.IC_VFs)
-        nATOMS = nWM + 1
-        if self.isExvivo == True :
-            nATOMS += 1
-        lut_idx = amico.lut.dir_TO_lut_idx( dirs[0], htable )
-        A = np.ones( (len(y), nATOMS), dtype=np.float64, order='F' )
-        A[:,:nWM] = KERNELS['wm'][:,lut_idx,:].T
-        A[:,-1]  = KERNELS['iso']
+        # fit chunks in parallel
+        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, evaluation.get_config('solver_params'), configs) for i, j in self.chunks)
 
-
-        # estimate CSF partial volume (and isotropic restriction, if exvivo) and remove from signal
-        x, _ = scipy.optimize.nnls( A, y )
-        yy = y - x[-1]*A[:,-1]
-        if self.isExvivo == True :
-            yy = yy - x[-2]*A[:,-2]
-        yy[ yy<0 ] = 0
-
-        # estimate IC and EC compartments and promote sparsity
-        if singleb0:
-            An = A[1:, :nWM] * KERNELS['norms']
-            yy = yy[1:].reshape(-1,1)
+        # return estimates, nrmse(optional)
+        results = (np.concatenate([cr[0] for cr in chunked_results]),)
+        if configs['compute_nrmse']:
+            results += (np.concatenate([cr[1] for cr in chunked_results]),)
         else:
-            An = A[ self.scheme.dwi_idx, :nWM ] * KERNELS['norms']
-            yy = yy[ self.scheme.dwi_idx ].reshape(-1,1)
-        x = spams.lasso( np.asfortranarray(yy), D=np.asfortranarray(An), numThreads=1, **params ).todense().A1
+            results += (None,)
+        return results
 
-        # debias coefficients
-        x = np.append( x, 1 )
-        if self.isExvivo == True :
-            x = np.append( x, 1 )
-        idx = x>0
-        x[idx], _ = scipy.optimize.nnls( A[:,idx], y )
 
-        # return estimates
-        xx = x / ( x.sum() + 1e-16 )
-        xWM  = xx[:nWM]
-        fISO = xx[-1]
-        xWM = xWM / ( xWM.sum() + 1e-16 )
-        f1 = np.dot( KERNELS['icvf'], xWM )
-        f2 = np.dot( (1.0-KERNELS['icvf']), xWM )
-        v = f1 / ( f1 + f2 + 1e-16 )
-        k = np.dot( KERNELS['kappa'], xWM )
-        od = 2.0/np.pi * np.arctan2(1.0,k)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def _fit(self, y, dirs, hash_table, kernels, solver_params, configs):
+        # configs
+        cdef bint is_exvivo = 1 if self.isExvivo else 0
+        cdef bint single_b0 = 1 if y.shape[1] == (1 + self.scheme.dwi_count) else 0
+        cdef bint compute_nrmse = 1 if configs['compute_nrmse'] else 0
+        cdef long long [::1]dwi_idx_view = self.scheme.dwi_idx
+        cdef int n_wm = len(self.IC_ODs) * len(self.IC_VFs)
+        cdef int n_atoms = n_wm + 1
+        if is_exvivo:
+            n_atoms += 1
 
-        if self.isExvivo:
-            return [v, od, fISO, xx[-2]], dirs, x, A
+        # solver params
+        cdef double lambda1 = solver_params['lambda1']
+        cdef double lambda2 = solver_params['lambda2']
+
+        # directions
+        cdef double [:, ::1]directions_view = np.ascontiguousarray(dirs)
+        cdef short [::1]hash_table_view = hash_table
+        cdef int lut_index
+
+        # kernels
+        cdef double [::1, :, :]kernels_wm_view = np.asfortranarray(np.swapaxes(kernels['wm'].T, 1, 2)).astype(np.double)
+        cdef double [::1]kernels_iso_view = kernels['iso'].astype(np.double)
+        if not kernels['norms'].flags['C_CONTIGUOUS']:
+            kernels['norms'] = np.ascontiguousarray(kernels['norms'])
+        cdef double [::1]kernels_exvivo_view
+        if is_exvivo:
+            kernels_exvivo_view = np.ones(kernels_wm_view.shape[0], dtype=np.double)
+        cdef double [:, ::1]kernels_norms_view = kernels['norms'].astype(np.double)
+        cdef float [::1]kernels_icvf_view = kernels['icvf']
+        cdef float [::1]kernels_kappa_view = kernels['kappa']
+
+        # TODO reorganize comments
+        # y
+        if not y.flags['C_CONTIGUOUS']:
+            y = np.ascontiguousarray(y)
+        cdef double [:, ::1]y_view = y
+        # A
+        cdef double [::1, :]A_view = np.zeros((kernels_wm_view.shape[0], n_atoms), dtype=np.double, order='F')
+        # x
+        cdef double [::1]x_view = np.zeros(n_atoms, dtype=np.double)
+        cdef double r_norm = 0.0
+
+        # y_2
+        cdef double [::1]y2_view = np.zeros(kernels_norms_view.shape[0], dtype=np.double)
+        # A_2
+        cdef double [::1, :]A2_view = np.zeros((kernels_norms_view.shape[0], kernels_norms_view.shape[1]), dtype=np.double, order='F')
+        
+        # A_3
+        cdef double [::1, :]A3_view = np.zeros((kernels_wm_view.shape[0], n_atoms), dtype=np.double, order='F')
+        # x_3
+        cdef double [::1]x3_view = np.zeros(n_atoms, dtype=np.double)
+
+        cdef int positive_count = 0
+        cdef int [::1]positive_indices_view = np.zeros(n_atoms, dtype=np.intc)
+
+        # return
+        cdef double v = 0.0
+        cdef double od = 0.0
+        cdef double f_iso = 0.0
+        estimates = np.zeros((y_view.shape[0], len(self.maps_name)), dtype=np.double, order='F')
+        cdef double [::1, :]estimates_view = estimates
+
+        # support variables
+        cdef double f1 = 0.0
+        cdef double f2 = 0.0
+        cdef double k1 = 0.0
+        cdef double sum_n_atoms = 0.0
+        cdef double sum_n_wm = 0.0
+
+        # fitting error
+        cdef double [::1]nrmse_view
+        if compute_nrmse:
+            nrmse = np.zeros(y_view.shape[0], dtype=np.double)
+            nrmse_view = nrmse
+
+        cdef Py_ssize_t i, j, k
+        with nogil:
+            for i in range(y_view.shape[0]):
+                # prepare dictionary
+                lut_index = dir_to_lut_idx(directions_view[i, :], hash_table_view)
+                A_view[:, :n_wm] = kernels_wm_view[:, :, lut_index]
+                if is_exvivo:
+                    A_view[:, n_atoms-2] = kernels_exvivo_view
+                A_view[:, n_atoms-1] = kernels_iso_view
+
+                # fit_1 (CSF)
+                nnls(&A_view[0, 0], &y_view[i, 0], A_view.shape[0], A_view.shape[1], &x_view[0], r_norm)
+
+                # fit_2 (IC + EC)
+                for j in range(A2_view.shape[0]):
+                    for k in range(A2_view.shape[1]):
+                        if single_b0:
+                            A2_view[j, k] = A_view[j+1, k] * kernels_norms_view[j, k]
+                            y2_view[j] = y_view[i, j+1] - x_view[n_atoms-1] * kernels_iso_view[j+1]
+                        else:
+                            A2_view[j, k] = A_view[dwi_idx_view[j], k] * kernels_norms_view[j, k]
+                            y2_view[j] = y_view[i, dwi_idx_view[j]] - x_view[n_atoms-1] * kernels_iso_view[dwi_idx_view[j]]
+                    if is_exvivo:
+                        y2_view[j] = y2_view[j] - x_view[n_atoms-2] * 1.0
+                    if y2_view[j] < 0.0:
+                        y2_view[j] = 0.0
+                lasso(&A2_view[0, 0], &y2_view[0], A2_view.shape[0], A2_view.shape[1], 1, lambda1, lambda2, &x_view[0])
+
+                # fit_3 (debias coefficients)
+                positive_count = 0
+                if is_exvivo:
+                    x_view[n_atoms-2] = 1.0
+                x_view[n_atoms-1] = 1.0
+                for j in range(n_atoms):
+                    if x_view[j] > 0.0:
+                        positive_indices_view[positive_count] = j
+                        positive_count += 1
+                for j in range(A3_view.shape[0]):
+                    for k in range(positive_count):
+                        A3_view[j, k] = A_view[j, positive_indices_view[k]]
+                nnls(&A3_view[0, 0], &y_view[i, 0], A3_view.shape[0], positive_count, &x3_view[0], r_norm)
+                for j in range(positive_count):
+                    x_view[positive_indices_view[j]] = x3_view[j]
+
+                # estimates
+                f1 = 0.0
+                f2 = 0.0
+                k1 = 0.0
+                sum_n_atoms = 0.0
+                sum_n_wm = 0.0
+                for j in range(n_atoms):
+                    sum_n_atoms += x_view[j]
+                sum_n_atoms += 1e-16
+                for j in range(n_wm):
+                    sum_n_wm += x_view[j] / sum_n_atoms
+                sum_n_wm += 1e-16
+                for j in range(n_wm):
+                    f1 += kernels_icvf_view[j] * x_view[j] / sum_n_atoms / sum_n_wm
+                    f2 += (<float> (1.0 - kernels_icvf_view[j])) * x_view[j] / sum_n_atoms / sum_n_wm
+                    k1 += kernels_kappa_view[j] * x_view[j] / sum_n_atoms / sum_n_wm
+                v = f1 / (f1 + f2 + 1e-16)
+                od = 2.0 / pi * atan2(1.0, k1)
+                f_iso = x_view[n_atoms-1] / sum_n_atoms
+                estimates_view[i, 0] = v
+                estimates_view[i, 1] = od
+                estimates_view[i, 2] = f_iso
+                if is_exvivo:
+                    estimates_view[i, 3] = x_view[n_atoms-2] / sum_n_atoms
+
+                # fitting error
+                if compute_nrmse:
+                    _compute_nrmse(A_view, y_view[i, :], x_view, &nrmse_view[i])
+
+        results = (estimates,)
+        if compute_nrmse:
+            results += (nrmse,)
         else:
-            return [v, od, fISO], dirs, x, A
+            results += (None,)
+        return results
 
 
 
@@ -807,38 +1023,142 @@ class FreeWater( BaseModel ) :
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params, htable ) :
-        nD = dirs.shape[0]
-        if nD > 1 : # model works only with one direction
-            ERROR( '"%s" model requires exactly 1 orientation' % self.name )
+    def fit(self, evaluation):
+        super().fit(evaluation)
+        configs = {
+            'compute_nrmse': evaluation.get_config('doComputeNRMSE'),
+            'save_corrected_DWI': evaluation.get_config('doSaveCorrectedDWI')
+        }
 
-        n1 = len(self.d_perps)
-        n2 = len(self.d_isos)
-        nATOMS = n1+n2
-        if nATOMS == 0 : # empty dictionary
-            return [0, 0], None, None, None
+        # fit chunks in parallel
+        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, evaluation.get_config('solver_params'), configs) for i, j in self.chunks)
 
-        # prepare DICTIONARY from dir and lookup tables
-        lut_idx = amico.lut.dir_TO_lut_idx( dirs[0], htable )
-        A = np.zeros( (len(y), nATOMS), dtype=np.float64, order='F' )
-        A[:,:(nD*n1)] = KERNELS['D'][:,lut_idx,:].T
-        A[:,(nD*n1):] = KERNELS['CSF'].T
+        # return estimates, nrmse(optional), y_corrected (optional)
+        results = (np.concatenate([cr[0] for cr in chunked_results]),)
+        if configs['compute_nrmse']:
+            results += (np.concatenate([cr[1] for cr in chunked_results]),)
+        else:
+            results += (None,)
+        if configs['save_corrected_DWI']:
+            results += (np.concatenate([cr[2] for cr in chunked_results]),)
+        else:
+            results += (None,)
+        return results
 
-        # fit
-        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=A, numThreads=1, **params ).todense().A1
 
-        # return estimates
-        v = x[ :n1 ].sum() / ( x.sum() + 1e-16 )
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def _fit(self, y, dirs, hash_table, kernels, solver_params, configs):
+        # configs
+        cdef bint is_mouse = 1 if self.type == 'Mouse' else 0
+        cdef bint compute_nrmse = 1 if configs['compute_nrmse'] else 0
+        cdef bint save_corrected_DWI = 1 if configs['save_corrected_DWI'] else 0
+        cdef int n_perp = len(self.d_perps)
+        cdef int n_iso = len(self.d_isos)
+        cdef int n_atoms = n_perp + n_iso
 
-        # checking that there is more than 1 isotropic compartment
-        if self.type == 'Mouse' :
-            v_blood = x[ n1 ] / ( x.sum() + 1e-16 )
-            v_csf = x[ n1+1 ] / ( x.sum() + 1e-16 )
+        # solver params
+        cdef double lambda1 = solver_params['lambda1']
+        cdef double lambda2 = solver_params['lambda2']
 
-            return [ v, 1-v, v_blood, v_csf ], dirs, x, A
+        # directions
+        cdef double [:, ::1]directions_view = np.ascontiguousarray(dirs)
+        cdef short [::1]hash_table_view = hash_table
+        cdef int lut_index
 
-        else :
-            return [ v, 1-v ], dirs, x, A
+        # kernels
+        cdef double [::1, :, :]kernels_D_view = np.asfortranarray(np.swapaxes(kernels['D'].T, 1, 2)).astype(np.double)
+        cdef double [::1, :]kernels_CSF_view = np.asfortranarray(kernels['CSF'].T).astype(np.double)
+
+        # y
+        if not y.flags['C_CONTIGUOUS']:
+            y = np.ascontiguousarray(y)
+        cdef double [:, ::1]y_view = y
+        # A
+        cdef double [::1, :]A_view = np.zeros((kernels_D_view.shape[0], n_atoms), dtype=np.double, order='F')
+        # x
+        cdef double [::1]x_view = np.zeros(n_atoms, dtype=np.double)
+
+        # return
+        cdef double v = 0.0
+        cdef double v_blood = 0.0
+        cdef double v_csf = 0.0
+        estimates = np.zeros((y_view.shape[0], len(self.maps_name)), dtype=np.double, order='F')
+        cdef double [::1, :]estimates_view = estimates
+
+        # support variables
+        cdef double x_sum = 0.0
+        cdef double x_n_perp_sum = 0.0
+
+        # fitting error
+        cdef double [::1]nrmse_view
+        if compute_nrmse:
+            nrmse = np.zeros(y_view.shape[0], dtype=np.double)
+            nrmse_view = nrmse
+
+        # y_corrected
+        cdef double [::1]y_fw_part
+        cdef double [::1, :]y_fw_corrected_view
+        if save_corrected_DWI:
+            y_fw_part = np.zeros(y_view.shape[1], dtype=np.double)
+            y_fw_corrected = np.zeros((y_view.shape[0], y_view.shape[1]), dtype=np.double, order='F')
+            y_fw_corrected_view = y_fw_corrected
+
+        cdef Py_ssize_t i, j, k
+        with nogil:
+            for i in range(y_view.shape[0]):
+                # prepare dictionary
+                lut_index = dir_to_lut_idx(directions_view[i, :], hash_table_view)
+                A_view[:, :n_perp] = kernels_D_view[:, :, lut_index]
+                A_view[:, n_perp:] = kernels_CSF_view[:, :]
+
+                # fit
+                lasso(&A_view[0, 0], &y_view[i, 0], A_view.shape[0], A_view.shape[1], 1, lambda1, lambda2, &x_view[0])
+
+                # estimates
+                x_sum = 0.0
+                x_n_perp_sum = 0.0
+                for j in range(x_view.shape[0]):
+                    x_sum += x_view[j]
+                    if j < n_perp:
+                        x_n_perp_sum += x_view[j]
+                x_sum += 1e-16   
+                v = x_n_perp_sum / x_sum
+                estimates_view[i, 0] = v
+                estimates_view[i, 1] = 1.0 - v
+                if is_mouse:
+                    v_blood = x_view[n_perp] / x_sum
+                    v_csf = x_view[n_perp + 1] / x_sum
+                    estimates_view[i, 2] = v_blood
+                    estimates_view[i, 3] = v_csf
+
+                # fitting error
+                if compute_nrmse:
+                    _compute_nrmse(A_view, y_view[i, :], x_view, &nrmse_view[i])
+
+                # y_corrected
+                if save_corrected_DWI:
+                    for j in range(x_view.shape[0] - n_iso):
+                        x_view[j] = 0.0
+                    for j in range(A_view.shape[0]):
+                        y_fw_part[j] = 0.0
+                        for k in range(A_view.shape[1]):
+                            y_fw_part[j] += A_view[j, k] * x_view[k]
+                    for j in range(y_fw_part.shape[0]):
+                        y_fw_corrected_view[i, j] = y_view[i, j] - y_fw_part[j]
+                        if y_fw_corrected_view[i, j] < 0.0:
+                            y_fw_corrected_view[i, j] = 0.0
+
+        results = (estimates,)
+        if compute_nrmse:
+            results += (nrmse,)
+        else:
+            results += (None,)
+        if save_corrected_DWI:
+            results += (y_fw_corrected,)
+        else:
+            results += (None,)
+        return results
 
 
 
@@ -1025,28 +1345,133 @@ class SANDI( BaseModel ) :
 
         return KERNELS
 
+    
+    def fit(self, evaluation):
+        super().fit(evaluation)
+        configs = {
+            'compute_nrmse': evaluation.get_config('doComputeNRMSE')
+        }
 
-    def fit( self, y, dirs, KERNELS, params, htable ) :
-        # if dictionary is empty
-        if KERNELS['signal'].shape[1] == 0 :
-            return [0, 0, 0, 0, 0, 0], None, None, None
+        # fit chunks in parallel
+        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.KERNELS, evaluation.get_config('solver_params'), configs) for i, j in self.chunks)
 
-        # fit
-        x = spams.lasso( np.asfortranarray( y.reshape(-1,1) ), D=KERNELS['signal'], numThreads=1, **params ).todense().A1
-        x = x*KERNELS['norms']
+        # return estimates, nrmse(optional)
+        results = (np.concatenate([cr[0] for cr in chunked_results]),)
+        if configs['compute_nrmse']:
+            results += (np.concatenate([cr[1] for cr in chunked_results]),)
+        else:
+            results += (None,)
+        return results
 
-        # return estimates
-        n1 = len(self.Rs)
-        n2 = len(self.d_in)
-        xsph = x[:n1]
-        xstk = x[n1:n1+n2]
-        xiso = x[n1+n2:]
 
-        fsoma    = xsph.sum()/(x.sum()+1e-16)
-        fneurite = xstk.sum()/(x.sum()+1e-16)
-        fextra   = xiso.sum()/(x.sum()+1e-16)
-        Rsoma    = 1E6*np.dot(self.Rs,xsph)/(xsph.sum()+1e-16 )     # Sphere radius [micron]
-        Din      = 1E3*np.dot(self.d_in,xstk)/(xstk.sum()+1e-16 )   # Intra-stick diffusivity [micron^2/ms]
-        De       = 1E3*np.dot(self.d_isos,xiso)/(xiso.sum()+1e-16 ) # Extra-cellular diffusivity [micron^2/ms]
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def _fit(self, y, kernels, solver_params, configs):
+        # configs
+        cdef bint compute_nrmse = 1 if configs['compute_nrmse'] else 0
+        cdef int n_rs = len(self.Rs)
+        cdef int n_in = len(self.d_in)
+        cdef int n_iso = len(self.d_isos)
+        cdef int n_atoms = n_rs + n_in + n_iso
 
-        return [fsoma, fneurite, fextra, Rsoma, Din, De], dirs, x, KERNELS['signal']
+        # solver params
+        cdef double lambda1 = solver_params['lambda1']
+        cdef double lambda2 = solver_params['lambda2']
+
+        # kernels
+        if not kernels['signal'].flags['F_CONTIGUOUS']:
+            kernels['signal'] = np.asfortranarray(kernels['signal'])
+        cdef double [::1]kernels_norms_view = kernels['norms']
+
+        # y
+        if not y.flags['C_CONTIGUOUS']:
+            y = np.ascontiguousarray(y)
+        cdef double [:, ::1]y_view = y
+        # A
+        cdef double [::1, :]A_view = kernels['signal']
+        # x
+        cdef double [::1]x_view = np.zeros(n_atoms, dtype=np.double)
+
+        # return
+        cdef double fsoma = 0.0
+        cdef double fneurite = 0.0
+        cdef double fextra = 0.0
+        cdef double Rsoma = 0.0
+        cdef double Din = 0.0
+        cdef double De = 0.0
+        estimates = np.zeros((y_view.shape[0], len(self.maps_name)), dtype=np.double, order='F')
+        cdef double [::1, :] estimates_view = estimates
+
+        # support variables
+        cdef double [::1]rs_view = self.Rs
+        cdef double [::1]d_in_view = self.d_in
+        cdef double [::1]d_isos_view = self.d_isos
+        cdef int n1 = rs_view.shape[0]
+        cdef int n2 = d_in_view.shape[0]
+        cdef double x_sum = 0.0
+        cdef double xsph_sum = 0.0
+        cdef double xstk_sum = 0.0
+        cdef double xiso_sum = 0.0
+
+        # fitting error
+        nrmse = np.zeros(y_view.shape[0], dtype=np.double)
+        cdef double [::1]nrmse_view = nrmse
+
+        cdef Py_ssize_t i, j
+        with nogil:
+            for i in range(y_view.shape[0]):
+                # fit
+                lasso(&A_view[0, 0], &y_view[i, 0], A_view.shape[0], A_view.shape[1], 1, lambda1, lambda2, &x_view[0])
+                for j in range(kernels_norms_view.shape[0]):
+                    x_view[j] = x_view[j] * kernels_norms_view[j]
+
+                # return estimates
+                x_sum = 0.0
+                xsph_sum = 0.0
+                xstk_sum = 0.0
+                xiso_sum = 0.0
+                Rsoma = 0.0
+                Din = 0.0
+                De = 0.0
+                for j in range(A_view.shape[1]):
+                    x_sum += x_view[j]
+                    if j < n_rs:
+                        xsph_sum += x_view[j]
+                    if j >= n_rs and j < n_rs + n_in:
+                        xstk_sum += x_view[j]
+                    if j >= n_rs + n_in:
+                         xiso_sum += x_view[j]
+                x_sum += 1e-16
+                fsoma = xsph_sum / x_sum
+                fneurite = xstk_sum / x_sum
+                fextra = xiso_sum / x_sum
+                for j in range(A_view.shape[1]):
+                    if j < n_rs:
+                        Rsoma += rs_view[j] * x_view[j]
+                    if j >= n_rs and j < n_rs + n_in:
+                        Din += d_in_view[j - n_rs] * x_view[j]
+                    if j >= n_rs + n_in:
+                         De += d_isos_view[j - (n_rs + n_in)] * x_view[j]
+                xsph_sum += 1e-16
+                xstk_sum += 1e-16
+                xiso_sum += 1e-16
+                Rsoma = 1e6 * Rsoma / xsph_sum
+                Din = 1e3 * Din / xstk_sum
+                De = 1e3 * De / xiso_sum
+                estimates_view[i, 0] = fsoma
+                estimates_view[i, 1] = fneurite
+                estimates_view[i, 2] = fextra
+                estimates_view[i, 3] = Rsoma
+                estimates_view[i, 4] = Din
+                estimates_view[i, 5] = De
+
+                # fitting error
+                if compute_nrmse:
+                    _compute_nrmse(A_view, y_view[i, :], x_view, &nrmse_view[i])
+
+        results = (estimates,)
+        if compute_nrmse:
+            results += (nrmse,)
+        else:
+            results += (None,)
+        return results
