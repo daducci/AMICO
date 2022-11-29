@@ -734,6 +734,7 @@ class NODDI( BaseModel ) :
 
     def fit(self, evaluation):
         super().fit(evaluation)
+        self.configs['compute_modulated_maps'] = evaluation.get_config('doSaveModulatedMaps')
 
         # fit chunks in parallel
         chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, evaluation.get_config('solver_params'), self.configs) for i, j in self.chunks)
@@ -742,6 +743,7 @@ class NODDI( BaseModel ) :
         results = (np.concatenate([cr[0] for cr in chunked_results]),)
         results += (np.concatenate([cr[1] for cr in chunked_results]),) if self.configs['compute_rmse'] else (None,)
         results += (np.concatenate([cr[2] for cr in chunked_results]),) if self.configs['compute_nrmse'] else (None,)
+        results += (np.concatenate([cr[3] for cr in chunked_results]),) if self.configs['compute_modulated_maps'] else (None,)
         return results
 
 
@@ -753,6 +755,7 @@ class NODDI( BaseModel ) :
         cdef bint single_b0 = 1 if y.shape[1] == (1 + self.scheme.dwi_count) else 0
         cdef bint compute_rmse = 1 if configs['compute_rmse'] else 0
         cdef bint compute_nrmse = 1 if configs['compute_nrmse'] else 0
+        cdef bint compute_modulated_maps = 1 if configs['compute_modulated_maps'] else 0
         cdef long long [::1]dwi_idx_view = self.scheme.dwi_idx
         cdef int n_wm = len(self.IC_ODs) * len(self.IC_VFs)
         cdef int n_atoms = n_wm + 1
@@ -827,6 +830,13 @@ class NODDI( BaseModel ) :
         if compute_nrmse:
             nrmse = np.zeros(y_view.shape[0], dtype=np.double)
             nrmse_view = nrmse
+
+        # modulated maps
+        cdef double [::1, :]estimates_mod_view
+        if compute_modulated_maps:
+            estimates_mod = np.zeros((y_view.shape[0], 2), dtype=np.double, order='F')
+            estimates_mod_view = estimates_mod
+        cdef double tf = 0.0
 
         cdef Py_ssize_t i, j, k
         with nogil:
@@ -903,9 +913,16 @@ class NODDI( BaseModel ) :
                 if compute_nrmse:
                     _compute_nrmse(A_view, y_view[i, :], x_view, &nrmse_view[i])
 
+                # modulated maps
+                if compute_modulated_maps:
+                    tf = 1.0 - f_iso
+                    estimates_mod_view[i, 0] = v * tf
+                    estimates_mod_view[i, 1] = od * tf
+
         results = (estimates,)
         results += (rmse,) if compute_rmse else (None,)
         results += (nrmse,) if compute_nrmse else (None,)
+        results += (estimates_mod,) if compute_modulated_maps else (None,)
         return results
 
 
@@ -1365,7 +1382,7 @@ class SANDI( BaseModel ) :
     
     def fit(self, evaluation):
         super().fit(evaluation)
-        
+
         # fit chunks in parallel
         chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.KERNELS, evaluation.get_config('solver_params'), self.configs) for i, j in self.chunks)
 

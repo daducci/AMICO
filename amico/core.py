@@ -87,6 +87,7 @@ class Evaluation :
         self.set_config('doKeepb0Intact', False)        # does change b0 images in the predicted signal
         self.set_config('doComputeRMSE', False)
         self.set_config('doComputeNRMSE', False)
+        self.set_config('doSaveModulatedMaps', False)
         self.set_config('doSaveCorrectedDWI', False)
         self.set_config('doMergeB0', False)             # Merge b0 volumes
         self.set_config('doDebiasSignal', False)        # Flag to remove Rician bias
@@ -459,6 +460,10 @@ class Evaluation :
         if self.get_config('doComputeNRMSE') :
             self.RESULTS['NRMSE'] = np.zeros([self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32)
             self.RESULTS['NRMSE'][self.niiMASK_img==1] = results[2]
+        # Modulated NDI and ODI maps (NODDI)
+        if self.model.name == 'NODDI' and self.get_config('doSaveModulatedMaps'):
+            self.RESULTS['MAPs_mod'] = np.zeros([self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], 2], dtype=np.float32)
+            self.RESULTS['MAPs_mod'][self.niiMASK_img==1, :] = results[3]
         # corrected DWI (Free-Water)
         if self.model.name == 'Free-Water' and self.get_config('doSaveCorrectedDWI') :
             y_corrected = results[3]
@@ -580,6 +585,26 @@ class Evaluation :
             niiMAP_hdr['scl_inter'] = 0
             nibabel.save( niiMAP, pjoin(RESULTS_path, f'FIT_{self.model.maps_name[i]}.nii.gz' ) )
             PRINT(' [OK]')
+
+        # modulated NDI and ODI maps (NODDI)
+        if self.get_config('doSaveModulatedMaps'):
+            if self.model.name == 'NODDI':
+                mod_maps = [name + '_modulated' for name in self.model.maps_name[:2]]
+                descr = [descr + ' modulated' for descr in self.model.maps_descr[:2]]
+                for i in range(len(mod_maps)):
+                    PRINT(f'\t- FIT_{mod_maps[i]}.nii.gz', end=' ')
+                    niiMAP_img = self.RESULTS['MAPs_mod'][:,:,:,i]
+                    niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
+                    niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
+                    niiMAP_hdr['descrip'] = descr[i] + f' (AMICO v{self.get_config("version")})'
+                    niiMAP_hdr['cal_min'] = niiMAP_img.min()
+                    niiMAP_hdr['cal_max'] = niiMAP_img.max()
+                    niiMAP_hdr['scl_slope'] = 1
+                    niiMAP_hdr['scl_inter'] = 0
+                    nibabel.save( niiMAP, pjoin(RESULTS_path, f'FIT_{mod_maps[i]}.nii.gz' ) )
+                    PRINT(' [OK]')
+            else:
+                WARNING(f'"doSaveModulatedMaps" option not supported for "{self.model.name}" model')
 
         # Directional average signal
         if save_dir_avg:
