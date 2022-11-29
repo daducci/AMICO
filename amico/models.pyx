@@ -618,8 +618,8 @@ class NODDI( BaseModel ) :
     def __init__( self ):
         self.id         = "NODDI"
         self.name       = "NODDI"
-        self.maps_name  = [ 'ICVF', 'OD', 'ISOVF' ]
-        self.maps_descr = [ 'Intra-cellular volume fraction', 'Orientation dispersion', 'Isotropic volume fraction' ]
+        self.maps_name  = [ 'NDI', 'ODI', 'FWF' ]
+        self.maps_descr = [ 'Neurite Density Index', 'Orientation Dispersion Index', 'Free Water Fraction' ]
 
         self.dPar      = 1.7E-3
         self.dIso      = 3.0E-3
@@ -635,11 +635,8 @@ class NODDI( BaseModel ) :
         self.IC_ODs    = np.array( IC_ODs )
         self.isExvivo  = isExvivo
         if isExvivo:
-            self.maps_name  = [ 'ICVF', 'OD', 'ISOVF', 'dot' ]
-            self.maps_descr = [ 'Intra-cellular volume fraction', 'Orientation dispersion', 'Isotropic volume fraction', 'Dot volume fraction' ]
-        else:
-            self.maps_name  = [ 'ICVF', 'OD', 'ISOVF']
-            self.maps_descr = [ 'Intra-cellular volume fraction', 'Orientation dispersion', 'Isotropic volume fraction']
+            self.maps_name.append('dot')
+            self.maps_descr.append('Dot volume fraction')
 
 
     def get_params( self ) :
@@ -808,9 +805,9 @@ class NODDI( BaseModel ) :
         cdef int [::1]positive_indices_view = np.zeros(n_atoms, dtype=np.intc)
 
         # return
-        cdef double v = 0.0
-        cdef double od = 0.0
-        cdef double f_iso = 0.0
+        cdef double ndi = 0.0
+        cdef double odi = 0.0
+        cdef double fwf = 0.0
         estimates = np.zeros((y_view.shape[0], len(self.maps_name)), dtype=np.double, order='F')
         cdef double [::1, :]estimates_view = estimates
 
@@ -898,12 +895,12 @@ class NODDI( BaseModel ) :
                     f1 += kernels_icvf_view[j] * x_view[j] / sum_n_atoms / sum_n_wm
                     f2 += (<float> (1.0 - kernels_icvf_view[j])) * x_view[j] / sum_n_atoms / sum_n_wm
                     k1 += kernels_kappa_view[j] * x_view[j] / sum_n_atoms / sum_n_wm
-                v = f1 / (f1 + f2 + 1e-16)
-                od = 2.0 / pi * atan2(1.0, k1)
-                f_iso = x_view[n_atoms-1] / sum_n_atoms
-                estimates_view[i, 0] = v
-                estimates_view[i, 1] = od
-                estimates_view[i, 2] = f_iso
+                ndi = f1 / (f1 + f2 + 1e-16)
+                odi = 2.0 / pi * atan2(1.0, k1)
+                fwf = x_view[n_atoms-1] / sum_n_atoms
+                estimates_view[i, 0] = ndi
+                estimates_view[i, 1] = odi
+                estimates_view[i, 2] = fwf
                 if is_exvivo:
                     estimates_view[i, 3] = x_view[n_atoms-2] / sum_n_atoms
 
@@ -915,9 +912,9 @@ class NODDI( BaseModel ) :
 
                 # modulated maps
                 if compute_modulated_maps:
-                    tf = 1.0 - f_iso
-                    estimates_mod_view[i, 0] = v * tf
-                    estimates_mod_view[i, 1] = od * tf
+                    tf = 1.0 - fwf
+                    estimates_mod_view[i, 0] = ndi * tf
+                    estimates_mod_view[i, 1] = odi * tf
 
         results = (estimates,)
         results += (rmse,) if compute_rmse else (None,)
