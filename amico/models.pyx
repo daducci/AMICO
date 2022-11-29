@@ -38,8 +38,8 @@ cdef void _compute_rmse(double [::1, :]A_view, double [::1]y_view, double [::1]x
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void _compute_nrmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *nrmse_view) nogil:
-    cdef double den = 0.0
     cdef double *y_est = <double *>malloc(sizeof(double) * y_view.shape[0])
+    cdef double den = 0.0
 
     cdef Py_ssize_t i, j
     for i in range(A_view.shape[0]):
@@ -179,15 +179,18 @@ class BaseModel(ABC) :
 
         Returns
         -------
-        estiamtes: np.ndarray
+        estimates: np.ndarray
             Scalar values eastimated in each voxel
         rmse: np.ndarray (optional)
             Fitting error (Root Mean Square Error)
         nrmse: np.ndarray (optional)
             Fitting error (Normalized Root Mean Square Error)
         y_corrected: np.ndarray (optional)
-            Corrected y
+            Corrected DWI (only FreeWater model)
+        estimates_mod: np.ndarray (optional)
+            Modulated maps (only NODDI model)
         """
+        # build chunks
         n = evaluation.y.shape[0]
         c = n // evaluation.n_threads
         self.chunks = []
@@ -227,11 +230,11 @@ class StickZeppelinBall( BaseModel ) :
         self.maps_name  = [ ]
         self.maps_descr = [ ]
 
-        self.d_par       = 1.7E-3                                          # Parallel diffusivity for the Stick [mm^2/s]
-        self.d_perp      = 0                                               # Perpendicular diffusivity for the Stick [mm^2/s]
-        self.d_par_zep   = 1.7E-3                                          # Parallel diffusivity for the Zeppelins [mm^2/s]
-        self.d_perps_zep = np.array([ 1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]) # Perpendicular diffusivitie(s) [mm^2/s]
-        self.d_isos      = np.array([ 3.0E-3 ])                            # Isotropic diffusivitie(s) [mm^2/s]
+        self.d_par       = 1.7E-3                                           # Parallel diffusivity for the Stick [mm^2/s]
+        self.d_perp      = 0                                                # Perpendicular diffusivity for the Stick [mm^2/s]
+        self.d_par_zep   = 1.7E-3                                           # Parallel diffusivity for the Zeppelins [mm^2/s]
+        self.d_perps_zep = np.array([ 1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3])  # Perpendicular diffusivitie(s) [mm^2/s]
+        self.d_isos      = np.array([ 3.0E-3 ])                             # Isotropic diffusivitie(s) [mm^2/s]
 
 
     def set( self, d_par, d_perps_zep, d_isos, d_par_zep=None, d_perp=0 ) :
@@ -263,7 +266,6 @@ class StickZeppelinBall( BaseModel ) :
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
         scheme_high = amico.lut.create_high_resolution_scheme( self.scheme )
-
         stick = Stick(scheme_high)
         zeppelin = Zeppelin(scheme_high)
         ball = Ball(scheme_high)
@@ -358,18 +360,17 @@ class CylinderZeppelinBall( BaseModel ) :
     .. [1] Panagiotaki et al. (2012) Compartment models of the diffusion MR signal
            in brain white matter: A taxonomy and comparison. NeuroImage, 59: 2241-54
     """
-
     def __init__( self ) :
         self.id         = 'CylinderZeppelinBall'
         self.name       = 'Cylinder-Zeppelin-Ball'
         self.maps_name  = [ 'v', 'a', 'd' ]
         self.maps_descr = [ 'Intra-cellular volume fraction', 'Mean axonal diameter', 'Axonal density' ]
 
-        self.d_par   = 0.6E-3                                                    # Parallel diffusivity [mm^2/s]
-        self.Rs      = np.concatenate( ([0.01],np.linspace(0.5,8.0,20)) ) * 1E-6 # Radii of the axons [meters]
-        self.d_perps = np.array([ 1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3])           # Perpendicular diffusivitie(s) [mm^2/s]
-        self.d_isos  = np.array( [ 2.0E-3 ] )                                    # Isotropic diffusivitie(s) [mm^2/s]
-        self.isExvivo  = False                                                   # Add dot compartment to dictionary (exvivo data)
+        self.d_par   = 0.6E-3                                                       # Parallel diffusivity [mm^2/s]
+        self.Rs      = np.concatenate( ([0.01],np.linspace(0.5,8.0,20)) ) * 1E-6    # Radii of the axons [meters]
+        self.d_perps = np.array([ 1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3])              # Perpendicular diffusivitie(s) [mm^2/s]
+        self.d_isos  = np.array( [ 2.0E-3 ] )                                       # Isotropic diffusivitie(s) [mm^2/s]
+        self.isExvivo  = False                                                      # Add dot compartment to dictionary (exvivo data)
 
 
     def set( self, d_par, Rs, d_perps, d_isos ) :
@@ -405,7 +406,6 @@ class CylinderZeppelinBall( BaseModel ) :
             ERROR( 'This model requires a "VERSION: STEJSKALTANNER" scheme' )
 
         scheme_high = amico.lut.create_high_resolution_scheme( self.scheme )
-
         cylinder = CylinderGPD(scheme_high)
         zeppelin = Zeppelin(scheme_high)
         ball = Ball(scheme_high)
@@ -662,7 +662,6 @@ class NODDI( BaseModel ) :
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ):
         scheme_high = amico.lut.create_high_resolution_scheme( self.scheme )
-
         noddi_ic = NODDIIntraCellular(scheme_high)
         noddi_ec = NODDIExtraCellular(scheme_high)
         noddi_iso = NODDIIsotropic(scheme_high)
@@ -1002,7 +1001,6 @@ class FreeWater( BaseModel ) :
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
         scheme_high = amico.lut.create_high_resolution_scheme( self.scheme )
-
         zeppelin = Zeppelin(scheme_high)
         ball = Ball(scheme_high)
 
@@ -1198,7 +1196,6 @@ class VolumeFractions( BaseModel ) :
        its own volume fraction. This model has been created to test there
        ability to remove false positive fibers with COMMIT.
     """
-
     def __init__( self ) :
         self.id         = 'VolumeFractions'
         self.name       = 'Volume fractions'
@@ -1258,17 +1255,16 @@ class SANDI( BaseModel ) :
     ----------
     .. [1] Palombo, Marco, et al. "SANDI: a compartment-based model for non-invasive apparent soma and neurite imaging by diffusion MRI." Neuroimage 215 (2020): 116835.
     """
-
     def __init__( self ) :
         self.id         = 'SANDI'
         self.name       = 'SANDI'
         self.maps_name  = [ 'fsoma', 'fneurite', 'fextra', 'Rsoma', 'Din', 'De' ]
         self.maps_descr = [ 'Intra-soma volume fraction', 'Intra-neurite volume fraction', 'Extra-cellular volume fraction', 'Apparent soma radius', 'Neurite axial diffusivity', 'Extra-cellular mean diffusivity' ]
 
-        self.d_is   = 3.0E-3                         # Intra-soma diffusivity [mm^2/s]
-        self.Rs     = np.linspace(1.0,12.0,5) * 1E-6 # Radii of the soma [meters]
-        self.d_in   = np.linspace(0.25,3.0,5) * 1E-3 # Intra-neurite diffusivitie(s) [mm^2/s]
-        self.d_isos = np.linspace(0.25,3.0,5) * 1E-3 # Extra-cellular isotropic mean diffusivitie(s) [mm^2/s]
+        self.d_is   = 3.0E-3                            # Intra-soma diffusivity [mm^2/s]
+        self.Rs     = np.linspace(1.0,12.0,5) * 1E-6    # Radii of the soma [meters]
+        self.d_in   = np.linspace(0.25,3.0,5) * 1E-3    # Intra-neurite diffusivitie(s) [mm^2/s]
+        self.d_isos = np.linspace(0.25,3.0,5) * 1E-3    # Extra-cellular isotropic mean diffusivitie(s) [mm^2/s]
 
 
     def set( self, d_is, Rs, d_in, d_isos ) :
@@ -1303,7 +1299,6 @@ class SANDI( BaseModel ) :
             ERROR( 'This model requires a "VERSION: STEJSKALTANNER" scheme' )
 
         scheme_high = amico.lut.create_high_resolution_scheme( self.scheme )
-
         sphere = SphereGPD(scheme_high)
         astrosticks = Astrosticks(scheme_high)
         ball = Ball(scheme_high)

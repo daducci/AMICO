@@ -60,19 +60,19 @@ class Evaluation :
             Optionally sets a custom full path for the output. Leave as None
             for default behaviour - output in study_path/subject/AMICO/<MODEL>
         """
-        self.niiDWI       = None # set by "load_data" method
+        self.niiDWI       = None    # set by "load_data" method
         self.niiDWI_img   = None
         self.scheme       = None
         self.niiMASK      = None
         self.niiMASK_img  = None
-        self.model        = None # set by "set_model" method
-        self.KERNELS      = None # set by "load_kernels" method
-        self.y            = None # set by "fit" method
-        self.DIRs         = None # set by "fit" method
-        self.n_threads    = None # set by "fit" method
-        self.BLAS_threads = None # set by "generate_kernel", "load_kernels" and "fit" methods
-        self.RESULTS      = None # set by "fit" method
-        self.mean_b0s     = None # set by "load_data" method
+        self.model        = None    # set by "set_model" method
+        self.KERNELS      = None    # set by "load_kernels" method
+        self.y            = None    # set by "fit" method
+        self.DIRs         = None    # set by "fit" method
+        self.n_threads    = None    # set by "fit" method
+        self.BLAS_threads = None    # set by "generate_kernel", "load_kernels" and "fit" methods
+        self.RESULTS      = None    # set by "fit" method
+        self.mean_b0s     = None    # set by "load_data" method
         self.htable       = None
 
         # store all the parameters of an evaluation with AMICO
@@ -88,8 +88,8 @@ class Evaluation :
         self.set_config('doKeepb0Intact', False)        # does change b0 images in the predicted signal
         self.set_config('doComputeRMSE', False)
         self.set_config('doComputeNRMSE', False)
-        self.set_config('doSaveModulatedMaps', False)
-        self.set_config('doSaveCorrectedDWI', False)
+        self.set_config('doSaveModulatedMaps', False)   # NODDI model specific config
+        self.set_config('doSaveCorrectedDWI', False)    # FreeWater model specific config
         self.set_config('doMergeB0', False)             # Merge b0 volumes
         self.set_config('doDebiasSignal', False)        # Flag to remove Rician bias
         self.set_config('DWI-SNR', None)                # SNR of DWI image: SNR = b0/sigma
@@ -125,7 +125,6 @@ class Evaluation :
         replace_bad_voxels : float, optional
             Value to be used to fill NaN and Inf values in the signal. (default : do nothing)
         """
-
         # Loading data, acquisition scheme and mask (optional)
         LOG( '\n-> Loading data:' )
         tic = time.time()
@@ -136,7 +135,7 @@ class Evaluation :
         self.set_config('dwi_filename', dwi_filename)
         self.set_config('b0_min_signal', b0_min_signal)
         self.set_config('replace_bad_voxels', replace_bad_voxels)
-        self.niiDWI  = nibabel.load( pjoin(self.get_config('DATA_path'), dwi_filename) )
+        self.niiDWI = nibabel.load( pjoin(self.get_config('DATA_path'), dwi_filename) )
         self.niiDWI_img = self.niiDWI.get_data().astype(np.float32)
         hdr = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
         if self.niiDWI_img.ndim != 4 :
@@ -180,7 +179,7 @@ class Evaluation :
         if mask_filename is not None :
             if not isfile( pjoin(self.get_config('DATA_path'), mask_filename) ):
                 ERROR( 'MASK file not found' )
-            self.niiMASK  = nibabel.load( pjoin( self.get_config('DATA_path'), mask_filename) )
+            self.niiMASK = nibabel.load( pjoin( self.get_config('DATA_path'), mask_filename) )
             self.niiMASK_img = self.niiMASK.get_data().astype(np.uint8)
             niiMASK_hdr = self.niiMASK.header if nibabel.__version__ >= '2.0.0' else self.niiMASK.get_header()
             PRINT('\t\t- dim    = %d x %d x %d' % self.niiMASK_img.shape[:3])
@@ -441,7 +440,6 @@ class Evaluation :
         if not self.get_config('doDirectionalAverage') and DTI is not None:
             with Loader(message='Precomputing directions ({0})'.format(self.get_config('DTI_fit_method')), verbose=get_verbose()):
                 self.DIRs = np.squeeze(DTI.fit(self.y).directions)
-
         # call the fit() method of the actual model
         with self._controller.limit(limits=self.BLAS_threads, user_api='blas'):
             with Loader(message='Fitting the model', verbose=get_verbose()):
@@ -453,10 +451,10 @@ class Evaluation :
         # store results
         self.RESULTS = {}
         # estimates (maps)
-        self.RESULTS['MAPs']  = np.zeros([self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], len(self.model.maps_name)], dtype=np.float32)
+        self.RESULTS['MAPs'] = np.zeros([self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], len(self.model.maps_name)], dtype=np.float32)
         self.RESULTS['MAPs'][self.niiMASK_img==1, :] = results[0]
         # directions
-        self.RESULTS['DIRs']  = np.zeros([self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], 3], dtype=np.float32)
+        self.RESULTS['DIRs'] = np.zeros([self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], 3], dtype=np.float32)
         self.RESULTS['DIRs'][self.niiMASK_img==1, :] = self.DIRs
         # fitting error
         if self.get_config('doComputeRMSE') :
@@ -500,8 +498,6 @@ class Evaluation :
                 RESULTS_path = RESULTS_path +'_'+ path_suffix
             self.RESULTS['RESULTS_path'] = RESULTS_path
             LOG( f'\n-> Saving output to "{pjoin(RESULTS_path, "*")}":' )
-
-            # delete previous output
             RESULTS_path = pjoin( self.get_config('DATA_path'), RESULTS_path )
         else:
             RESULTS_path = self.get_config('OUTPUT_path')
@@ -510,13 +506,14 @@ class Evaluation :
             self.RESULTS['RESULTS_path'] = RESULTS_path
             LOG( f'\n-> Saving output to "{pjoin(RESULTS_path, "*")}":' )
 
+        # delete previous output
         if not exists( RESULTS_path ) :
             makedirs( RESULTS_path )
         else :
             for f in glob.glob( pjoin(RESULTS_path,'*') ) :
                 remove( f )
 
-        # configuration
+        # configuration file
         PRINT('\t- configuration', end=' ')
         with open( pjoin(RESULTS_path,'config.pickle'), 'wb+' ) as fid :
             pickle.dump( self.CONFIG, fid, protocol=2 )
@@ -564,6 +561,7 @@ class Evaluation :
             nibabel.save( niiMAP, pjoin(RESULTS_path, 'fit_NRMSE.nii.gz') )
             PRINT(' [OK]')
 
+        # corrected DWI (Free-Water)
         if self.get_config('doSaveCorrectedDWI') :
             if self.model.name == 'Free-Water' :
                 PRINT('\t- DWI_corrected.nii.gz', end=' ')
