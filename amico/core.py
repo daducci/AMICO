@@ -22,7 +22,7 @@ from joblib import cpu_count
 from threadpoolctl import ThreadpoolController
 from tqdm import tqdm
 
-def setup( lmax=12, ndirs=None ) :
+def setup( lmax=12 ) :
     """General setup/initialization of the AMICO framework.
 
     Parameters
@@ -30,11 +30,7 @@ def setup( lmax=12, ndirs=None ) :
     lmax : int
         Maximum SH order to use for the rotation phase (default : 12).
         NB: change only if you know what you are doing.
-     ndirs : int
-        DEPRECATED. Now, all directions are precomputed.
     """
-    if ndirs is not None:
-        WARNING('"ndirs" parameter is deprecated')
     LOG( '\n-> Precomputing rotation matrices:' )
     for n in tqdm(valid_dirs(), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)):
         amico.lut.precompute_rotation_matrices( lmax, n )
@@ -47,7 +43,7 @@ class Evaluation :
     evaluation with the AMICO framework.
     """
 
-    def __init__( self, study_path, subject, output_path=None ) :
+    def __init__( self, study_path='.', subject='.', output_path=None ) :
         """Setup the data structure with default values.
 
         Parameters
@@ -310,7 +306,7 @@ class Evaluation :
         self.set_config('solver_params', self.model.set_solver( **params ))
 
 
-    def generate_kernels( self, regenerate = False, lmax = 12, ndirs = 32761 ) :
+    def generate_kernels( self, regenerate = False, lmax = 12, ndirs = 500 ) :
         """Generate the high-resolution response functions for each compartment.
         Dispatch to the proper function, depending on the model.
 
@@ -321,7 +317,7 @@ class Evaluation :
         lmax : int
             Maximum SH order to use for the rotation procedure (default : 12)
         ndirs : int
-            Number of directions on the half of the sphere representing the possible orientations of the response functions (default : 32761)
+            Number of directions on the half of the sphere representing the possible orientations of the response functions (default : 500)
         """
         if self.scheme is None :
             ERROR( 'Scheme not loaded; call "load_data()" first' )
