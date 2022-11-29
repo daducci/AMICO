@@ -524,7 +524,7 @@ class Evaluation :
 
         # estimated orientations
         if not self.get_config('doDirectionalAverage'):
-            PRINT('\t- FIT_dir.nii.gz', end=' ')
+            PRINT('\t- fit_dir.nii.gz', end=' ')
             niiMAP_img = self.RESULTS['DIRs']
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
@@ -532,12 +532,12 @@ class Evaluation :
             niiMAP_hdr['cal_max'] = 1
             niiMAP_hdr['scl_slope'] = 1
             niiMAP_hdr['scl_inter'] = 0
-            nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_dir.nii.gz') )
+            nibabel.save( niiMAP, pjoin(RESULTS_path, 'fit_dir.nii.gz') )
             PRINT(' [OK]')
 
         # fitting error
         if self.get_config('doComputeRMSE') :
-            PRINT('\t- FIT_rmse.nii.gz', end=' ')
+            PRINT('\t- fit_RMSE.nii.gz', end=' ')
             niiMAP_img = self.RESULTS['RMSE']
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
@@ -545,10 +545,10 @@ class Evaluation :
             niiMAP_hdr['cal_max'] = 1
             niiMAP_hdr['scl_slope'] = 1
             niiMAP_hdr['scl_inter'] = 0
-            nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_rmse.nii.gz') )
+            nibabel.save( niiMAP, pjoin(RESULTS_path, 'fit_RMSE.nii.gz') )
             PRINT(' [OK]')
         if self.get_config('doComputeNRMSE') :
-            PRINT('\t- FIT_nrmse.nii.gz', end=' ')
+            PRINT('\t- fit_NRMSE.nii.gz', end=' ')
             niiMAP_img = self.RESULTS['NRMSE']
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
@@ -556,25 +556,25 @@ class Evaluation :
             niiMAP_hdr['cal_max'] = 1
             niiMAP_hdr['scl_slope'] = 1
             niiMAP_hdr['scl_inter'] = 0
-            nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_nrmse.nii.gz') )
+            nibabel.save( niiMAP, pjoin(RESULTS_path, 'fit_NRMSE.nii.gz') )
             PRINT(' [OK]')
 
         if self.get_config('doSaveCorrectedDWI') :
             if self.model.name == 'Free-Water' :
-                PRINT('\t- dwi_fw_corrected.nii.gz', end=' ')
+                PRINT('\t- DWI_corrected.nii.gz', end=' ')
                 niiMAP_img = self.RESULTS['DWI_corrected']
                 niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
                 niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
                 niiMAP_hdr['cal_min'] = 0
                 niiMAP_hdr['cal_max'] = 1
-                nibabel.save( niiMAP, pjoin(RESULTS_path, 'dwi_fw_corrected.nii.gz') )
+                nibabel.save( niiMAP, pjoin(RESULTS_path, 'DWI_corrected.nii.gz') )
                 PRINT(' [OK]')
             else :
                 WARNING( f'"doSaveCorrectedDWI" option not supported for "{self.model.name}" model' )
 
         # voxelwise maps
         for i in range( len(self.model.maps_name) ) :
-            PRINT(f'\t- FIT_{self.model.maps_name[i]}.nii.gz', end=' ')
+            PRINT(f'\t- fit_{self.model.maps_name[i]}.nii.gz', end=' ')
             niiMAP_img = self.RESULTS['MAPs'][:,:,:,i]
             niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
             niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
@@ -583,7 +583,7 @@ class Evaluation :
             niiMAP_hdr['cal_max'] = niiMAP_img.max()
             niiMAP_hdr['scl_slope'] = 1
             niiMAP_hdr['scl_inter'] = 0
-            nibabel.save( niiMAP, pjoin(RESULTS_path, f'FIT_{self.model.maps_name[i]}.nii.gz' ) )
+            nibabel.save( niiMAP, pjoin(RESULTS_path, f'fit_{self.model.maps_name[i]}.nii.gz' ) )
             PRINT(' [OK]')
 
         # modulated NDI and ODI maps (NODDI)
@@ -592,7 +592,7 @@ class Evaluation :
                 mod_maps = [name + '_modulated' for name in self.model.maps_name[:2]]
                 descr = [descr + ' modulated' for descr in self.model.maps_descr[:2]]
                 for i in range(len(mod_maps)):
-                    PRINT(f'\t- FIT_{mod_maps[i]}.nii.gz', end=' ')
+                    PRINT(f'\t- fit_{mod_maps[i]}.nii.gz', end=' ')
                     niiMAP_img = self.RESULTS['MAPs_mod'][:,:,:,i]
                     niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
                     niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
@@ -601,7 +601,7 @@ class Evaluation :
                     niiMAP_hdr['cal_max'] = niiMAP_img.max()
                     niiMAP_hdr['scl_slope'] = 1
                     niiMAP_hdr['scl_inter'] = 0
-                    nibabel.save( niiMAP, pjoin(RESULTS_path, f'FIT_{mod_maps[i]}.nii.gz' ) )
+                    nibabel.save( niiMAP, pjoin(RESULTS_path, f'fit_{mod_maps[i]}.nii.gz' ) )
                     PRINT(' [OK]')
             else:
                 WARNING(f'"doSaveModulatedMaps" option not supported for "{self.model.name}" model')
