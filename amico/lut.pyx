@@ -1,3 +1,6 @@
+# distutils: language = c++
+# cython: language_level = 3
+
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
@@ -11,6 +14,8 @@ from dipy.reconst.shm import real_sym_sh_basis
 import amico.scheme
 from amico.util import LOG, NOTE, WARNING, ERROR
 
+cimport cython
+from libc.math cimport fmod, atan2, sqrt, pi, round as cround
 
 def valid_dirs():
     """Return the list of the supported number of directions.
@@ -308,43 +313,49 @@ def resample_kernel( KRlm, nS, idx_out, Ylm_out, is_isotropic, ndirs ) :
     return KR
 
 
-def dir_TO_lut_idx( direction, htable ) :
-    """Compute the index in the kernel LUT corresponding to the estimated direction.
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int dir_to_lut_idx(double [::1]direction, short [::1]hash_table) nogil:
+    """
+    Compute the index in the kernel LUT corresponding to the estimated direction.
 
     Parameters
     ----------
-    direction : float array
+    direction: double [::1] memoryview
         Orientation in 3D space
-    htable : np.array(shape=32761)
+    hash_table: short [::1] memoryview
         Hash table to map a high resolution 3D direction into a low resolution direction
 
     Returns
     -------
-    i1 : int
-        First index (theta)
-    i2 : int
-        Second index (phi)
+    lut_ixd: int
+        LUT index
     """
-    # ensure upper hemisphere (for LUT)
-    if direction[1]<0 :
-         direction = -direction
+    cdef double i1, i2
+    cdef int ii1, ii2
 
-    i2 = np.arctan2(direction[1], direction[0]) % ( 2.0*np.pi )
-    if i2 < 0 :
-        i2 = i2 + 2.0*np.pi % ( 2.0*np.pi )
+    if direction[1] < 0.0:
+        direction[0] = -direction[0]
+        direction[1] = -direction[1]
+        direction[2] = -direction[2]
 
-    if i2 > np.pi :
-        i2 = np.arctan2( -direction[1], -direction[0] ) % ( 2.0*np.pi )
-        i1 = np.arctan2( np.sqrt( direction[0]*direction[0] + direction[1]*direction[1] ), -direction[2] )
-    else :
-        i1 = np.arctan2( np.sqrt( direction[0]*direction[0] + direction[1]*direction[1] ), direction[2] );
+    i2 = fmod(atan2(direction[1], direction[0]), 2.0 * pi)
+    if i2 < 0.0:
+        i2 = fmod(i2 + 2.0 * pi, 2.0 * pi)
+    if i2 > pi:
+        i2 = fmod(atan2(-direction[1], -direction[0]), 2.0 * pi)
+        i1 = atan2(sqrt(direction[0] * direction[0] + direction[1] * direction[1]), -direction[2])
+    else:
+        i1 = atan2(sqrt(direction[0] * direction[0] + direction[1] * direction[1]), direction[2])
 
-    i1 = np.round( i1/np.pi*180.0 ).astype(int)
-    i2 = np.round( i2/np.pi*180.0 ).astype(int)
-    if i1<0 or i1>180 or i2<0 or i2>180 :
-        raise RuntimeError( f'"amico.lut.dir_TO_lut_idx" index out of bounds ({i1},{i2})' )
+    ii1 = <int> cround(i1 / pi * 180.0)
+    ii2 = <int> cround(i2 / pi * 180.0)
 
-    return htable[i1*181 + i2]
+    if ii1 < 0 or ii1 > 180 or ii2 < 0 or ii2 > 180:
+        with gil:
+            raise RuntimeError(f'"amico.lut.dir_to_lut_idx" index out of bounds ({ii1}, {ii2})')
+
+    return <int> hash_table[ii1 * 181 + ii2]
 
 
 def create_high_resolution_scheme( scheme, b_scale = 1 ) :
