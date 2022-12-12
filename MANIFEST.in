@@ -1,2 +1,5 @@
 include README.md
 include LICENSE
+
+include amico/*pyx
+include amico/*pxd
