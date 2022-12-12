@@ -1,6 +1,40 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## `v2.0.0`
+_2022-##-##_
+
+### Changed 🛠️
+- From multiprocessing to `multithreading`
+    - `models` and `lut` modules in Cython
+    - `fit()` methods in Cython
+    - `dir_to_lut_idx()` method in Cython
+- NODDI maps name:
+    - from `ICVF` to `NDI`
+    - from `OD` to `ODI`
+    - from `FISO` to `FWF`
+- Output images name casing (e.g. from `FIT_NDI.nii.gz` to `fit_NDI.nii.gz`)
+- Default fit method for precompute the directions from `WLS` to `OLS`
+- Default number of threads used by BLAS from `-1` to `1`
+- Parallel threads config name from `parallel_jobs` to `n_threads`
+- Default `study_path='.'` and `subject='.'` in amico.core.Evaluation()
+- Default `ndirs=500` in amico.core.generate_kernels()
+- Delete the deprecated `ndirs` parameter from amico.core.setup()
+
+### Added ✨
+- C++ interfaces for NNLS and LASSO solvers (provided by `spams-cython`)
+- Loader-like context manager, `amico.util.Loader()`
+- `DTI_fit_method` config to choose the Diffusion Tensor model fit method
+    - `OLS` (Ordinary Least Squares)
+    - `WLS` (Weighted Least Squares)
+- `BLAS_threads` config to set the number of threads used in the threadpool-backend of common BLAS implementations (e.g. OpenBLAS)
+- Loader-like context manager `util.Loader()`
+- `doComputeRMSE` config to compute the Root Mean Square Error image
+- Modulated maps for the NODDI model, e.g. `fit_NDI_modulated.nii.gz`
+
+### Fixed 🐛
+- None
+
 ## [1.5.2] - 2022-10-21
 
 ### Added
