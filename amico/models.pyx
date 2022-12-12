@@ -335,7 +335,7 @@ class StickZeppelinBall( BaseModel ) :
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params ) :
+    def fit(self, evaluation):
         ERROR( 'Not implemented' )
 
 
@@ -1232,7 +1232,7 @@ class VolumeFractions( BaseModel ) :
         return KERNELS
 
 
-    def fit( self, y, dirs, KERNELS, params ) :
+    def fit(self, evaluation):
         ERROR( 'Not implemented' )
 
 
