@@ -16,10 +16,7 @@ cimport cython
 from libc.stdlib cimport malloc, free
 from libc.math cimport pi, atan2, sqrt, pow as cpow
 from amico.lut cimport dir_to_lut_idx
-
-cdef extern from 'wrappers.h':
-    cdef void nnls(const double *A, const double *y, const int m, const int n, double *x, double &rnorm) nogil
-    cdef void lasso(double *A, double *y, const int m, const int p, const int n, const double lambda1, const double lambda2, double *x) nogil
+from cyspams.interfaces cimport nnls, lasso
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -568,7 +565,7 @@ class CylinderZeppelinBall( BaseModel ) :
                 A_view[:, n_rs + n_perp:] = kernels_iso_view[:, :]
 
                 # fit
-                lasso(&A_view[0, 0], &y_view[i, 0], A_view.shape[0], A_view.shape[1], 1, lambda1, lambda2, &x_view[0])
+                lasso(&A_view[0, 0], &y_view[i, 0], A_view.shape[0], A_view.shape[1], 1, &x_view[0], lambda1, lambda2)
 
                 # estimates
                 f1 = 0.0
@@ -860,7 +857,7 @@ class NODDI( BaseModel ) :
                         y2_view[j] = y2_view[j] - x_view[n_atoms-2] * 1.0
                     if y2_view[j] < 0.0:
                         y2_view[j] = 0.0
-                lasso(&A2_view[0, 0], &y2_view[0], A2_view.shape[0], A2_view.shape[1], 1, lambda1, lambda2, &x_view[0])
+                lasso(&A2_view[0, 0], &y2_view[0], A2_view.shape[0], A2_view.shape[1], 1, &x_view[0], lambda1, lambda2)
 
                 # fit_3 (debias coefficients)
                 positive_count = 0
@@ -1145,7 +1142,7 @@ class FreeWater( BaseModel ) :
                 A_view[:, n_perp:] = kernels_CSF_view[:, :]
 
                 # fit
-                lasso(&A_view[0, 0], &y_view[i, 0], A_view.shape[0], A_view.shape[1], 1, lambda1, lambda2, &x_view[0])
+                lasso(&A_view[0, 0], &y_view[i, 0], A_view.shape[0], A_view.shape[1], 1, &x_view[0], lambda1, lambda2)
 
                 # estimates
                 x_sum = 0.0
@@ -1449,7 +1446,7 @@ class SANDI( BaseModel ) :
         with nogil:
             for i in range(y_view.shape[0]):
                 # fit
-                lasso(&A_view[0, 0], &y_view[i, 0], A_view.shape[0], A_view.shape[1], 1, lambda1, lambda2, &x_view[0])
+                lasso(&A_view[0, 0], &y_view[i, 0], A_view.shape[0], A_view.shape[1], 1, &x_view[0], lambda1, lambda2)
                 for j in range(kernels_norms_view.shape[0]):
                     x_view[j] = x_view[j] * kernels_norms_view[j]
 
