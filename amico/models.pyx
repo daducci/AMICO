@@ -523,13 +523,11 @@ class CylinderZeppelinBall( BaseModel ) :
         cdef double [::1, :, :]kernels_wmh_view = np.asfortranarray(np.swapaxes(kernels['wmh'].T, 1, 2)).astype(np.double)
         cdef double [::1, :]kernels_iso_view = np.asfortranarray(kernels['iso'].T).astype(np.double)
 
-        # y
+        # y, A, x
         if not y.flags['C_CONTIGUOUS']:
             y = np.ascontiguousarray(y)
         cdef double [:, ::1]y_view = y
-        # A
         cdef double [::1, :]A_view = np.zeros((kernels_wmr_view.shape[0], n_atoms), dtype=np.double, order='F')
-        # x
         cdef double [::1]x_view = np.zeros(n_atoms, dtype=np.double)
 
         # return
@@ -776,25 +774,20 @@ class NODDI( BaseModel ) :
         cdef float [::1]kernels_icvf_view = kernels['icvf']
         cdef float [::1]kernels_kappa_view = kernels['kappa']
 
-        # TODO reorganize comments
-        # y
+        # y, A, x
         if not y.flags['C_CONTIGUOUS']:
             y = np.ascontiguousarray(y)
         cdef double [:, ::1]y_view = y
-        # A
         cdef double [::1, :]A_view = np.zeros((kernels_wm_view.shape[0], n_atoms), dtype=np.double, order='F')
-        # x
         cdef double [::1]x_view = np.zeros(n_atoms, dtype=np.double)
         cdef double r_norm = 0.0
 
-        # y_2
+        # y_2, A_2
         cdef double [::1]y2_view = np.zeros(kernels_norms_view.shape[0], dtype=np.double)
-        # A_2
         cdef double [::1, :]A2_view = np.zeros((kernels_norms_view.shape[0], kernels_norms_view.shape[1]), dtype=np.double, order='F')
         
-        # A_3
+        # A_3, x_3
         cdef double [::1, :]A3_view = np.zeros((kernels_wm_view.shape[0], n_atoms), dtype=np.double, order='F')
-        # x_3
         cdef double [::1]x3_view = np.zeros(n_atoms, dtype=np.double)
 
         cdef int positive_count = 0
@@ -1095,13 +1088,11 @@ class FreeWater( BaseModel ) :
         cdef double [::1, :, :]kernels_D_view = np.asfortranarray(np.swapaxes(kernels['D'].T, 1, 2)).astype(np.double)
         cdef double [::1, :]kernels_CSF_view = np.asfortranarray(kernels['CSF'].T).astype(np.double)
 
-        # y
+        # y, A, x
         if not y.flags['C_CONTIGUOUS']:
             y = np.ascontiguousarray(y)
         cdef double [:, ::1]y_view = y
-        # A
         cdef double [::1, :]A_view = np.zeros((kernels_D_view.shape[0], n_atoms), dtype=np.double, order='F')
-        # x
         cdef double [::1]x_view = np.zeros(n_atoms, dtype=np.double)
 
         # return
@@ -1402,13 +1393,11 @@ class SANDI( BaseModel ) :
             kernels['signal'] = np.asfortranarray(kernels['signal'])
         cdef double [::1]kernels_norms_view = kernels['norms']
 
-        # y
+        # y, A, x
         if not y.flags['C_CONTIGUOUS']:
             y = np.ascontiguousarray(y)
         cdef double [:, ::1]y_view = y
-        # A
         cdef double [::1, :]A_view = kernels['signal']
-        # x
         cdef double [::1]x_view = np.zeros(n_atoms, dtype=np.double)
 
         # return
