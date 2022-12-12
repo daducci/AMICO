@@ -1,0 +1,61 @@
+[build-system]
+requires = [
+    "setuptools",
+    "Cython>=0.29.32",
+    "cyspams>=1.0.0"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dmri-amico"
+version = "2.0.0"
+description = "Accelerated Microstructure Imaging via Convex Optimization (AMICO)"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {text = "BSD 3-Clause License"} # NOTE open bug https://github.com/pypi/warehouse/issues/12392
+authors = [
+    {name = "Alessandro Daducci"},
+    {email = "alessandro.daducci@univr.it"}
+]
+maintainers = [
+    {name = "Alessandro Daducci", email = "alessandro.daducci@univr.it"}
+]
+keywords = [
+    "Neuroimaging",
+    "NODDI",
+    "SANDI"
+]
+classifiers = [
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Programming Language :: Python",
+    "Programming Language :: Cython"
+]
+dependencies = [
+    "numpy>=1.12",
+    "scipy>=1.0",
+    "dipy>=1.0",
+    "tqdm>=4.56.0",
+    "joblib>=1.0.1",
+    "threadpoolctl>=3.1.0",
+    "importlib-metadata; python_version<'3.8'"
+]
+
+[project.urls]
+Homepage = "https://github.com/daducci/AMICO"
+Documentation = "https://github.com/daducci/AMICO/wiki"
+Source = "https://github.com/daducci/AMICO"
+Changelog = "https://github.com/daducci/AMICO/blob/master/CHANGELOG.md"
+Download = "https://pypi.org/project/dmri-amico"
+Tracker = "https://github.com/daducci/AMICO/issues"
+
+[tool.setuptools]
+platforms = [
+    "Windows",
+    "MacOS",
+    "Linux"
+]
+packages = ["amico"]
+package-data = {amico = ["directions/*.bin"]}
+include-package-data = false
