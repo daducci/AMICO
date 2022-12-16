@@ -22,7 +22,6 @@ from joblib import cpu_count
 from threadpoolctl import ThreadpoolController
 from tqdm import tqdm
 
-
 def setup( lmax=12, ndirs=None ) :
     """General setup/initialization of the AMICO framework.
 
@@ -86,6 +85,7 @@ class Evaluation :
         self.set_config('peaks_filename', None)
         self.set_config('doNormalizeSignal', True)
         self.set_config('doKeepb0Intact', False)        # does change b0 images in the predicted signal
+        self.set_config('doComputeRMSE', False)
         self.set_config('doComputeNRMSE', False)
         self.set_config('doSaveCorrectedDWI', False)
         self.set_config('doMergeB0', False)             # Merge b0 volumes
@@ -452,13 +452,16 @@ class Evaluation :
         # directions
         self.RESULTS['DIRs']  = np.zeros([self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], 3], dtype=np.float32)
         self.RESULTS['DIRs'][self.niiMASK_img==1, :] = self.DIRs
-        # nrmse
+        # fitting error
+        if self.get_config('doComputeRMSE') :
+            self.RESULTS['RMSE'] = np.zeros([self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32)
+            self.RESULTS['RMSE'][self.niiMASK_img==1] = results[1]
         if self.get_config('doComputeNRMSE') :
             self.RESULTS['NRMSE'] = np.zeros([self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32)
-            self.RESULTS['NRMSE'][self.niiMASK_img==1] = results[1]
-        # corrected DWI
-        if self.get_config('doSaveCorrectedDWI') :
-            y_corrected = results[2]
+            self.RESULTS['NRMSE'][self.niiMASK_img==1] = results[2]
+        # corrected DWI (Free-Water)
+        if self.model.name == 'Free-Water' and self.get_config('doSaveCorrectedDWI') :
+            y_corrected = results[3]
             if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0:
                 y_corrected = y_corrected * np.reshape(self.mean_b0s[self.niiMASK_img==1], (-1, 1))
             if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0:
@@ -486,7 +489,7 @@ class Evaluation :
             if path_suffix :
                 RESULTS_path = RESULTS_path +'_'+ path_suffix
             self.RESULTS['RESULTS_path'] = RESULTS_path
-            LOG( f'\n-> Saving output to "{RESULTS_path}/*":' )
+            LOG( f'\n-> Saving output to "{pjoin(RESULTS_path, "*")}":' )
 
             # delete previous output
             RESULTS_path = pjoin( self.get_config('DATA_path'), RESULTS_path )
@@ -495,7 +498,7 @@ class Evaluation :
             if path_suffix :
                 RESULTS_path = RESULTS_path +'_'+ path_suffix
             self.RESULTS['RESULTS_path'] = RESULTS_path
-            LOG( f'\n-> Saving output to "{RESULTS_path}/*":' )
+            LOG( f'\n-> Saving output to "{pjoin(RESULTS_path, "*")}":' )
 
         if not exists( RESULTS_path ) :
             makedirs( RESULTS_path )
@@ -528,6 +531,17 @@ class Evaluation :
             PRINT(' [OK]')
 
         # fitting error
+        if self.get_config('doComputeRMSE') :
+            PRINT('\t- FIT_rmse.nii.gz', end=' ')
+            niiMAP_img = self.RESULTS['RMSE']
+            niiMAP     = nibabel.Nifti1Image( niiMAP_img, affine, hdr )
+            niiMAP_hdr = niiMAP.header if nibabel.__version__ >= '2.0.0' else niiMAP.get_header()
+            niiMAP_hdr['cal_min'] = 0
+            niiMAP_hdr['cal_max'] = 1
+            niiMAP_hdr['scl_slope'] = 1
+            niiMAP_hdr['scl_inter'] = 0
+            nibabel.save( niiMAP, pjoin(RESULTS_path, 'FIT_rmse.nii.gz') )
+            PRINT(' [OK]')
         if self.get_config('doComputeNRMSE') :
             PRINT('\t- FIT_nrmse.nii.gz', end=' ')
             niiMAP_img = self.RESULTS['NRMSE']

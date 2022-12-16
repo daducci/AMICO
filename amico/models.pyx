@@ -23,6 +23,20 @@ cdef extern from 'wrappers.h':
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cdef void _compute_rmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *rmse_view) nogil:
+    cdef double *y_est = <double *>malloc(sizeof(double) * y_view.shape[0])
+
+    cdef Py_ssize_t i, j
+    for i in range(A_view.shape[0]):
+        y_est[i] = 0.0
+        for j in range(A_view.shape[1]):
+            y_est[i] += A_view[i, j] * x_view[j]
+        rmse_view[0] += cpow(y_view[i] - y_est[i], 2.0) / y_view.shape[0]
+    rmse_view[0] = sqrt(rmse_view[0])
+    free(y_est)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef void _compute_nrmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *nrmse_view) nogil:
     cdef double den = 0.0
     cdef double *y_est = <double *>malloc(sizeof(double) * y_view.shape[0])
@@ -37,6 +51,8 @@ cdef void _compute_nrmse(double [::1, :]A_view, double [::1]y_view, double [::1]
         for i in range(A_view.shape[0]):
             nrmse_view[0] += cpow(y_view[i] - y_est[i], 2.0) / den
         nrmse_view[0] = sqrt(nrmse_view[0])
+    else:
+        nrmse_view[0] = 0.0
     free(y_est)
 
 
@@ -165,8 +181,10 @@ class BaseModel(ABC) :
         -------
         estiamtes: np.ndarray
             Scalar values eastimated in each voxel
+        rmse: np.ndarray (optional)
+            Fitting error (Root Mean Square Error)
         nrmse: np.ndarray (optional)
-            Fitting error
+            Fitting error (Normalized Root Mean Square Error)
         y_corrected: np.ndarray (optional)
             Corrected y
         """
@@ -177,6 +195,12 @@ class BaseModel(ABC) :
             self.chunks.append((i, j))
         if self.chunks[-1][1] != n:
             self.chunks[-1] = (self.chunks[-1][0], n)
+
+        # common configs
+        self.configs = {
+            'compute_rmse': evaluation.get_config('doComputeRMSE'),
+            'compute_nrmse': evaluation.get_config('doComputeNRMSE')
+        }
 
 
 
@@ -197,7 +221,6 @@ class StickZeppelinBall( BaseModel ) :
     .. [1] Panagiotaki et al. (2012) Compartment models of the diffusion MR signal
            in brain white matter: A taxonomy and comparison. NeuroImage, 59: 2241-54
     """
-
     def __init__( self ) :
         self.id         = 'StickZeppelinBall'
         self.name       = 'Stick-Zeppelin-Ball'
@@ -461,19 +484,14 @@ class CylinderZeppelinBall( BaseModel ) :
 
     def fit(self, evaluation):
         super().fit(evaluation)
-        configs = {
-            'compute_nrmse': evaluation.get_config('doComputeNRMSE')
-        }
 
         # fit chunks in parallel
-        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, evaluation.get_config('solver_params'), configs) for i, j in self.chunks)
+        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, evaluation.get_config('solver_params'), self.configs) for i, j in self.chunks)
 
-        # return estimates, nrmse(optional)
+        # return
         results = (np.concatenate([cr[0] for cr in chunked_results]),)
-        if configs['compute_nrmse']:
-            results += (np.concatenate([cr[1] for cr in chunked_results]),)
-        else:
-            results += (None,)
+        results += (np.concatenate([cr[1] for cr in chunked_results]),) if self.configs['compute_rmse'] else (None,)
+        results += (np.concatenate([cr[2] for cr in chunked_results]),) if self.configs['compute_nrmse'] else (None,)
         return results
 
 
@@ -482,6 +500,7 @@ class CylinderZeppelinBall( BaseModel ) :
     def _fit(self, y, dirs, hash_table, kernels, solver_params, configs):
         # configs
         cdef bint is_exvivo = 1 if self.isExvivo else 0
+        cdef bint compute_rmse = 1 if configs['compute_rmse'] else 0
         cdef bint compute_nrmse = 1 if configs['compute_nrmse'] else 0
         cdef int n_rs = len(self.Rs)
         cdef int n_perp = len(self.d_perps)
@@ -530,6 +549,10 @@ class CylinderZeppelinBall( BaseModel ) :
         cdef double [::1]rs_view = self.Rs
 
         # fitting error
+        cdef double [::1]rmse_view
+        if compute_rmse:
+            rmse = np.zeros(y_view.shape[0], dtype=np.double)
+            rmse_view = rmse
         cdef double [::1]nrmse_view
         if compute_nrmse:
             nrmse = np.zeros(y_view.shape[0], dtype=np.double)
@@ -569,14 +592,14 @@ class CylinderZeppelinBall( BaseModel ) :
                 estimates_view[i, 2] = d
 
                 # fitting error
+                if compute_rmse:
+                    _compute_rmse(A_view, y_view[i, :], x_view, &rmse_view[i])
                 if compute_nrmse:
                     _compute_nrmse(A_view, y_view[i, :], x_view, &nrmse_view[i])
 
         results = (estimates,)
-        if compute_nrmse:
-            results += (nrmse,)
-        else:
-            results += (None,)
+        results += (rmse,) if compute_rmse else (None,)
+        results += (nrmse,) if compute_nrmse else (None,)
         return results
 
 
@@ -711,19 +734,14 @@ class NODDI( BaseModel ) :
 
     def fit(self, evaluation):
         super().fit(evaluation)
-        configs = {
-            'compute_nrmse': evaluation.get_config('doComputeNRMSE')
-        }
 
         # fit chunks in parallel
-        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, evaluation.get_config('solver_params'), configs) for i, j in self.chunks)
+        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, evaluation.get_config('solver_params'), self.configs) for i, j in self.chunks)
 
-        # return estimates, nrmse(optional)
+        # return
         results = (np.concatenate([cr[0] for cr in chunked_results]),)
-        if configs['compute_nrmse']:
-            results += (np.concatenate([cr[1] for cr in chunked_results]),)
-        else:
-            results += (None,)
+        results += (np.concatenate([cr[1] for cr in chunked_results]),) if self.configs['compute_rmse'] else (None,)
+        results += (np.concatenate([cr[2] for cr in chunked_results]),) if self.configs['compute_nrmse'] else (None,)
         return results
 
 
@@ -733,6 +751,7 @@ class NODDI( BaseModel ) :
         # configs
         cdef bint is_exvivo = 1 if self.isExvivo else 0
         cdef bint single_b0 = 1 if y.shape[1] == (1 + self.scheme.dwi_count) else 0
+        cdef bint compute_rmse = 1 if configs['compute_rmse'] else 0
         cdef bint compute_nrmse = 1 if configs['compute_nrmse'] else 0
         cdef long long [::1]dwi_idx_view = self.scheme.dwi_idx
         cdef int n_wm = len(self.IC_ODs) * len(self.IC_VFs)
@@ -800,6 +819,10 @@ class NODDI( BaseModel ) :
         cdef double sum_n_wm = 0.0
 
         # fitting error
+        cdef double [::1]rmse_view
+        if compute_rmse:
+            rmse = np.zeros(y_view.shape[0], dtype=np.double)
+            rmse_view = rmse
         cdef double [::1]nrmse_view
         if compute_nrmse:
             nrmse = np.zeros(y_view.shape[0], dtype=np.double)
@@ -875,14 +898,14 @@ class NODDI( BaseModel ) :
                     estimates_view[i, 3] = x_view[n_atoms-2] / sum_n_atoms
 
                 # fitting error
+                if compute_rmse:
+                    _compute_rmse(A_view, y_view[i, :], x_view, &rmse_view[i])
                 if compute_nrmse:
                     _compute_nrmse(A_view, y_view[i, :], x_view, &nrmse_view[i])
 
         results = (estimates,)
-        if compute_nrmse:
-            results += (nrmse,)
-        else:
-            results += (None,)
+        results += (rmse,) if compute_rmse else (None,)
+        results += (nrmse,) if compute_nrmse else (None,)
         return results
 
 
@@ -1025,24 +1048,16 @@ class FreeWater( BaseModel ) :
 
     def fit(self, evaluation):
         super().fit(evaluation)
-        configs = {
-            'compute_nrmse': evaluation.get_config('doComputeNRMSE'),
-            'save_corrected_DWI': evaluation.get_config('doSaveCorrectedDWI')
-        }
+        self.configs['save_corrected_DWI'] = evaluation.get_config('doSaveCorrectedDWI')
 
         # fit chunks in parallel
-        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, evaluation.get_config('solver_params'), configs) for i, j in self.chunks)
+        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, evaluation.get_config('solver_params'), self.configs) for i, j in self.chunks)
 
-        # return estimates, nrmse(optional), y_corrected (optional)
+        # return
         results = (np.concatenate([cr[0] for cr in chunked_results]),)
-        if configs['compute_nrmse']:
-            results += (np.concatenate([cr[1] for cr in chunked_results]),)
-        else:
-            results += (None,)
-        if configs['save_corrected_DWI']:
-            results += (np.concatenate([cr[2] for cr in chunked_results]),)
-        else:
-            results += (None,)
+        results += (np.concatenate([cr[1] for cr in chunked_results]),) if self.configs['compute_rmse'] else (None,)
+        results += (np.concatenate([cr[2] for cr in chunked_results]),) if self.configs['compute_nrmse'] else (None,)
+        results += (np.concatenate([cr[3] for cr in chunked_results]),) if self.configs['save_corrected_DWI'] else (None,)
         return results
 
 
@@ -1051,6 +1066,7 @@ class FreeWater( BaseModel ) :
     def _fit(self, y, dirs, hash_table, kernels, solver_params, configs):
         # configs
         cdef bint is_mouse = 1 if self.type == 'Mouse' else 0
+        cdef bint compute_rmse = 1 if configs['compute_rmse'] else 0
         cdef bint compute_nrmse = 1 if configs['compute_nrmse'] else 0
         cdef bint save_corrected_DWI = 1 if configs['save_corrected_DWI'] else 0
         cdef int n_perp = len(self.d_perps)
@@ -1091,6 +1107,10 @@ class FreeWater( BaseModel ) :
         cdef double x_n_perp_sum = 0.0
 
         # fitting error
+        cdef double [::1]rmse_view
+        if compute_rmse:
+            rmse = np.zeros(y_view.shape[0], dtype=np.double)
+            rmse_view = rmse
         cdef double [::1]nrmse_view
         if compute_nrmse:
             nrmse = np.zeros(y_view.shape[0], dtype=np.double)
@@ -1098,11 +1118,11 @@ class FreeWater( BaseModel ) :
 
         # y_corrected
         cdef double [::1]y_fw_part
-        cdef double [::1, :]y_fw_corrected_view
+        cdef double [::1, :]y_corrected_view
         if save_corrected_DWI:
             y_fw_part = np.zeros(y_view.shape[1], dtype=np.double)
-            y_fw_corrected = np.zeros((y_view.shape[0], y_view.shape[1]), dtype=np.double, order='F')
-            y_fw_corrected_view = y_fw_corrected
+            y_corrected = np.zeros((y_view.shape[0], y_view.shape[1]), dtype=np.double, order='F')
+            y_corrected_view = y_corrected
 
         cdef Py_ssize_t i, j, k
         with nogil:
@@ -1133,6 +1153,8 @@ class FreeWater( BaseModel ) :
                     estimates_view[i, 3] = v_csf
 
                 # fitting error
+                if compute_rmse:
+                    _compute_rmse(A_view, y_view[i, :], x_view, &rmse_view[i])
                 if compute_nrmse:
                     _compute_nrmse(A_view, y_view[i, :], x_view, &nrmse_view[i])
 
@@ -1145,19 +1167,14 @@ class FreeWater( BaseModel ) :
                         for k in range(A_view.shape[1]):
                             y_fw_part[j] += A_view[j, k] * x_view[k]
                     for j in range(y_fw_part.shape[0]):
-                        y_fw_corrected_view[i, j] = y_view[i, j] - y_fw_part[j]
-                        if y_fw_corrected_view[i, j] < 0.0:
-                            y_fw_corrected_view[i, j] = 0.0
+                        y_corrected_view[i, j] = y_view[i, j] - y_fw_part[j]
+                        if y_corrected_view[i, j] < 0.0:
+                            y_corrected_view[i, j] = 0.0
 
         results = (estimates,)
-        if compute_nrmse:
-            results += (nrmse,)
-        else:
-            results += (None,)
-        if save_corrected_DWI:
-            results += (y_fw_corrected,)
-        else:
-            results += (None,)
+        results += (rmse,) if compute_rmse else (None,)
+        results += (nrmse,) if compute_nrmse else (None,)
+        results += (y_corrected,) if save_corrected_DWI else (None,)
         return results
 
 
@@ -1348,19 +1365,14 @@ class SANDI( BaseModel ) :
     
     def fit(self, evaluation):
         super().fit(evaluation)
-        configs = {
-            'compute_nrmse': evaluation.get_config('doComputeNRMSE')
-        }
-
+        
         # fit chunks in parallel
-        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.KERNELS, evaluation.get_config('solver_params'), configs) for i, j in self.chunks)
+        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.KERNELS, evaluation.get_config('solver_params'), self.configs) for i, j in self.chunks)
 
-        # return estimates, nrmse(optional)
+        # return
         results = (np.concatenate([cr[0] for cr in chunked_results]),)
-        if configs['compute_nrmse']:
-            results += (np.concatenate([cr[1] for cr in chunked_results]),)
-        else:
-            results += (None,)
+        results += (np.concatenate([cr[1] for cr in chunked_results]),) if self.configs['compute_rmse'] else (None,)
+        results += (np.concatenate([cr[2] for cr in chunked_results]),) if self.configs['compute_nrmse'] else (None,)
         return results
 
 
@@ -1368,6 +1380,7 @@ class SANDI( BaseModel ) :
     @cython.wraparound(False)
     def _fit(self, y, kernels, solver_params, configs):
         # configs
+        cdef bint compute_rmse = 1 if configs['compute_rmse'] else 0
         cdef bint compute_nrmse = 1 if configs['compute_nrmse'] else 0
         cdef int n_rs = len(self.Rs)
         cdef int n_in = len(self.d_in)
@@ -1414,8 +1427,14 @@ class SANDI( BaseModel ) :
         cdef double xiso_sum = 0.0
 
         # fitting error
-        nrmse = np.zeros(y_view.shape[0], dtype=np.double)
-        cdef double [::1]nrmse_view = nrmse
+        cdef double [::1]rmse_view
+        if compute_rmse:
+            rmse = np.zeros(y_view.shape[0], dtype=np.double)
+            rmse_view = rmse
+        cdef double [::1]nrmse_view
+        if compute_nrmse:
+            nrmse = np.zeros(y_view.shape[0], dtype=np.double)
+            nrmse_view = nrmse
 
         cdef Py_ssize_t i, j
         with nogil:
@@ -1466,12 +1485,12 @@ class SANDI( BaseModel ) :
                 estimates_view[i, 5] = De
 
                 # fitting error
+                if compute_rmse:
+                    _compute_rmse(A_view, y_view[i, :], x_view, &rmse_view[i])
                 if compute_nrmse:
                     _compute_nrmse(A_view, y_view[i, :], x_view, &nrmse_view[i])
 
         results = (estimates,)
-        if compute_nrmse:
-            results += (nrmse,)
-        else:
-            results += (None,)
+        results += (rmse,) if compute_rmse else (None,)
+        results += (nrmse,) if compute_nrmse else (None,)
         return results
