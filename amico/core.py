@@ -448,24 +448,24 @@ class Evaluation :
         self.RESULTS = {}
         # estimates (maps)
         self.RESULTS['MAPs'] = np.zeros([self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], len(self.model.maps_name)], dtype=np.float32)
-        self.RESULTS['MAPs'][self.niiMASK_img==1, :] = results[0]
+        self.RESULTS['MAPs'][self.niiMASK_img==1, :] = results['estimates']
         # directions
         self.RESULTS['DIRs'] = np.zeros([self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], 3], dtype=np.float32)
         self.RESULTS['DIRs'][self.niiMASK_img==1, :] = self.DIRs
         # fitting error
         if self.get_config('doComputeRMSE') :
             self.RESULTS['RMSE'] = np.zeros([self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32)
-            self.RESULTS['RMSE'][self.niiMASK_img==1] = results[1]
+            self.RESULTS['RMSE'][self.niiMASK_img==1] = results['rmse']
         if self.get_config('doComputeNRMSE') :
             self.RESULTS['NRMSE'] = np.zeros([self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2]], dtype=np.float32)
-            self.RESULTS['NRMSE'][self.niiMASK_img==1] = results[2]
+            self.RESULTS['NRMSE'][self.niiMASK_img==1] = results['nrmse']
         # Modulated NDI and ODI maps (NODDI)
         if self.model.name == 'NODDI' and self.get_config('doSaveModulatedMaps'):
             self.RESULTS['MAPs_mod'] = np.zeros([self.get_config('dim')[0], self.get_config('dim')[1], self.get_config('dim')[2], 2], dtype=np.float32)
-            self.RESULTS['MAPs_mod'][self.niiMASK_img==1, :] = results[3]
+            self.RESULTS['MAPs_mod'][self.niiMASK_img==1, :] = results['estimates_mod']
         # corrected DWI (Free-Water)
         if self.model.name == 'Free-Water' and self.get_config('doSaveCorrectedDWI') :
-            y_corrected = results[3]
+            y_corrected = results['y_corrected']
             if self.get_config('doNormalizeSignal') and self.scheme.b0_count > 0:
                 y_corrected = y_corrected * np.reshape(self.mean_b0s[self.niiMASK_img==1], (-1, 1))
             if self.get_config('doKeepb0Intact') and self.scheme.b0_count > 0:
