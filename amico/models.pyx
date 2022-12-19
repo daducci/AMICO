@@ -104,7 +104,7 @@ class BaseModel(ABC) :
 
 
     @abstractmethod
-    def set_solver( self, *args, **kwargs ) :
+    def set_solver( self ) :
         """For setting the parameters required by the solver to fit the model.
         NB: the parameters are model-dependent.
 
@@ -113,7 +113,7 @@ class BaseModel(ABC) :
         params : dictionary
             All the parameters that the solver will need to fit the model
         """
-        return
+        self._solver_params = {}
 
 
     @abstractmethod
@@ -389,12 +389,9 @@ class CylinderZeppelinBall( BaseModel ) :
 
 
     def set_solver( self, lambda1 = 0.0, lambda2 = 4.0 ) :
-        params = {}
-        params['mode']    = 2
-        params['pos']     = True
-        params['lambda1'] = lambda1
-        params['lambda2'] = lambda2
-        return params
+        super().set_solver()
+        self._solver_params['lambda1'] = lambda1
+        self._solver_params['lambda2'] = lambda2
 
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
@@ -482,7 +479,7 @@ class CylinderZeppelinBall( BaseModel ) :
         super().fit(evaluation)
 
         # fit chunks in parallel
-        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, evaluation.get_config('solver_params'), self.configs) for i, j in self.chunks)
+        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, self._solver_params, self.configs) for i, j in self.chunks)
 
         # return
         self.results['estimates'] = np.concatenate([cr['estimates'] for cr in chunked_results])
@@ -651,12 +648,9 @@ class NODDI( BaseModel ) :
 
 
     def set_solver( self, lambda1 = 5e-1, lambda2 = 1e-3 ):
-        params = {}
-        params['mode']    = 2
-        params['pos']     = True
-        params['lambda1'] = lambda1
-        params['lambda2'] = lambda2
-        return params
+        super().set_solver()
+        self._solver_params['lambda1'] = lambda1
+        self._solver_params['lambda2'] = lambda2
 
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ):
@@ -732,7 +726,7 @@ class NODDI( BaseModel ) :
         self.configs['compute_modulated_maps'] = evaluation.get_config('doSaveModulatedMaps')
 
         # fit chunks in parallel
-        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, evaluation.get_config('solver_params'), self.configs) for i, j in self.chunks)
+        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, self._solver_params, self.configs) for i, j in self.chunks)
 
         # return
         self.results['estimates'] = np.concatenate([cr['estimates'] for cr in chunked_results])
@@ -987,17 +981,14 @@ class FreeWater( BaseModel ) :
 
 
     def set_solver( self, lambda1 = 0.0, lambda2 = 1e-3 ):
-        params = {}
-        params['mode']    = 2
-        params['pos']     = True
-        params['lambda1'] = lambda1
-        params['lambda2'] = lambda2
+        super().set_solver()
+        self._solver_params['lambda1'] = lambda1
+        self._solver_params['lambda2'] = lambda2
 
+        # TODO check this
         # need more regul for mouse data
         if self.type == 'Mouse' :
             lambda2 = 0.25
-
-        return params
 
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
@@ -1064,7 +1055,7 @@ class FreeWater( BaseModel ) :
         self.configs['save_corrected_DWI'] = evaluation.get_config('doSaveCorrectedDWI')
 
         # fit chunks in parallel
-        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, evaluation.get_config('solver_params'), self.configs) for i, j in self.chunks)
+        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, self._solver_params, self.configs) for i, j in self.chunks)
 
         # return
         self.results['estimates'] = np.concatenate([cr['estimates'] for cr in chunked_results])
@@ -1292,12 +1283,9 @@ class SANDI( BaseModel ) :
 
 
     def set_solver( self, lambda1 = 0.0, lambda2 = 5.0E-3 ) :
-        params = {}
-        params['mode']    = 2
-        params['pos']     = True
-        params['lambda1'] = lambda1
-        params['lambda2'] = lambda2
-        return params
+        super().set_solver()
+        self._solver_params['lambda1'] = lambda1
+        self._solver_params['lambda2'] = lambda2
 
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
@@ -1382,7 +1370,7 @@ class SANDI( BaseModel ) :
         super().fit(evaluation)
 
         # fit chunks in parallel
-        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.KERNELS, evaluation.get_config('solver_params'), self.configs) for i, j in self.chunks)
+        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.KERNELS, self._solver_params, self.configs) for i, j in self.chunks)
 
         # return
         self.results['estimates'] = np.concatenate([cr['estimates'] for cr in chunked_results])

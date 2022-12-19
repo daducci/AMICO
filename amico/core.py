@@ -299,11 +299,19 @@ class Evaluation :
 
     def set_solver( self, **params ) :
         """Setup the specific parameters of the solver to fit the model.
-        Dispatch to the proper function, depending on the model; a model shoudl provide a "set_solver" function to set these parameters.
+        Dispatch to the proper function, depending on the model; a model should provide a "set_solver" function to set these parameters.
+        StickZeppelinBall:      'set_solver()' not implemented
+        CylinderZeppelinBall:   lambda1 = 0.0, lambda2 = 4.0
+        NODDI:                  lambda1 = 5e-1, lambda2 = 1e-3
+        FreeWater:              lambda1 = 0.0, lambda2 = 1e-3
+        VolumeFractions:        'set_solver()' not implemented
+        SANDI:                  lambda1 = 0.0, lambda2 = 5e-3
         """
         if self.model is None :
             ERROR( 'Model not set; call "set_model()" method first' )
-        self.set_config('solver_params', self.model.set_solver( **params ))
+        
+        self.model.set_solver(**params)
+        self.set_config('solver_params', self.model._solver_params)
 
 
     def generate_kernels( self, regenerate = False, lmax = 12, ndirs = 500 ) :
