@@ -310,6 +310,14 @@ class Evaluation :
         if self.model is None :
             ERROR( 'Model not set; call "set_model()" method first' )
         
+        remove_key_list = []
+        for key in params.keys():
+            if key != 'lambda1' and key != 'lambda2':
+                remove_key_list.append(key)
+                WARNING(f"Cannot find the '{key}' solver param for the '{self.model.name}' model. It will be ignored")
+        for rm_key in remove_key_list:
+            del params[rm_key]
+
         self.model.set_solver(**params)
         self.set_config('solver_params', self.model._solver_params)
 
