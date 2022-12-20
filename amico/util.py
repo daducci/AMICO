@@ -85,7 +85,7 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = 
         ERROR( 'incorrect/incompatible bval/bvecs files' )
 
     # if requested, flip the axes
-    flipAxes = np.array(flipAxes, dtype = np.bool)
+    flipAxes = np.array(flipAxes, dtype = np.bool_)
     if flipAxes.ndim != 1 or flipAxes.size != 3 :
         ERROR( '"flipAxes" must contain 3 boolean values (one for each axis)' )
     if flipAxes[0] :
@@ -96,7 +96,7 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = 
         bvecs[2,:] *= -1
 
     # if requested, round the b-values
-    bStep = np.array(bStep, dtype = np.float)
+    bStep = np.array(bStep, dtype = np.double)
     if bStep.size == 1 and bStep > 1.0:
         PRINT("-> Rounding b-values to nearest multiple of %s" % np.array_str(bStep))
         bvals = np.round(bvals/bStep) * bStep
@@ -196,7 +196,7 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
                 ERROR('The value TE < (Delta + delta) ')
 
     # if requested, flip the axes
-    flipAxes = np.array(flipAxes, dtype = np.bool)
+    flipAxes = np.array(flipAxes, dtype = np.bool_)
     if flipAxes.ndim != 1 or flipAxes.size != 3 :
         ERROR( '"flipAxes" must contain 3 boolean values (one for each axis)' )
     if flipAxes[0] :
@@ -207,7 +207,7 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
         bvecs[2,:] *= -1
 
     # if requested, round the b-values
-    bStep = np.array(bStep, dtype = np.float)
+    bStep = np.array(bStep, dtype = np.double)
     if bStep.size == 1 and bStep > 1.0:
         PRINT("-> Rounding b-values to nearest multiple of %s" % np.array_str(bStep))
         bvals = np.round(bvals/bStep) * bStep
