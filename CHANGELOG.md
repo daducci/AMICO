@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.5.3] - 2023-01-20
+
+### Fixed
+- Problem with the 'set_solver()' method that raise a 'multiple values for keyword argument' error
+
 ## [1.5.2] - 2022-10-21
 
 ### Added
