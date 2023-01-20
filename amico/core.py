@@ -6,6 +6,7 @@ import glob
 import sys
 from os import makedirs, remove
 from os.path import exists, join as pjoin, isfile, isdir
+import inspect
 
 import nibabel
 import pickle
@@ -294,11 +295,28 @@ class Evaluation :
 
     def set_solver( self, **params ) :
         """Setup the specific parameters of the solver to fit the model.
-        Dispatch to the proper function, depending on the model; a model shoudl provide a "set_solver" function to set these parameters.
+        Dispatch to the proper function, depending on the model; a model should provide a "set_solver" function to set these parameters.
+        Currently supported parameters are:
+        StickZeppelinBall:      'set_solver()' not implemented
+        CylinderZeppelinBall:   lambda1 = 0.0, lambda2 = 4.0
+        NODDI:                  lambda1 = 5e-1, lambda2 = 1e-3
+        FreeWater:              lambda1 = 0.0, lambda2 = 1e-3
+        VolumeFractions:        'set_solver()' not implemented
+        SANDI:                  lambda1 = 0.0, lambda2 = 5e-3
+        NOTE: non-existing parameters will be ignored
         """
         if self.model is None :
             ERROR( 'Model not set; call "set_model()" method first' )
-        self.set_config('solver_params', self.model.set_solver( **params ))
+
+        solver_params = list(inspect.signature(self.model.set_solver).parameters)
+        params_new = {}
+        for key in params.keys():
+            if key not in solver_params:
+                WARNING(f"Cannot find the '{key}' solver-parameter for the {self.model.name} model. It will be ignored")
+            else:
+                params_new[key] = params[key]
+
+        self.set_config('solver_params', self.model.set_solver( **params_new ))
 
 
     def generate_kernels( self, regenerate = False, lmax = 12, ndirs = 32761 ) :
