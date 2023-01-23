@@ -17,13 +17,13 @@ _2023-01-##_
 - Default Diffusion Tensor model fit method to compute the primary direction in each voxel from `WLS` to `OLS`
 - Default number of threads used by BLAS libraries from `-1` (all threads) to `1`
 - Parallel threads config name from `parallel_jobs` to `n_threads`
-- Default `study_path='.'` and `subject='.'` in amico.core.Evaluation()
-- Default `ndirs=500` in amico.core.generate_kernels()
-- Expire the deprecated `ndirs` parameter from amico.core.setup()
+- Default `study_path='.'` and `subject='.'` in `core.Evaluation()`
+- Default `ndirs=500` in `core.generate_kernels()`
+- Expire the deprecated `ndirs` parameter in `core.setup()`
 
 ### Added ✨
 - C++ interfaces for NNLS and LASSO solvers (provided by `spams-cython`)
-- Loader-like context manager, `amico.util.Loader()`
+- Loader-like context manager, `util.Loader()`
 - `DTI_fit_method` config to choose the Diffusion Tensor model fit method (from DIPY)
     - `OLS` (Ordinary Least Squares)
     - `WLS` (Weighted Least Squares)
