@@ -340,7 +340,7 @@ class Evaluation :
         if self.model is None :
             ERROR( 'Model not set; call "set_model()" method first' )
         if not is_valid(ndirs):
-            ERROR( 'Unsupported value for ndirs.\nNote: Supported values for ndirs are [1, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 32761 (default)]' )
+            ERROR( 'Unsupported value for ndirs.\nNote: Supported values for ndirs are [1, 500 (default), 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 32761]' )
         
         self.BLAS_threads = self.get_config('BLAS_threads') if self.get_config('BLAS_threads') > 0 else cpu_count() if self.get_config('BLAS_threads') == -1 else ERROR('Number of BLAS threads must be positive or -1')
 
