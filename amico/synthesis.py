@@ -26,7 +26,7 @@ def _gpd_sum(am, big_delta, small_delta, diff, radius, n):
         sum += term
         if term < _REQUIRED_PRECISION * sum:
             break
-    return big_delta, small_delta, diff, radius, sum
+    return sum
 
 def _scheme2noddi(scheme):
     protocol = {}
@@ -258,7 +258,7 @@ class Ball(BaseTensor):
         return super()._get_signal(evals)
 
 # SPHERE
-class SphereGPD():
+class SphereGPD:
     """
     Class to generate the signal from a sphere compartment with GPD approximation.
 
@@ -337,12 +337,16 @@ class SphereGPD():
                 g_mods = g_dir * g
                 g_mod = np.sqrt(np.dot(g_mods, g_mods))
                 if big_delta != self._last_big_delta or small_delta != self._last_small_delta or diff != self._last_diff or radius != self._last_radius:
-                    self._last_big_delta, self._last_small_delta, self._last_diff, self._last_radius, self._last_sum = _gpd_sum(am, big_delta, small_delta, diff, radius, 2)
+                    self._last_big_delta = big_delta
+                    self._last_small_delta = small_delta
+                    self._last_diff = diff
+                    self._last_radius = radius
+                    self._last_sum = _gpd_sum(am, big_delta, small_delta, diff, radius, 2)
                 signal[i] = np.exp(-2 * _GAMMA * _GAMMA * g_mod * g_mod * self._last_sum)
         return signal
 
 # ASTROSTICKS
-class Astrosticks():
+class Astrosticks:
     """
     Class to generate the signal from an astrosticks compartment (sticks with distributed orientations).
 
@@ -390,7 +394,7 @@ class Astrosticks():
         return signal
 
 # CYLINDER
-class CylinderGPD():
+class CylinderGPD:
     """
     Class to generate the signal from a cylinder compartment with GPD approximation.
 
@@ -477,7 +481,11 @@ class CylinderGPD():
                     unit_gn = gn / (g_mod * n_mod)
                 omega = np.arccos(unit_gn)
                 if big_delta != self._last_big_delta or small_delta != self._last_small_delta or diff != self._last_diff or radius != self._last_radius:
-                    self._last_big_delta, self._last_small_delta, self._last_diff, self._last_radius, self._last_sum = _gpd_sum(am, big_delta, small_delta, diff, radius, 1)
+                    self._last_big_delta = big_delta
+                    self._last_small_delta = small_delta
+                    self._last_diff = diff
+                    self._last_radius = radius
+                    self._last_sum = _gpd_sum(am, big_delta, small_delta, diff, radius, 1)
                 sr_perp = np.exp(-2 * _GAMMA * _GAMMA * g_mod * g_mod * np.sin(omega) * np.sin(omega) * self._last_sum)
                 t = big_delta - small_delta / 3
                 sr_par = np.exp(-t * (_GAMMA * small_delta * g_mod * np.cos(omega) * (_GAMMA * small_delta * g_mod * np.cos(omega))) * diff)
@@ -485,7 +493,7 @@ class CylinderGPD():
         return signal
 
 # NODDI
-class NODDIIntraCellular():
+class NODDIIntraCellular:
     def __init__(self, scheme):
         self.scheme = scheme
         self.protocol_hr = _scheme2noddi(self.scheme)
@@ -751,7 +759,7 @@ class NODDIIntraCellular():
             C[6] = 128*np.sqrt(np.pi)*k6/152108775
         return C
 
-class NODDIExtraCellular():
+class NODDIExtraCellular:
     def __init__(self, scheme):
         self.scheme = scheme
         self.protocol_hr = _scheme2noddi(self.scheme)
@@ -818,7 +826,7 @@ class NODDIExtraCellular():
         E=np.exp(-bval*((dPar - dPerp)*cosThetaSq + dPerp))
         return E
 
-class NODDIIsotropic():
+class NODDIIsotropic:
     def __init__(self, scheme):
         self.scheme = scheme
         self.protocol_hr = _scheme2noddi(self.scheme)
