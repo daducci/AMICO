@@ -116,7 +116,7 @@ def precompute_rotation_matrices( lmax, ndirs ) :
     AUX['fit'] = np.dot( np.linalg.pinv( np.dot(tmp.T,tmp) ), tmp.T )
 
     # matrices to rotate the functions in SH space
-    AUX['Ylm_rot'] = np.zeros( ndirs, dtype=np.object )
+    AUX['Ylm_rot'] = np.zeros( ndirs, dtype=np.object_ )
     for i in range(ndirs):
         _, theta, phi = cart2sphere(directions[i][0], directions[i][1], directions[i][2])
         tmp, _, _ = real_sym_sh_basis( lmax, theta, phi )
