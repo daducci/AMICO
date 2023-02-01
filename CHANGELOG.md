@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.5.3] - 2023-01-23
+
+### Fixed
+- Problem with the `set_solver()` method that raise a `multiple values for keyword argument` error
+- Replaced `np.bool`, `np.float` and `np.object` deprecated aliases (raise `AttributeError` with NumPy >= v1.24.0)
+
 ## [1.5.2] - 2022-10-21
 
 ### Added
