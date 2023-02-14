@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
+## [1.5.4] - 2023-02-14
+
+### Fixed
+- Invalid command 'bdist_wheel' error when install with pip<=20.0.2
+
 ## [1.5.3] - 2023-01-23
 
 ### Fixed

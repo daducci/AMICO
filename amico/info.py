@@ -3,7 +3,7 @@
 # Format version as expected by setup.py (string of form "X.Y.Z")
 _version_major = 1
 _version_minor = 5
-_version_micro = 3
+_version_micro = 4
 _version_extra = '' #'.dev'
 __version__    = "%s.%s.%s%s" % (_version_major,_version_minor,_version_micro,_version_extra)
 
