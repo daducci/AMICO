@@ -1,10 +1,11 @@
 # Change Log
 All notable changes to AMICO will be documented in this file.
 
-## [1.5.4] - 2023-02-14
+## [1.5.4] - 2023-02-15
 
 ### Fixed
-- Invalid command 'bdist_wheel' error when install with pip<=20.0.2
+- `invalid command 'bdist_wheel'` error when install with pip <= v20.0.2
+- [#155](https://github.com/daducci/AMICO/issues/155) Replaced the NiBabel `get_data()` method with `get_fdata()` (raise `ExpiredDeprecationError` with NiBabel >= v5.0.0)
 
 ## [1.5.3] - 2023-01-23
 
