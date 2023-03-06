@@ -6,6 +6,7 @@ import glob
 import sys
 from os import makedirs, remove
 from os.path import exists, join as pjoin, isfile
+import inspect
 
 import nibabel
 import pickle
@@ -132,7 +133,7 @@ class Evaluation :
         self.set_config('b0_min_signal', b0_min_signal)
         self.set_config('replace_bad_voxels', replace_bad_voxels)
         self.niiDWI = nibabel.load( pjoin(self.get_config('DATA_path'), dwi_filename) )
-        self.niiDWI_img = self.niiDWI.get_data().astype(np.float32)
+        self.niiDWI_img = self.niiDWI.get_fdata().astype(np.float32)
         hdr = self.niiDWI.header if nibabel.__version__ >= '2.0.0' else self.niiDWI.get_header()
         if self.niiDWI_img.ndim != 4 :
             ERROR( 'DWI file is not a 4D image' )
@@ -176,7 +177,7 @@ class Evaluation :
             if not isfile( pjoin(self.get_config('DATA_path'), mask_filename) ):
                 ERROR( 'MASK file not found' )
             self.niiMASK = nibabel.load( pjoin( self.get_config('DATA_path'), mask_filename) )
-            self.niiMASK_img = self.niiMASK.get_data().astype(np.uint8)
+            self.niiMASK_img = self.niiMASK.get_fdata().astype(np.uint8)
             niiMASK_hdr = self.niiMASK.header if nibabel.__version__ >= '2.0.0' else self.niiMASK.get_header()
             PRINT('\t\t- dim    = %d x %d x %d' % self.niiMASK_img.shape[:3])
             PRINT('\t\t- pixdim = %.3f x %.3f x %.3f' % niiMASK_hdr.get_zooms()[:3])
@@ -300,26 +301,27 @@ class Evaluation :
     def set_solver( self, **params ) :
         """Setup the specific parameters of the solver to fit the model.
         Dispatch to the proper function, depending on the model; a model should provide a "set_solver" function to set these parameters.
+        Currently supported parameters are:
         StickZeppelinBall:      'set_solver()' not implemented
         CylinderZeppelinBall:   lambda1 = 0.0, lambda2 = 4.0
         NODDI:                  lambda1 = 5e-1, lambda2 = 1e-3
         FreeWater:              lambda1 = 0.0, lambda2 = 1e-3
         VolumeFractions:        'set_solver()' not implemented
         SANDI:                  lambda1 = 0.0, lambda2 = 5e-3
+        NOTE: non-existing parameters will be ignored
         """
         if self.model is None :
             ERROR( 'Model not set; call "set_model()" method first' )
-        
-        remove_key_list = []
-        for key in params.keys():
-            if key != 'lambda1' and key != 'lambda2':
-                remove_key_list.append(key)
-                WARNING(f"Cannot find the '{key}' solver param for the '{self.model.name}' model. It will be ignored")
-        for rm_key in remove_key_list:
-            del params[rm_key]
 
-        self.model.set_solver(**params)
-        self.set_config('solver_params', self.model._solver_params)
+        solver_params = list(inspect.signature(self.model.set_solver).parameters)
+        params_new = {}
+        for key in params.keys():
+            if key not in solver_params:
+                WARNING(f"Cannot find the '{key}' solver-parameter for the {self.model.name} model. It will be ignored")
+            else:
+                params_new[key] = params[key]
+
+        self.set_config('solver_params', self.model.set_solver( **params_new ))
 
 
     def generate_kernels( self, regenerate = False, lmax = 12, ndirs = 500 ) :
@@ -435,9 +437,9 @@ class Evaluation :
             if not isfile( pjoin(self.get_config('DATA_path'), peaks_filename) ):
                 ERROR( 'PEAKS file not found' )
             niiPEAKS = nibabel.load( pjoin( self.get_config('DATA_path'), peaks_filename) )
-            self.DIRs = niiPEAKS.get_data().astype(np.float32)
+            self.DIRs = niiPEAKS.get_fdata().astype(np.float32)
             PRINT('\t* peaks dim = %d x %d x %d x %d' % self.DIRs.shape[:4])
-            if self.DIRs.shape[:3] != self.niiMASK_img.shape[:3] :
+            if self.DIRs.shape[:3] != self.niiMASK_img.shape[:3]:
                 ERROR( 'PEAKS geometry does not match with DWI data' )
             DTI = None
 

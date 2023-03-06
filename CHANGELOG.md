@@ -2,7 +2,7 @@
 All notable changes to AMICO will be documented in this file.
 
 ## `v2.0.0`
-_2023-01-##_
+_2023-03-##_
 
 ### Changed 🛠️
 - From multiprocessing to `multithreading` (huge speedup in models fit! 🚀)
@@ -33,6 +33,18 @@ _2023-01-##_
 
 ### Fixed 🐛
 - Replaced `np.bool`, `np.float` and `np.object` deprecated aliases (raise AttributeError with NumPy >= v1.24.0)
+
+## [1.5.4] - 2023-02-15
+
+### Fixed
+- `invalid command 'bdist_wheel'` error when install with pip <= v20.0.2
+- [#155](https://github.com/daducci/AMICO/issues/155) Replaced the NiBabel `get_data()` method with `get_fdata()` (raise `ExpiredDeprecationError` with NiBabel >= v5.0.0)
+
+## [1.5.3] - 2023-01-23
+
+### Fixed
+- Problem with the `set_solver()` method that raise a `multiple values for keyword argument` error
+- Replaced `np.bool`, `np.float` and `np.object` deprecated aliases (raise `AttributeError` with NumPy >= v1.24.0)
 
 ## [1.5.2] - 2022-10-21
 
