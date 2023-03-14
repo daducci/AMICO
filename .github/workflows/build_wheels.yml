@@ -1,0 +1,168 @@
+name: Build wheels
+run-name: Build wheels - ${{ github.sha }}
+on: push
+jobs:
+  build_windows_wheels:
+    strategy:
+      matrix:
+        py: [cp36, cp37, cp38, cp39, cp310]
+        arch:
+          - [AMD64, win_amd64, x64]
+          - [x86, win32, x86]
+    name: ${{ matrix.py }}-${{ matrix.arch[1] }}
+    runs-on: windows-2019
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.3.0
+
+      - name: Download compiled OpenBLAS
+        run: |
+          curl -L -o OpenBLAS-0.3.21.zip https://github.com/xianyi/OpenBLAS/releases/download/v0.3.21/OpenBLAS-0.3.21-${{ matrix.arch[2] }}.zip
+          7z x OpenBLAS-0.3.21.zip -o"OpenBLAS"
+
+      - name: Set up the configuration file
+        run: |
+          python setup_site.py openblas libopenblas ${{ github.workspace }}\OpenBLAS\lib ${{ github.workspace }}\OpenBLAS\include
+
+      - name: Build wheel ${{ matrix.py }}-${{ matrix.arch[1] }}
+        uses: pypa/cibuildwheel@v2.12.0
+        env:
+          CIBW_PLATFORM: windows
+          CIBW_BUILD: ${{ matrix.py }}-${{ matrix.arch[1] }}
+          CIBW_ARCHS_WINDOWS: ${{ matrix.arch[0] }}
+          CIBW_BEFORE_BUILD_WINDOWS: >
+            pip install delvewheel
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: >
+            delvewheel repair --add-path ${{ github.workspace }}\OpenBLAS\bin -w {dest_dir} -v {wheel}
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: wheels_windows_${{ matrix.arch[0] }}
+          path: ./wheelhouse/*.whl
+          if-no-files-found: error
+
+  build_macos_x86_64_wheels:
+    strategy:
+      matrix:
+        py: [cp36, cp37, cp38, cp39, cp310]
+        arch:
+          - [x86_64, macosx_x86_64]
+    name: ${{ matrix.py }}-${{ matrix.arch[1] }}
+    runs-on: macos-11
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.3.0
+
+      - name: Download compiled OpenBLAS
+        uses: dawidd6/action-download-artifact@v2.26.0
+        with:
+          workflow: compile_openblas_macos_x86_64.yml
+          workflow_conclusion: success
+          commit: ${{github.event.pull_request.head.sha}}
+          name: OpenBLAS_macos_${{ matrix.arch[0] }}
+          path: OpenBLAS
+          search_artifacts: true
+
+      - name: Set up the configuration file
+        run: |
+          python3 setup_site.py openblas openblas ${{ github.workspace }}/OpenBLAS/lib ${{ github.workspace }}/OpenBLAS/include
+
+      - name: Build wheel ${{ matrix.py }}-${{ matrix.arch[1] }}
+        uses: pypa/cibuildwheel@v2.12.0
+        env:
+          MACOSX_DEPLOYMENT_TARGET: 10.9
+          CIBW_PLATFORM: macos
+          CIBW_BUILD: ${{ matrix.py }}-${{ matrix.arch[1] }}
+          CIBW_ARCHS_MACOS: ${{ matrix.arch[0] }}
+          CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
+            DYLD_LIBRARY_PATH=${{ github.workspace }}/OpenBLAS/lib delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: wheels_macos_${{ matrix.arch[0] }}
+          path: ./wheelhouse/*.whl
+          if-no-files-found: error
+
+  create_macos_arm64_check:
+    name: Create MacOS arm64 check
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Create check
+        run: |
+          curl -X DELETE -H "Accept:application/vnd.github+json" -H "Authorization:Bearer ${{ secrets.REPO_TOKEN }}" -H "X-GitHub-Api-Version:2022-11-28" https://api.github.com/repos/nightwnvol/amico_gh_actions/actions/variables/CHECK_ID_MACOS_ARM64
+          CHECK_ID_MACOS_ARM64=$(curl -X POST -H "Accept:application/vnd.github+json" -H "Authorization:Bearer ${{ github.token }}" -H "X-GitHub-Api-Version:2022-11-28" https://api.github.com/repos/nightwnvol/amico_gh_actions/check-runs -d '{"name":"cp*-macosx_arm64","status":"in_progress","head_sha":"'"${{ github.sha }}"'"}' | jq -r .id)
+          curl -X POST -H "Accept:application/vnd.github+json" -H "Authorization:Bearer ${{ secrets.REPO_TOKEN }}" -H "X-GitHub-Api-Version:2022-11-28" https://api.github.com/repos/nightwnvol/amico_gh_actions/actions/variables -d '{"name":"CHECK_ID_MACOS_ARM64","value":"'"$CHECK_ID_MACOS_ARM64"'"}'
+
+  build_linux_wheels:
+    strategy:
+      matrix:
+        py: [cp36, cp37, cp38, cp39, cp310]
+        arch:
+          - [x86_64, manylinux_x86_64, amd64]
+          - [aarch64, manylinux_aarch64, arm64]
+    name: ${{ matrix.py }}-${{ matrix.arch[1] }}
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.3.0
+
+      - name: Download compiled OpenBLAS
+        uses: dawidd6/action-download-artifact@v2.26.0
+        with:
+          workflow: compile_openblas_linux.yml
+          workflow_conclusion: success
+          commit: ${{github.event.pull_request.head.sha}}
+          name: OpenBLAS_linux_${{ matrix.arch[0] }}
+          path: OpenBLAS
+          search_artifacts: true
+
+      - name: Set up the configuration file
+        run: | # NOTE: need to add '/host' because compilation is done in a Docker container
+          python setup_site.py openblas openblas /host${{ github.workspace }}/OpenBLAS/lib /host${{ github.workspace }}/OpenBLAS/include
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2.1.0
+        with:
+          platforms: ${{ matrix.arch[2] }}
+
+      - name: Build wheel ${{ matrix.py }}-${{ matrix.arch[1] }}
+        uses: pypa/cibuildwheel@v2.12.0
+        env:
+          CIBW_PLATFORM: linux
+          CIBW_BUILD: ${{ matrix.py }}-${{ matrix.arch[1] }}
+          CIBW_ARCHS_LINUX: ${{ matrix.arch[0] }}
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: > # NOTE: need to add '/host' because compilation is done in a Docker container
+            LD_LIBRARY_PATH=/host${{ github.workspace }}/OpenBLAS/lib auditwheel repair -w {dest_dir} {wheel}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: wheels_linux_${{ matrix.arch[0] }}
+          path: ./wheelhouse/*.whl
+          if-no-files-found: error
+
+  build_source_distribution:
+    name: sdist
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.3.0
+
+      - name: Set up the configuration file
+        run: |
+          python setup_site.py openblas openblas ${{ github.workspace }}/OpenBLAS/lib ${{ github.workspace }}/OpenBLAS/include
+
+      - name: Build source distribution
+        run: |
+          pip install -U pip
+          pip install -U build
+          python -m build --sdist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: sdist
+          path: ./dist/*.tar.gz
+          if-no-files-found: error
