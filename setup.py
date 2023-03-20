@@ -2,35 +2,34 @@ from setuptools import setup, Extension
 from Cython.Build import cythonize
 import cyspams
 import sys
-from os import environ
+from os import cpu_count
+from os.path import isfile
+import configparser
 
-include_dirs = []
 libraries = []
 library_dirs = []
+include_dirs = []
 extra_compile_args = []
-
-# cyspams headers
+# spams-cython headers
 include_dirs.extend(cyspams.get_include())
-
-# OpenBLAS library (cyspams requirement)
+# OpenBLAS headers
+if not isfile('site.cfg'):
+      print(f'\033[31mFileNotFoundError: cannot find the site.cfg file\033[0m')
+config = configparser.ConfigParser()
+config.read('site.cfg')
 try:
-      openblas_dir = environ['OPENBLAS_DIR']
+      libraries.extend([config['openblas']['library']])
+      library_dirs.extend([config['openblas']['library_dir']])
+      include_dirs.extend([config['openblas']['include_dir']])
 except KeyError as err:
-      print(f"\033[31mKeyError: cannot find the {err} env variable\033[0m")
+      print(f'\033[31mKeyError: cannot find the {err} key in the site.cfg file. See the site.cfg.example file for documentation\033[0m')
       exit(1)
 
-include_dirs.extend([openblas_dir+'/include'])
-library_dirs.extend([openblas_dir+'/lib'])
-
 if sys.platform.startswith('win32'):
-      libraries.extend(['libopenblas']) # .lib filenames
-      extra_compile_args.extend(['/std:c++14'])
-if sys.platform.startswith('linux'):
-      libraries.extend(['stdc++', 'openblas']) # library names (not filenames)
-      extra_compile_args.extend(['-std=c++14'])
-if sys.platform.startswith('darwin'):
-      libraries.extend(['stdc++', 'openblas']) # library names (not filenames)
-      extra_compile_args.extend(['-std=c++14'])
+      extra_compile_args.extend(['/std:c++14', '/fp:fast'])
+if sys.platform.startswith('darwin') or sys.platform.startswith('linux'):
+      libraries.extend(['stdc++'])
+      extra_compile_args.extend(['-std=c++14', '-Ofast'])
 
 extensions = [
       Extension(
