@@ -195,7 +195,7 @@ class BaseModel(ABC) :
         """
         # build chunks
         n = evaluation.y.shape[0]
-        c = n // evaluation.n_threads
+        c = n // evaluation.nthreads
         self.chunks = []
         for i, j in zip(range(0, n, c), range(c, n+1, c)):
             self.chunks.append((i, j))
@@ -486,7 +486,7 @@ class CylinderZeppelinBall( BaseModel ) :
         super().fit(evaluation)
 
         # fit chunks in parallel
-        with ThreadPoolExecutor(max_workers=evaluation.n_threads) as executor:
+        with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
             futures = [executor.submit(self._fit, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for i, j in self.chunks]
             chunked_results = [f.result() for f in futures]
         
@@ -729,7 +729,7 @@ class NODDI( BaseModel ) :
         self.configs['compute_modulated_maps'] = evaluation.get_config('doSaveModulatedMaps')
 
         # fit chunks in parallel
-        with ThreadPoolExecutor(max_workers=evaluation.n_threads) as executor:
+        with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
             futures = [executor.submit(self._fit, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for i, j in self.chunks]
             chunked_results = [f.result() for f in futures]
         
@@ -1052,7 +1052,7 @@ class FreeWater( BaseModel ) :
         self.configs['save_corrected_DWI'] = evaluation.get_config('doSaveCorrectedDWI')
 
         # fit chunks in parallel
-        with ThreadPoolExecutor(max_workers=evaluation.n_threads) as executor:
+        with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
             futures = [executor.submit(self._fit, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for i, j in self.chunks]
             chunked_results = [f.result() for f in futures]
         
@@ -1363,7 +1363,7 @@ class SANDI( BaseModel ) :
         super().fit(evaluation)
 
         # fit chunks in parallel
-        with ThreadPoolExecutor(max_workers=evaluation.n_threads) as executor:
+        with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
             futures = [executor.submit(self._fit, evaluation.y[i:j, :], evaluation.KERNELS) for i, j in self.chunks]
             chunked_results = [f.result() for f in futures]
         

@@ -56,20 +56,20 @@ class Evaluation :
             Optionally sets a custom full path for the output. Leave as None
             for default behaviour - output in study_path/subject/AMICO/<MODEL>
         """
-        self.niiDWI       = None    # set by "load_data" method
-        self.niiDWI_img   = None
-        self.scheme       = None
-        self.niiMASK      = None
-        self.niiMASK_img  = None
-        self.model        = None    # set by "set_model" method
-        self.KERNELS      = None    # set by "load_kernels" method
-        self.y            = None    # set by "fit" method
-        self.DIRs         = None    # set by "fit" method
-        self.n_threads    = None    # set by "fit" method
-        self.BLAS_threads = None    # set by "generate_kernel", "load_kernels" and "fit" methods
-        self.RESULTS      = None    # set by "fit" method
-        self.mean_b0s     = None    # set by "load_data" method
-        self.htable       = None
+        self.niiDWI        = None    # set by "load_data" method
+        self.niiDWI_img    = None
+        self.scheme        = None
+        self.niiMASK       = None
+        self.niiMASK_img   = None
+        self.model         = None    # set by "set_model" method
+        self.KERNELS       = None    # set by "load_kernels" method
+        self.y             = None    # set by "fit" method
+        self.DIRs          = None    # set by "fit" method
+        self.nthreads      = None    # set by "fit" method
+        self.BLAS_nthreads = None    # set by "generate_kernel", "load_kernels" and "fit" methods
+        self.RESULTS       = None    # set by "fit" method
+        self.mean_b0s      = None    # set by "load_data" method
+        self.htable        = None
 
         # store all the parameters of an evaluation with AMICO
         self.CONFIG = {}
@@ -90,9 +90,9 @@ class Evaluation :
         self.set_config('doDebiasSignal', False)        # Flag to remove Rician bias
         self.set_config('DWI-SNR', None)                # SNR of DWI image: SNR = b0/sigma
         self.set_config('doDirectionalAverage', False)  # To perform the directional average on the signal of each shell
-        self.set_config('n_threads', -1)                # Number of jobs to be used in multithread-enabled parts of code (default: -1)
+        self.set_config('nthreads', -1)                # Number of jobs to be used in multithread-enabled parts of code (default: -1)
         self.set_config('DTI_fit_method', 'OLS')        # Fit method for the Diffusion Tensor model (dipy) (default: 'OLS')
-        self.set_config('BLAS_threads', 1)              # Number of threads used in the threadpool-backend of common BLAS implementations (dafault: 1)
+        self.set_config('BLAS_nthreads', 1)              # Number of threads used in the threadpool-backend of common BLAS implementations (dafault: 1)
 
         self._controller = ThreadpoolController()
 
@@ -344,7 +344,7 @@ class Evaluation :
         if not is_valid(ndirs):
             ERROR( 'Unsupported value for ndirs.\nNote: Supported values for ndirs are [1, 500 (default), 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 32761]' )
         
-        self.BLAS_threads = self.get_config('BLAS_threads') if self.get_config('BLAS_threads') > 0 else cpu_count() if self.get_config('BLAS_threads') == -1 else ERROR('Number of BLAS threads must be positive or -1')
+        self.BLAS_nthreads = self.get_config('BLAS_nthreads') if self.get_config('BLAS_nthreads') > 0 else cpu_count() if self.get_config('BLAS_nthreads') == -1 else ERROR('Number of BLAS threads must be positive or -1')
 
         # store some values for later use
         self.set_config('lmax', lmax)
@@ -371,7 +371,7 @@ class Evaluation :
 
         # Dispatch to the right handler for each model
         tic = time.time()
-        with self._controller.limit(limits=self.BLAS_threads, user_api='blas'):
+        with self._controller.limit(limits=self.BLAS_nthreads, user_api='blas'):
             self.model.generate( self.get_config('ATOMS_path'), aux, idx_IN, idx_OUT, ndirs )
         LOG( f'   [ {time.time() - tic:.1f} seconds ]' )
 
@@ -385,7 +385,7 @@ class Evaluation :
         if self.scheme is None :
             ERROR( 'Scheme not loaded; call "load_data()" first' )
         
-        self.BLAS_threads = self.get_config('BLAS_threads') if self.get_config('BLAS_threads') > 0 else cpu_count() if self.get_config('BLAS_threads') == -1 else ERROR('Number of BLAS threads must be positive or -1')
+        self.BLAS_nthreads = self.get_config('BLAS_nthreads') if self.get_config('BLAS_nthreads') > 0 else cpu_count() if self.get_config('BLAS_nthreads') == -1 else ERROR('Number of BLAS threads must be positive or -1')
 
         tic = time.time()
         LOG( f'\n-> Resampling LUT for subject "{self.get_config("subject")}":' )
@@ -397,7 +397,7 @@ class Evaluation :
         self.htable = amico.lut.load_precomputed_hash_table( self.get_config('ndirs') )
 
         # Dispatch to the right handler for each model
-        with self._controller.limit(limits=self.BLAS_threads, user_api='blas'):
+        with self._controller.limit(limits=self.BLAS_nthreads, user_api='blas'):
             self.KERNELS = self.model.resample( self.get_config('ATOMS_path'), idx_OUT, Ylm_OUT, self.get_config('doMergeB0'), self.get_config('ndirs') )
 
         LOG( f'   [ {time.time() - tic:.1f} seconds ]')
@@ -418,12 +418,12 @@ class Evaluation :
         if self.get_config('DTI_fit_method') not in ['OLS', 'LS', 'WLS', 'NLLS', 'RT', 'RESTORE', 'restore']:
             ERROR("DTI fit method must be one of the following:\n'OLS'(default) or 'LS': ordinary least squares\n'WLS': weighted least squares\n'NLLS': non-linear least squares\n'RT' or 'RESTORE' or 'restore': robust tensor\nNOTE: more info at https://dipy.org/documentation/1.6.0./reference/dipy.reconst/#dipy.reconst.dti.TensorModel")
         
-        self.n_threads = self.get_config('n_threads') if self.get_config('n_threads') > 0 else cpu_count() if self.get_config('n_threads') == -1 else ERROR('Number of parallel threads must be positive or -1')
-        self.BLAS_threads = self.get_config('BLAS_threads') if self.get_config('BLAS_threads') > 0 else cpu_count() if self.get_config('BLAS_threads') == -1 else ERROR('Number of BLAS threads must be positive or -1')
+        self.nthreads = self.get_config('nthreads') if self.get_config('nthreads') > 0 else cpu_count() if self.get_config('nthreads') == -1 else ERROR('Number of parallel threads must be positive or -1')
+        self.BLAS_nthreads = self.get_config('BLAS_nthreads') if self.get_config('BLAS_nthreads') > 0 else cpu_count() if self.get_config('BLAS_nthreads') == -1 else ERROR('Number of BLAS threads must be positive or -1')
 
         self.set_config('fit_time', None)
         totVoxels = np.count_nonzero(self.niiMASK_img)
-        LOG( f'\n-> Fitting "{self.model.name}" model to {totVoxels} voxels (using {self.n_threads} thread{"s" if self.n_threads > 1 else ""}):' )
+        LOG( f'\n-> Fitting "{self.model.name}" model to {totVoxels} voxels (using {self.nthreads} thread{"s" if self.nthreads > 1 else ""}):' )
 
         # setup fitting directions
         peaks_filename = self.get_config('peaks_filename')
@@ -455,7 +455,7 @@ class Evaluation :
             with Loader(message=f"Precomputing directions ({self.get_config('DTI_fit_method')})", verbose=get_verbose()):
                 self.DIRs = np.squeeze(DTI.fit(self.y).directions)
         # call the fit() method of the actual model
-        with self._controller.limit(limits=self.BLAS_threads, user_api='blas'):
+        with self._controller.limit(limits=self.BLAS_nthreads, user_api='blas'):
             with Loader(message='Fitting the model', verbose=get_verbose()):
                 results = self.model.fit(self)
         self.set_config('fit_time', time.time()-t)
