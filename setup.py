@@ -47,6 +47,5 @@ extensions = [
 ]
 
 setup(
-      url='https://github.com/daducci/AMICO', # NOTE this is to show the 'Home-page' field when run 'pip show dmri-amico' (open bug https://github.com/pypa/pip/issues/11221)
       ext_modules=cythonize(extensions)
 )
