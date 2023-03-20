@@ -4,7 +4,7 @@ import numpy as np
 import time
 import glob
 import sys
-from os import makedirs, remove
+from os import makedirs, remove, cpu_count
 from os.path import exists, join as pjoin, isfile
 import inspect
 
@@ -19,7 +19,6 @@ from dipy.core.gradients import gradient_table
 import dipy.reconst.dti as dti
 from amico.util import PRINT, LOG, WARNING, ERROR, get_verbose, Loader
 from pkg_resources import get_distribution
-from joblib import cpu_count
 from threadpoolctl import ThreadpoolController
 from tqdm import tqdm
 

@@ -10,7 +10,7 @@ from tqdm import tqdm
 from abc import ABC, abstractmethod
 from amico.util import PRINT, ERROR, get_verbose
 from amico.synthesis import Stick, Zeppelin, Ball, CylinderGPD, SphereGPD, Astrosticks, NODDIIntraCellular, NODDIExtraCellular, NODDIIsotropic
-from joblib import Parallel, delayed
+from concurrent.futures import ThreadPoolExecutor
 
 cimport cython
 from libc.stdlib cimport malloc, free
@@ -479,15 +479,15 @@ class CylinderZeppelinBall( BaseModel ) :
         super().fit(evaluation)
 
         # fit chunks in parallel
-        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, self._solver_params, self.configs) for i, j in self.chunks)
-
-        # return
-        self.results['estimates'] = np.concatenate([cr['estimates'] for cr in chunked_results])
-        if self.configs['compute_rmse']:
-            self.results['rmse'] = np.concatenate([cr['rmse'] for cr in chunked_results])
-        if self.configs['compute_nrmse']:
-            self.results['nrmse'] = np.concatenate([cr['nrmse'] for cr in chunked_results])
-        return self.results
+        with ThreadPoolExecutor(max_workers=evaluation.n_threads) as executor:
+            futures = [executor.submit(self._fit, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for i, j in self.chunks]
+            chunked_results = [f.result() for f in futures]
+        
+        # concatenate results and return
+        results = {}
+        for k in chunked_results[0]:
+            results[k] = np.concatenate([cr[k] for cr in chunked_results])
+        return results
 
 
     @cython.boundscheck(False)
@@ -726,17 +726,15 @@ class NODDI( BaseModel ) :
         self.configs['compute_modulated_maps'] = evaluation.get_config('doSaveModulatedMaps')
 
         # fit chunks in parallel
-        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, self._solver_params, self.configs) for i, j in self.chunks)
-
-        # return
-        self.results['estimates'] = np.concatenate([cr['estimates'] for cr in chunked_results])
-        if self.configs['compute_rmse']:
-            self.results['rmse'] = np.concatenate([cr['rmse'] for cr in chunked_results])
-        if self.configs['compute_nrmse']:
-            self.results['nrmse'] = np.concatenate([cr['nrmse'] for cr in chunked_results])
-        if self.configs['compute_modulated_maps']:
-            self.results['estimates_mod'] = np.concatenate([cr['estimates_mod'] for cr in chunked_results])
-        return self.results
+        with ThreadPoolExecutor(max_workers=evaluation.n_threads) as executor:
+            futures = [executor.submit(self._fit, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for i, j in self.chunks]
+            chunked_results = [f.result() for f in futures]
+        
+        # concatenate results and return
+        results = {}
+        for k in chunked_results[0]:
+            results[k] = np.concatenate([cr[k] for cr in chunked_results])
+        return results
 
 
     @cython.boundscheck(False)
@@ -1055,17 +1053,15 @@ class FreeWater( BaseModel ) :
         self.configs['save_corrected_DWI'] = evaluation.get_config('doSaveCorrectedDWI')
 
         # fit chunks in parallel
-        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS, self._solver_params, self.configs) for i, j in self.chunks)
-
-        # return
-        self.results['estimates'] = np.concatenate([cr['estimates'] for cr in chunked_results])
-        if self.configs['compute_rmse']:
-            self.results['rmse'] = np.concatenate([cr['rmse'] for cr in chunked_results])
-        if self.configs['compute_nrmse']:
-            self.results['nrmse'] = np.concatenate([cr['nrmse'] for cr in chunked_results])
-        if self.configs['save_corrected_DWI']:
-            self.results['y_corrected'] = np.concatenate([cr['y_corrected'] for cr in chunked_results])
-        return self.results
+        with ThreadPoolExecutor(max_workers=evaluation.n_threads) as executor:
+            futures = [executor.submit(self._fit, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for i, j in self.chunks]
+            chunked_results = [f.result() for f in futures]
+        
+        # concatenate results and return
+        results = {}
+        for k in chunked_results[0]:
+            results[k] = np.concatenate([cr[k] for cr in chunked_results])
+        return results
 
 
     @cython.boundscheck(False)
@@ -1370,15 +1366,15 @@ class SANDI( BaseModel ) :
         super().fit(evaluation)
 
         # fit chunks in parallel
-        chunked_results = Parallel(n_jobs=evaluation.n_threads, prefer='threads')(delayed(self._fit)(evaluation.y[i:j, :], evaluation.KERNELS, self._solver_params, self.configs) for i, j in self.chunks)
-
-        # return
-        self.results['estimates'] = np.concatenate([cr['estimates'] for cr in chunked_results])
-        if self.configs['compute_rmse']:
-            self.results['rmse'] = np.concatenate([cr['rmse'] for cr in chunked_results])
-        if self.configs['compute_nrmse']:
-            self.results['nrmse'] = np.concatenate([cr['nrmse'] for cr in chunked_results])
-        return self.results
+        with ThreadPoolExecutor(max_workers=evaluation.n_threads) as executor:
+            futures = [executor.submit(self._fit, evaluation.y[i:j, :], evaluation.KERNELS) for i, j in self.chunks]
+            chunked_results = [f.result() for f in futures]
+        
+        # concatenate results and return
+        results = {}
+        for k in chunked_results[0]:
+            results[k] = np.concatenate([cr[k] for cr in chunked_results])
+        return results
 
 
     @cython.boundscheck(False)
