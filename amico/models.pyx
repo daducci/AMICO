@@ -4,7 +4,9 @@
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
+from os import environ
 from os.path import join as pjoin
+import sys
 import amico.lut
 from tqdm import tqdm
 from abc import ABC, abstractmethod
@@ -17,6 +19,14 @@ from libc.stdlib cimport malloc, free
 from libc.math cimport pi, atan2, sqrt, pow as cpow
 from amico.lut cimport dir_to_lut_idx
 from cyspams.interfaces cimport nnls, lasso
+
+try:
+    sys.path.append(environ['AMICO_WIP_MODELS'])
+    from amicowipmodels import *
+except KeyError:
+    pass
+except ImportError:
+    pass
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
