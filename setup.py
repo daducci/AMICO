@@ -1,10 +1,17 @@
 from setuptools import setup, Extension
+from setuptools.command.build_ext import build_ext as _build_ext
 from Cython.Build import cythonize
 import cyspams
 import sys
 from os import cpu_count
 from os.path import isfile
 import configparser
+
+# parallel compilation
+class build_ext(_build_ext):
+      def run(self):
+            self.parallel = cpu_count()
+            _build_ext.run(self)
 
 libraries = []
 library_dirs = []
@@ -42,10 +49,12 @@ extensions = [
       ),
       Extension(
             'amico.lut',
-            sources=['amico/lut.pyx']
+            sources=['amico/lut.pyx'],
+            extra_compile_args=extra_compile_args
       )
 ]
 
 setup(
+      cmdclass={'build_ext': build_ext},
       ext_modules=cythonize(extensions)
 )
