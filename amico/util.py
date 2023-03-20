@@ -163,22 +163,22 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
         if delta.ndim !=1  or  delta.shape[0] != bvals.shape[0]:
             ERROR('incorrect/incompatible delta files')
         if delta.mean( ) > 0.1:
-            WARNING('The mean of the delta values is {:.4f}, these values must be in seconds.'.format(delta.mean()))
+            WARNING(f'The mean of the delta values is {delta.mean():.4f}, these values must be in seconds.')
     else:
         delta = np.ones_like(bvals) * Delta_data
         if Delta_data > 0.1:
-            WARNING('The delta value is {:.4f}, this value must be in seconds.'.format(delta.mean()))
+            WARNING(f'The delta value is {delta.mean():.4f}, this value must be in seconds.')
 
     if type(smalldel_data) is str :
         smalldel = np.loadtxt( smalldel_data, delimiter=delimiter)
         if smalldel.ndim !=1 or  smalldel.shape[0] != bvals.shape[0]:
             ERROR('incorrect/incompatible small delta files')
         if smalldel.mean() > 0.1:
-            WARNING('The mean of the small delta values is {:.4f}, these values must be in seconds.'.format(smalldel.mean()))
+            WARNING(f'The mean of the small delta values is {smalldel.mean():.4f}, these values must be in seconds.')
     else:
         smalldel = np.ones_like(bvals) * smalldel_data
         if smalldel_data > 0.1:
-            WARNING('The small delta value is {:.4f}, this value must be in seconds.'.format(smalldel.mean()))
+            WARNING(f'The small delta value is {smalldel.mean():.4f}, this value must be in seconds.')
 
 
 
@@ -273,10 +273,10 @@ class Loader:
             for step in itertools.cycle(self._steps):
                 if self._done:
                     break
-                print(f"\r\t* {self.message}  {step}", end='', flush=True)
+                print(f'\r\t* {self.message}  {step}', end='', flush=True)
                 time.sleep(self.timeout)
         if self.verbose == 2:
-            print(f"\t* {self.message}", end='', flush=True)
+            print(f'\t* {self.message}', end='', flush=True)
 
     def start(self):
         self._thread.start()
@@ -285,6 +285,6 @@ class Loader:
         self._done = True
         if self.verbose == 3:
             print(f"\r\t  {' ' * (len(self.message) + 2 + self._n)}", end='', flush=True)
-            print(f"\r\t* {self.message}  {self.end}")
+            print(f'\r\t* {self.message}  {self.end}')
         if self.verbose == 2:
-            print(f"  {self.end}")
+            print(f'  {self.end}')

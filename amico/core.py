@@ -298,7 +298,7 @@ class Evaluation :
 
 
     def set_solver( self, **params ) :
-        """Setup the specific parameters of the solver to fit the model.
+        """Set up the specific parameters of the solver to fit the model.
         Dispatch to the proper function, depending on the model; a model should provide a "set_solver" function to set these parameters.
         Currently supported parameters are:
         StickZeppelinBall:      'set_solver()' not implemented
@@ -311,7 +311,7 @@ class Evaluation :
         """
         if self.model is None :
             ERROR( 'Model not set; call "set_model()" method first' )
-
+        
         solver_params = list(inspect.signature(self.model.set_solver).parameters)
         params_new = {}
         for key in params.keys():
@@ -320,7 +320,8 @@ class Evaluation :
             else:
                 params_new[key] = params[key]
 
-        self.set_config('solver_params', self.model.set_solver( **params_new ))
+        self.model.set_solver(**params_new)
+        self.set_config('solver_params', params_new)
 
 
     def generate_kernels( self, regenerate = False, lmax = 12, ndirs = 500 ) :
@@ -414,8 +415,8 @@ class Evaluation :
             ERROR( 'Response functions not generated; call "generate_kernels()" and "load_kernels()" first' )
         if self.KERNELS['model'] != self.model.id :
             ERROR( 'Response functions were not created with the same model' )
-        if self.get_config('DTI_fit_method') not in ['OLS', 'WLS']:
-            ERROR("DTI fit method must be 'OLS' or 'WLS'")
+        if self.get_config('DTI_fit_method') not in ['OLS', 'LS', 'WLS', 'NLLS', 'RT', 'RESTORE', 'restore']:
+            ERROR("DTI fit method must be one of the following:\n'OLS'(default) or 'LS': ordinary least squares\n'WLS': weighted least squares\n'NLLS': non-linear least squares\n'RT' or 'RESTORE' or 'restore': robust tensor\nNOTE: more info at https://dipy.org/documentation/1.6.0./reference/dipy.reconst/#dipy.reconst.dti.TensorModel")
         
         self.n_threads = self.get_config('n_threads') if self.get_config('n_threads') > 0 else cpu_count() if self.get_config('n_threads') == -1 else ERROR('Number of parallel threads must be positive or -1')
         self.BLAS_threads = self.get_config('BLAS_threads') if self.get_config('BLAS_threads') > 0 else cpu_count() if self.get_config('BLAS_threads') == -1 else ERROR('Number of BLAS threads must be positive or -1')
@@ -451,7 +452,7 @@ class Evaluation :
 
         # precompute directions
         if not self.get_config('doDirectionalAverage') and DTI is not None:
-            with Loader(message='Precomputing directions ({0})'.format(self.get_config('DTI_fit_method')), verbose=get_verbose()):
+            with Loader(message=f"Precomputing directions ({self.get_config('DTI_fit_method')})", verbose=get_verbose()):
                 self.DIRs = np.squeeze(DTI.fit(self.y).directions)
         # call the fit() method of the actual model
         with self._controller.limit(limits=self.BLAS_threads, user_api='blas'):
@@ -633,7 +634,7 @@ class Evaluation :
                 PRINT(' [OK]')
 
                 PRINT('\t- dir_avg.scheme', end=' ')
-                np.savetxt( pjoin(RESULTS_path, 'dir_avg.scheme' ), self.scheme.get_table(), fmt="%.06f", delimiter="\t", header=f"VERSION: {self.scheme.version}", comments='' )
+                np.savetxt( pjoin(RESULTS_path, 'dir_avg.scheme' ), self.scheme.get_table(), fmt="%.06f", delimiter="\t", header=f'VERSION: {self.scheme.version}', comments='' )
                 PRINT(' [OK]')
             else:
                 WARNING('The directional average signal was not created (The option doDirectionalAverage is False).')

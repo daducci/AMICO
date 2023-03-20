@@ -123,7 +123,7 @@ class BaseModel(ABC) :
         params : dictionary
             All the parameters that the solver will need to fit the model
         """
-        self._solver_params = {}
+        self.solver_params = {}
 
 
     @abstractmethod
@@ -207,9 +207,6 @@ class BaseModel(ABC) :
             'compute_rmse': evaluation.get_config('doComputeRMSE'),
             'compute_nrmse': evaluation.get_config('doComputeNRMSE')
         }
-
-        # fit results
-        self.results = {}
 
 
 
@@ -400,8 +397,8 @@ class CylinderZeppelinBall( BaseModel ) :
 
     def set_solver( self, lambda1 = 0.0, lambda2 = 4.0 ) :
         super().set_solver()
-        self._solver_params['lambda1'] = lambda1
-        self._solver_params['lambda2'] = lambda2
+        self.solver_params['lambda1'] = lambda1
+        self.solver_params['lambda2'] = lambda2
 
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
@@ -502,11 +499,11 @@ class CylinderZeppelinBall( BaseModel ) :
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _fit(self, y, dirs, hash_table, kernels, solver_params, configs):
+    def _fit(self, y, dirs, hash_table, kernels):
         # configs
         cdef bint is_exvivo = 1 if self.isExvivo else 0
-        cdef bint compute_rmse = 1 if configs['compute_rmse'] else 0
-        cdef bint compute_nrmse = 1 if configs['compute_nrmse'] else 0
+        cdef bint compute_rmse = 1 if self.configs['compute_rmse'] else 0
+        cdef bint compute_nrmse = 1 if self.configs['compute_nrmse'] else 0
         cdef int n_rs = len(self.Rs)
         cdef int n_perp = len(self.d_perps)
         cdef int n_iso = len(self.d_isos)
@@ -516,25 +513,21 @@ class CylinderZeppelinBall( BaseModel ) :
             n_atoms += 1
 
         # solver params
-        cdef double lambda1 = solver_params['lambda1']
-        cdef double lambda2 = solver_params['lambda2']
+        cdef double lambda1 = self.solver_params['lambda1']
+        cdef double lambda2 = self.solver_params['lambda2']
 
         # directions
-        if not dirs.flags['C_CONTIGUOUS']:
-            dirs = np.ascontiguousarray(dirs)
-        cdef double [:, ::1]directions_view = dirs
+        cdef double [:, ::1]directions_view = np.ascontiguousarray(dirs, dtype=np.double)
         cdef short [::1]hash_table_view = hash_table
         cdef int lut_index
 
         # kernels
-        cdef double [::1, :, :]kernels_wmr_view = np.asfortranarray(np.swapaxes(kernels['wmr'].T, 1, 2)).astype(np.double)
-        cdef double [::1, :, :]kernels_wmh_view = np.asfortranarray(np.swapaxes(kernels['wmh'].T, 1, 2)).astype(np.double)
-        cdef double [::1, :]kernels_iso_view = np.asfortranarray(kernels['iso'].T).astype(np.double)
+        cdef double [::1, :, :]kernels_wmr_view = np.asfortranarray(np.swapaxes(kernels['wmr'].T, 1, 2), dtype=np.double)
+        cdef double [::1, :, :]kernels_wmh_view = np.asfortranarray(np.swapaxes(kernels['wmh'].T, 1, 2), dtype=np.double)
+        cdef double [::1, :]kernels_iso_view = np.asfortranarray(kernels['iso'].T, dtype=np.double)
 
         # y, A, x
-        if not y.flags['C_CONTIGUOUS']:
-            y = np.ascontiguousarray(y)
-        cdef double [:, ::1]y_view = y
+        cdef double [:, ::1]y_view = np.ascontiguousarray(y, dtype=np.double)
         cdef double [::1, :]A_view = np.zeros((kernels_wmr_view.shape[0], n_atoms), dtype=np.double, order='F')
         cdef double [::1]x_view = np.zeros(n_atoms, dtype=np.double)
 
@@ -542,8 +535,8 @@ class CylinderZeppelinBall( BaseModel ) :
         cdef double v = 0.0
         cdef double a = 0.0
         cdef double d = 0.0
-        estimates = np.zeros((y_view.shape[0], len(self.maps_name)), dtype=np.double, order='F')
-        cdef double [::1, :]estimates_view = estimates
+        estimates = np.zeros((y_view.shape[0], len(self.maps_name)), dtype=np.double, order='C')
+        cdef double [:, ::1]estimates_view = estimates
 
         # support variables
         cdef double f1 = 0.0
@@ -659,8 +652,8 @@ class NODDI( BaseModel ) :
 
     def set_solver( self, lambda1 = 5e-1, lambda2 = 1e-3 ):
         super().set_solver()
-        self._solver_params['lambda1'] = lambda1
-        self._solver_params['lambda2'] = lambda2
+        self.solver_params['lambda1'] = lambda1
+        self.solver_params['lambda2'] = lambda2
 
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ):
@@ -749,13 +742,13 @@ class NODDI( BaseModel ) :
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _fit(self, y, dirs, hash_table, kernels, solver_params, configs):
+    def _fit(self, y, dirs, hash_table, kernels):
         # configs
         cdef bint is_exvivo = 1 if self.isExvivo else 0
         cdef bint single_b0 = 1 if y.shape[1] == (1 + self.scheme.dwi_count) else 0
-        cdef bint compute_rmse = 1 if configs['compute_rmse'] else 0
-        cdef bint compute_nrmse = 1 if configs['compute_nrmse'] else 0
-        cdef bint compute_modulated_maps = 1 if configs['compute_modulated_maps'] else 0
+        cdef bint compute_rmse = 1 if self.configs['compute_rmse'] else 0
+        cdef bint compute_nrmse = 1 if self.configs['compute_nrmse'] else 0
+        cdef bint compute_modulated_maps = 1 if self.configs['compute_modulated_maps'] else 0
         cdef long long [::1]dwi_idx_view = self.scheme.dwi_idx
         cdef int n_wm = len(self.IC_ODs) * len(self.IC_VFs)
         cdef int n_atoms = n_wm + 1
@@ -763,30 +756,26 @@ class NODDI( BaseModel ) :
             n_atoms += 1
 
         # solver params
-        cdef double lambda1 = solver_params['lambda1']
-        cdef double lambda2 = solver_params['lambda2']
+        cdef double lambda1 = self.solver_params['lambda1']
+        cdef double lambda2 = self.solver_params['lambda2']
 
         # directions
-        cdef double [:, ::1]directions_view = np.ascontiguousarray(dirs)
+        cdef double [:, ::1]directions_view = np.ascontiguousarray(dirs, dtype=np.double)
         cdef short [::1]hash_table_view = hash_table
         cdef int lut_index
 
         # kernels
-        cdef double [::1, :, :]kernels_wm_view = np.asfortranarray(np.swapaxes(kernels['wm'].T, 1, 2)).astype(np.double)
+        cdef double [::1, :, :]kernels_wm_view = np.asfortranarray(np.swapaxes(kernels['wm'].T, 1, 2), dtype=np.double)
         cdef double [::1]kernels_iso_view = kernels['iso'].astype(np.double)
-        if not kernels['norms'].flags['C_CONTIGUOUS']:
-            kernels['norms'] = np.ascontiguousarray(kernels['norms'])
         cdef double [::1]kernels_exvivo_view
         if is_exvivo:
             kernels_exvivo_view = np.ones(kernels_wm_view.shape[0], dtype=np.double)
-        cdef double [:, ::1]kernels_norms_view = kernels['norms'].astype(np.double)
+        cdef double [:, ::1]kernels_norms_view = np.ascontiguousarray(kernels['norms'], dtype=np.double)
         cdef float [::1]kernels_icvf_view = kernels['icvf']
         cdef float [::1]kernels_kappa_view = kernels['kappa']
 
         # y, A, x
-        if not y.flags['C_CONTIGUOUS']:
-            y = np.ascontiguousarray(y)
-        cdef double [:, ::1]y_view = y
+        cdef double [:, ::1]y_view = np.ascontiguousarray(y, dtype=np.double)
         cdef double [::1, :]A_view = np.zeros((kernels_wm_view.shape[0], n_atoms), dtype=np.double, order='F')
         cdef double [::1]x_view = np.zeros(n_atoms, dtype=np.double)
         cdef double r_norm = 0.0
@@ -806,8 +795,8 @@ class NODDI( BaseModel ) :
         cdef double ndi = 0.0
         cdef double odi = 0.0
         cdef double fwf = 0.0
-        estimates = np.zeros((y_view.shape[0], len(self.maps_name)), dtype=np.double, order='F')
-        cdef double [::1, :]estimates_view = estimates
+        estimates = np.zeros((y_view.shape[0], len(self.maps_name)), dtype=np.double, order='C')
+        cdef double [:, ::1]estimates_view = estimates
 
         # support variables
         cdef double f1 = 0.0
@@ -827,9 +816,9 @@ class NODDI( BaseModel ) :
             nrmse_view = nrmse
 
         # modulated maps
-        cdef double [::1, :]estimates_mod_view
+        cdef double [:, ::1]estimates_mod_view
         if compute_modulated_maps:
-            estimates_mod = np.zeros((y_view.shape[0], 2), dtype=np.double, order='F')
+            estimates_mod = np.zeros((y_view.shape[0], 2), dtype=np.double, order='C')
             estimates_mod_view = estimates_mod
         cdef double tf = 0.0
 
@@ -990,8 +979,8 @@ class FreeWater( BaseModel ) :
 
     def set_solver( self, lambda1 = 0.0, lambda2 = 1e-3 ):
         super().set_solver()
-        self._solver_params['lambda1'] = lambda1
-        self._solver_params['lambda2'] = lambda2
+        self.solver_params['lambda1'] = lambda1
+        self.solver_params['lambda2'] = lambda2
 
         # TODO check this
         # need more regul for mouse data
@@ -1076,33 +1065,31 @@ class FreeWater( BaseModel ) :
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _fit(self, y, dirs, hash_table, kernels, solver_params, configs):
+    def _fit(self, y, dirs, hash_table, kernels):
         # configs
         cdef bint is_mouse = 1 if self.type == 'Mouse' else 0
-        cdef bint compute_rmse = 1 if configs['compute_rmse'] else 0
-        cdef bint compute_nrmse = 1 if configs['compute_nrmse'] else 0
-        cdef bint save_corrected_DWI = 1 if configs['save_corrected_DWI'] else 0
+        cdef bint compute_rmse = 1 if self.configs['compute_rmse'] else 0
+        cdef bint compute_nrmse = 1 if self.configs['compute_nrmse'] else 0
+        cdef bint save_corrected_DWI = 1 if self.configs['save_corrected_DWI'] else 0
         cdef int n_perp = len(self.d_perps)
         cdef int n_iso = len(self.d_isos)
         cdef int n_atoms = n_perp + n_iso
 
         # solver params
-        cdef double lambda1 = solver_params['lambda1']
-        cdef double lambda2 = solver_params['lambda2']
+        cdef double lambda1 = self.solver_params['lambda1']
+        cdef double lambda2 = self.solver_params['lambda2']
 
         # directions
-        cdef double [:, ::1]directions_view = np.ascontiguousarray(dirs)
+        cdef double [:, ::1]directions_view = np.ascontiguousarray(dirs, dtype=np.double)
         cdef short [::1]hash_table_view = hash_table
         cdef int lut_index
 
         # kernels
-        cdef double [::1, :, :]kernels_D_view = np.asfortranarray(np.swapaxes(kernels['D'].T, 1, 2)).astype(np.double)
-        cdef double [::1, :]kernels_CSF_view = np.asfortranarray(kernels['CSF'].T).astype(np.double)
+        cdef double [::1, :, :]kernels_D_view = np.asfortranarray(np.swapaxes(kernels['D'].T, 1, 2), dtype=np.double)
+        cdef double [::1, :]kernels_CSF_view = np.asfortranarray(kernels['CSF'].T, dtype=np.double)
 
         # y, A, x
-        if not y.flags['C_CONTIGUOUS']:
-            y = np.ascontiguousarray(y)
-        cdef double [:, ::1]y_view = y
+        cdef double [:, ::1]y_view = np.ascontiguousarray(y, dtype=np.double)
         cdef double [::1, :]A_view = np.zeros((kernels_D_view.shape[0], n_atoms), dtype=np.double, order='F')
         cdef double [::1]x_view = np.zeros(n_atoms, dtype=np.double)
 
@@ -1110,8 +1097,8 @@ class FreeWater( BaseModel ) :
         cdef double v = 0.0
         cdef double v_blood = 0.0
         cdef double v_csf = 0.0
-        estimates = np.zeros((y_view.shape[0], len(self.maps_name)), dtype=np.double, order='F')
-        cdef double [::1, :]estimates_view = estimates
+        estimates = np.zeros((y_view.shape[0], len(self.maps_name)), dtype=np.double, order='C')
+        cdef double [:, ::1]estimates_view = estimates
 
         # support variables
         cdef double x_sum = 0.0
@@ -1129,10 +1116,10 @@ class FreeWater( BaseModel ) :
 
         # y_corrected
         cdef double [::1]y_fw_part
-        cdef double [::1, :]y_corrected_view
+        cdef double [:, ::1]y_corrected_view
         if save_corrected_DWI:
             y_fw_part = np.zeros(y_view.shape[1], dtype=np.double)
-            y_corrected = np.zeros((y_view.shape[0], y_view.shape[1]), dtype=np.double, order='F')
+            y_corrected = np.zeros((y_view.shape[0], y_view.shape[1]), dtype=np.double, order='C')
             y_corrected_view = y_corrected
 
         cdef Py_ssize_t i, j, k
@@ -1290,8 +1277,8 @@ class SANDI( BaseModel ) :
 
     def set_solver( self, lambda1 = 0.0, lambda2 = 5.0E-3 ) :
         super().set_solver()
-        self._solver_params['lambda1'] = lambda1
-        self._solver_params['lambda2'] = lambda2
+        self.solver_params['lambda1'] = lambda1
+        self.solver_params['lambda2'] = lambda2
 
 
     def generate( self, out_path, aux, idx_in, idx_out, ndirs ) :
@@ -1389,29 +1376,25 @@ class SANDI( BaseModel ) :
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _fit(self, y, kernels, solver_params, configs):
+    def _fit(self, y, kernels):
         # configs
-        cdef bint compute_rmse = 1 if configs['compute_rmse'] else 0
-        cdef bint compute_nrmse = 1 if configs['compute_nrmse'] else 0
+        cdef bint compute_rmse = 1 if self.configs['compute_rmse'] else 0
+        cdef bint compute_nrmse = 1 if self.configs['compute_nrmse'] else 0
         cdef int n_rs = len(self.Rs)
         cdef int n_in = len(self.d_in)
         cdef int n_iso = len(self.d_isos)
         cdef int n_atoms = n_rs + n_in + n_iso
 
         # solver params
-        cdef double lambda1 = solver_params['lambda1']
-        cdef double lambda2 = solver_params['lambda2']
+        cdef double lambda1 = self.solver_params['lambda1']
+        cdef double lambda2 = self.solver_params['lambda2']
 
         # kernels
-        if not kernels['signal'].flags['F_CONTIGUOUS']:
-            kernels['signal'] = np.asfortranarray(kernels['signal'])
         cdef double [::1]kernels_norms_view = kernels['norms']
 
         # y, A, x
-        if not y.flags['C_CONTIGUOUS']:
-            y = np.ascontiguousarray(y)
-        cdef double [:, ::1]y_view = y
-        cdef double [::1, :]A_view = kernels['signal']
+        cdef double [:, ::1]y_view = np.ascontiguousarray(y, dtype=np.double)
+        cdef double [::1, :]A_view = np.asfortranarray(kernels['signal'], dtype=np.double)
         cdef double [::1]x_view = np.zeros(n_atoms, dtype=np.double)
 
         # return
@@ -1421,8 +1404,8 @@ class SANDI( BaseModel ) :
         cdef double Rsoma = 0.0
         cdef double Din = 0.0
         cdef double De = 0.0
-        estimates = np.zeros((y_view.shape[0], len(self.maps_name)), dtype=np.double, order='F')
-        cdef double [::1, :] estimates_view = estimates
+        estimates = np.zeros((y_view.shape[0], len(self.maps_name)), dtype=np.double, order='C')
+        cdef double [:, ::1] estimates_view = estimates
 
         # support variables
         cdef double [::1]rs_view = self.Rs
