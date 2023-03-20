@@ -22,6 +22,7 @@ include_dirs.extend(cyspams.get_include())
 # OpenBLAS headers
 if not isfile('site.cfg'):
       print(f'\033[31mFileNotFoundError: cannot find the site.cfg file\033[0m')
+      exit(1)
 config = configparser.ConfigParser()
 config.read('site.cfg')
 try:
