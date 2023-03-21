@@ -32,7 +32,7 @@ _2023-03-##_
 - Modulated maps for the NODDI model ([Tissue-Weighted Mean](https://csparker.github.io/research/2021/11/16/Tissue-weighted-mean.html)), e.g. `fit_NDI_modulated.nii.gz`
 
 ### Fixed 🐛
--
+- DeprecationWarning: `dipy.reconst.shm.real_sym_sh_basis` (with dipy>=1.4.0)
 
 ---
 

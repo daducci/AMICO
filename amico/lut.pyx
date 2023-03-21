@@ -10,7 +10,7 @@ from os.path import isdir, isfile, dirname, join as pjoin
 import pickle
 from dipy.data.fetcher import dipy_home
 from dipy.core.geometry import cart2sphere
-from dipy.reconst.shm import real_sym_sh_basis
+from dipy.reconst.shm import real_sh_descoteaux
 import amico.scheme
 from amico.util import LOG, NOTE, WARNING, ERROR
 
@@ -117,14 +117,14 @@ def precompute_rotation_matrices( lmax, ndirs ) :
 
     # matrix to fit the SH coefficients
     _, theta, phi = cart2sphere( grad[:,0], grad[:,1], grad[:,2] )
-    tmp, _, _ = real_sym_sh_basis( lmax, theta, phi )
+    tmp, _, _ = real_sh_descoteaux( lmax, theta, phi )
     AUX['fit'] = np.dot( np.linalg.pinv( np.dot(tmp.T,tmp) ), tmp.T )
 
     # matrices to rotate the functions in SH space
     AUX['Ylm_rot'] = np.zeros( ndirs, dtype=np.object_ )
     for i in range(ndirs):
         _, theta, phi = cart2sphere(directions[i][0], directions[i][1], directions[i][2])
-        tmp, _, _ = real_sym_sh_basis( lmax, theta, phi )
+        tmp, _, _ = real_sh_descoteaux( lmax, theta, phi )
         AUX['Ylm_rot'][i] = tmp.reshape(-1)
 
     # auxiliary data to perform rotations
@@ -220,7 +220,7 @@ def aux_structures_resample( scheme, lmax = 12 ) :
         nS = len( scheme.shells[s]['idx'] )
         idx_OUT[ idx:idx+nS ] = scheme.shells[s]['idx']
         _, theta, phi = cart2sphere( scheme.shells[s]['grad'][:,0], scheme.shells[s]['grad'][:,1], scheme.shells[s]['grad'][:,2] )
-        tmp, _, _ = real_sym_sh_basis( lmax, theta, phi )
+        tmp, _, _ = real_sh_descoteaux( lmax, theta, phi )
         Ylm_OUT[ idx:idx+nS, nSH*s:nSH*(s+1) ] = tmp
         idx += nS
     return ( idx_OUT, Ylm_OUT )
