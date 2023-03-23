@@ -1,0 +1,34 @@
+name: Compile OpenBLAS on Linux
+run-name: Compile OpenBLAS on Linux - ${{ github.sha }}
+on: workflow_dispatch
+jobs:
+  compile_openblas:
+    strategy:
+      matrix:
+          arch:
+            - [x86_64, manylinux2014_x86_64, HASWELL, amd64]
+            - [aarch64, manylinux2014_aarch64, ARMV8, arm64]
+    name: ${{ matrix.arch[0] }}
+    runs-on: ubuntu-20.04
+    timeout-minutes: 600 # NOTE: need this to compile the arm64 version
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2.1.0
+        with:
+          platforms: ${{ matrix.arch[3] }}
+      
+      - name: Compile OpenBLAS
+        run: |
+          curl -L -o OpenBLAS-0.3.21.tar.gz https://github.com/xianyi/OpenBLAS/releases/download/v0.3.21/OpenBLAS-0.3.21.tar.gz
+          tar -xzf OpenBLAS-0.3.21.tar.gz
+          docker create --name=openblas_${{ matrix.arch[0] }} -i --volume=${GITHUB_WORKSPACE}:/host quay.io/pypa/${{ matrix.arch[1] }}:latest /bin/bash
+          docker start openblas_${{ matrix.arch[0] }}
+          docker exec -i openblas_${{ matrix.arch[0] }} sh -c "make -C /host/OpenBLAS-0.3.21 TARGET=${{ matrix.arch[2] }} DYNAMIC_ARCH=1"
+          docker exec -i openblas_${{ matrix.arch[0] }} sh -c "make install -C /host/OpenBLAS-0.3.21 PREFIX=/host/OpenBLAS"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: OpenBLAS_linux_${{ matrix.arch[0] }}
+          path: ./OpenBLAS
+          if-no-files-found: error

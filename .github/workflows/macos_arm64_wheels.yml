@@ -1,0 +1,40 @@
+name: MacOS arm64 wheels
+run-name: MacOS arm64 wheels - ${{ github.sha }}
+on:
+  workflow_dispatch:
+    inputs:
+      cirrus_build_id:
+        description: Cirrus CI build ID
+        required: true
+        type: number
+      check_id_macos_arm64:
+        description: Check ID MacOS arm64
+        required: true
+        type: number
+jobs:
+  download_macos_arm64_wheels:
+    name: '*-macosx_arm64'
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Download wheels from Cirrus CI
+        run: |
+          echo "DOWNLOAD_RESPONSE=$(curl -L -o wheels_macos_arm64.zip -w '%{http_code}' https://api.cirrus-ci.com/v1/artifact/build/${{ inputs.cirrus_build_id }}/build_macos_arm64_wheels/wheels_macos_arm64.zip)" >> $GITHUB_ENV
+          7z x wheels_macos_arm64.zip
+
+      - name: Upload artifacts
+        id: upload_artifacts
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: wheels_macos_arm64
+          path: ./wheelhouse/*.whl
+          if-no-files-found: error
+
+      - name: Complete MacOS arm64 check
+        if: env.DOWNLOAD_RESPONSE == 200 && steps.upload_artifacts.conclusion == 'success'
+        run: |
+          curl -X PATCH -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ github.token }}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/nightwnvol/amico_gh_actions/check-runs/${{ inputs.check_id_macos_arm64 }} -d '{"name":"cp*-macosx_arm64","status":"completed","conclusion":"success"}'
+
+      - name: Complete MacOS arm64 check
+        if: (failure() && steps.upload_artifacts.conclusion != 'success') || env.DOWNLOAD_RESPONSE != 200
+        run: |
+          curl -X PATCH -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ github.token }}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/nightwnvol/amico_gh_actions/check-runs/${{ inputs.check_id_macos_arm64 }} -d '{"name":"cp*-macosx_arm64","status":"completed","conclusion":"failure"}'
