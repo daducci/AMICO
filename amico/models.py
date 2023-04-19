@@ -190,9 +190,9 @@ class StickZeppelinBall( BaseModel ) :
         self.maps_name  = [ ]
         self.maps_descr = [ ]
 
-        self.d_par       = 1.7E-3                                          # Parallel diffusivity for the Stick [mm^2/s]
+        self.d_par       = 1.1E-3                                          # Parallel diffusivity for the Stick [mm^2/s]
         self.d_perp      = 0                                               # Perpendicular diffusivity for the Stick [mm^2/s]
-        self.d_par_zep   = 1.7E-3                                          # Parallel diffusivity for the Zeppelins [mm^2/s]
+        self.d_par_zep   = 1.1E-3                                          # Parallel diffusivity for the Zeppelins [mm^2/s]
         self.d_perps_zep = np.array([ 1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]) # Perpendicular diffusivitie(s) [mm^2/s]
         self.d_isos      = np.array([ 3.0E-3 ])                            # Isotropic diffusivitie(s) [mm^2/s]
 
@@ -502,7 +502,7 @@ class NODDI( BaseModel ) :
         self.maps_name  = [ 'ICVF', 'OD', 'ISOVF' ]
         self.maps_descr = [ 'Intra-cellular volume fraction', 'Orientation dispersion', 'Isotropic volume fraction' ]
 
-        self.dPar      = 1.7E-3
+        self.dPar      = 1.1E-3
         self.dIso      = 3.0E-3
         self.IC_VFs    = np.linspace(0.1,0.99,12)
         self.IC_ODs    = np.hstack((np.array([0.03, 0.06]),np.linspace(0.09,0.99,10)))

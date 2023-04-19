@@ -89,7 +89,7 @@ class Evaluation :
         self.set_config('doDebiasSignal', False)        # Flag to remove Rician bias
         self.set_config('DWI-SNR', None)                # SNR of DWI image: SNR = b0/sigma
         self.set_config('doDirectionalAverage', False)  # To perform the directional average on the signal of each shell
-        self.set_config('parallel_jobs', -1)            # Number of jobs to be used in multithread-enabled parts of code
+        self.set_config('parallel_jobs', 1)            # Number of jobs to be used in multithread-enabled parts of code
 
     def set_config( self, key, value ) :
         self.CONFIG[ key ] = value
