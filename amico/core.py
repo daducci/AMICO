@@ -17,10 +17,9 @@ import amico.models
 from amico.lut import is_valid, valid_dirs
 from dipy.core.gradients import gradient_table
 import dipy.reconst.dti as dti
-from amico.util import PRINT, LOG, WARNING, ERROR, get_verbose, Loader
+from amico.util import PRINT, LOG, WARNING, ERROR, get_verbose, ProgressBar
 from pkg_resources import get_distribution
 from threadpoolctl import ThreadpoolController
-from tqdm import tqdm
 
 def setup( lmax=12 ) :
     """General setup/initialization of the AMICO framework.
@@ -32,8 +31,11 @@ def setup( lmax=12 ) :
         NB: change only if you know what you are doing.
     """
     LOG( '\n-> Precomputing rotation matrices:' )
-    for n in tqdm(valid_dirs(), ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)):
-        amico.lut.precompute_rotation_matrices( lmax, n )
+    dirs = valid_dirs()
+    with ProgressBar(total=len(dirs), disable=get_verbose()<3) as pbar:
+        for dir in dirs:
+            amico.lut.precompute_rotation_matrices(lmax, dir)
+            pbar.update()
     LOG('   [ DONE ]')
 
 
@@ -81,18 +83,18 @@ class Evaluation :
 
         self.set_config('peaks_filename', None)
         self.set_config('doNormalizeSignal', True)
-        self.set_config('doKeepb0Intact', False)        # does change b0 images in the predicted signal
+        self.set_config('doKeepb0Intact', False)       # does change b0 images in the predicted signal
         self.set_config('doComputeRMSE', False)
         self.set_config('doComputeNRMSE', False)
-        self.set_config('doSaveModulatedMaps', False)   # NODDI model specific config
-        self.set_config('doSaveCorrectedDWI', False)    # FreeWater model specific config
-        self.set_config('doMergeB0', False)             # Merge b0 volumes
-        self.set_config('doDebiasSignal', False)        # Flag to remove Rician bias
-        self.set_config('DWI-SNR', None)                # SNR of DWI image: SNR = b0/sigma
-        self.set_config('doDirectionalAverage', False)  # To perform the directional average on the signal of each shell
-        self.set_config('nthreads', -1)                # Number of jobs to be used in multithread-enabled parts of code (default: -1)
-        self.set_config('DTI_fit_method', 'OLS')        # Fit method for the Diffusion Tensor model (dipy) (default: 'OLS')
-        self.set_config('BLAS_nthreads', 1)              # Number of threads used in the threadpool-backend of common BLAS implementations (dafault: 1)
+        self.set_config('doSaveModulatedMaps', False)  # NODDI model specific config
+        self.set_config('doSaveCorrectedDWI', False)   # FreeWater model specific config
+        self.set_config('doMergeB0', False)            # Merge b0 volumes
+        self.set_config('doDebiasSignal', False)       # Flag to remove Rician bias
+        self.set_config('DWI-SNR', None)               # SNR of DWI image: SNR = b0/sigma
+        self.set_config('doDirectionalAverage', False) # To perform the directional average on the signal of each shell
+        self.set_config('nthreads', -1)                # Number of threads to be used in multithread-enabled parts of code (default: -1)
+        self.set_config('DTI_fit_method', 'OLS')       # Fit method for the Diffusion Tensor model (dipy) (default: 'OLS')
+        self.set_config('BLAS_nthreads', 1)            # Number of threads used in the threadpool-backend of common BLAS implementations (dafault: 1)
 
         self._controller = ThreadpoolController()
 
@@ -423,7 +425,7 @@ class Evaluation :
 
         self.set_config('fit_time', None)
         totVoxels = np.count_nonzero(self.niiMASK_img)
-        LOG( f'\n-> Fitting "{self.model.name}" model to {totVoxels} voxels (using {self.nthreads} thread{"s" if self.nthreads > 1 else ""}):' )
+        # LOG( f'\n-> Fitting "{self.model.name}" model to {totVoxels} voxels (using {self.nthreads} thread{"s" if self.nthreads > 1 else ""}):' )
 
         # setup fitting directions
         peaks_filename = self.get_config('peaks_filename')
@@ -451,13 +453,18 @@ class Evaluation :
         self.y[self.y < 0] = 0
 
         # precompute directions
+        LOG(f"\n-> Precomputing directions ({self.get_config('DTI_fit_method')}):")
         if not self.get_config('doDirectionalAverage') and DTI is not None:
-            with Loader(message=f"Precomputing directions ({self.get_config('DTI_fit_method')})", verbose=get_verbose()):
+            with ProgressBar(disable=get_verbose()<3):
                 self.DIRs = np.squeeze(DTI.fit(self.y).directions)
+        self.set_config('dirs_precomputing_time', time.time()-t)
+        LOG( '   [ %s ]' % ( time.strftime("%Hh %Mm %Ss", time.gmtime(self.get_config('dirs_precomputing_time')) ) ) )
+
+        t = time.time()
+        LOG(f"\n-> Fitting '{self.model.name}' model to {totVoxels} voxels (using {self.nthreads} thread{'s' if self.nthreads > 1 else ''}):")
         # call the fit() method of the actual model
         with self._controller.limit(limits=self.BLAS_nthreads, user_api='blas'):
-            with Loader(message='Fitting the model', verbose=get_verbose()):
-                results = self.model.fit(self)
+            results = self.model.fit(self)
         self.set_config('fit_time', time.time()-t)
         LOG( '   [ %s ]' % ( time.strftime("%Hh %Mm %Ss", time.gmtime(self.get_config('fit_time')) ) ) )
         # =========================

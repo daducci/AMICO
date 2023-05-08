@@ -8,7 +8,6 @@ from os import environ
 from os.path import join as pjoin
 import sys
 import amico.lut
-from tqdm import tqdm
 from abc import ABC, abstractmethod
 from amico.util import PRINT, ERROR, get_verbose
 from amico.synthesis import Stick, Zeppelin, Ball, CylinderGPD, SphereGPD, Astrosticks, NODDIIntraCellular, NODDIExtraCellular, NODDIIsotropic
@@ -18,6 +17,7 @@ cimport cython
 from libc.stdlib cimport malloc, free
 from libc.math cimport pi, atan2, sqrt, pow as cpow
 from amico.lut cimport dir_to_lut_idx
+from amico.util import ProgressBar
 from cyspams.interfaces cimport nnls, lasso
 
 try:
@@ -27,6 +27,23 @@ except KeyError:
     pass
 except ImportError:
     pass
+
+_multithread_progress = np.zeros(1, dtype=np.intc)
+cdef int [::1]_multithread_progress_view = _multithread_progress
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void _init_multithread_progress(int nthreads):
+    global _multithread_progress
+    global _multithread_progress_view
+    _multithread_progress = np.zeros(nthreads, dtype=np.intc)
+    _multithread_progress_view = _multithread_progress
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void _update_multithread_progress(int thread_id) nogil:
+    global _multithread_progress_view
+    _multithread_progress_view[thread_id] += 1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -275,27 +292,27 @@ class StickZeppelinBall( BaseModel ) :
 
         nATOMS = 1 + len(self.d_perps_zep) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
+        with ProgressBar(total=nATOMS, disable=get_verbose()<3) as pbar:
             # Stick
             signal = stick.get_signal(self.d_par)
             lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
             np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
             idx += 1
-            progress.update()
+            pbar.update()
             # Zeppelin(s)
             for d in self.d_perps_zep :
                 signal = zeppelin.get_signal(self.d_par_zep, d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
-                progress.update()
+                pbar.update()
             # Ball(s)
             for d in self.d_isos :
                 signal = ball.get_signal(d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
-                progress.update()
+                pbar.update()
 
 
     def resample( self, in_path, idx_out, Ylm_out, doMergeB0, ndirs ) :
@@ -313,14 +330,14 @@ class StickZeppelinBall( BaseModel ) :
 
         nATOMS = 1 + len(self.d_perps_zep) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
+        with ProgressBar(total=nATOMS, disable=get_verbose()<3) as pbar:
             # Stick
             lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
             if lm.shape[0] != ndirs:
                 ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
             KERNELS['wmr'][0,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
             idx += 1
-            progress.update()
+            pbar.update()
 
             # Zeppelin(s)
             for i in range(len(self.d_perps_zep)) :
@@ -329,14 +346,14 @@ class StickZeppelinBall( BaseModel ) :
                     ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
                 KERNELS['wmh'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
                 idx += 1
-                progress.update()
+                pbar.update()
 
             # Ball(s)
             for i in range(len(self.d_isos)) :
                 lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
                 KERNELS['iso'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
                 idx += 1
-                progress.update()
+                pbar.update()
 
         return KERNELS
 
@@ -412,14 +429,14 @@ class CylinderZeppelinBall( BaseModel ) :
 
         nATOMS = len(self.Rs) + len(self.d_perps) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
+        with ProgressBar(total=nATOMS, disable=get_verbose()<3) as pbar:
             # Cylinder(s)
             for R in self.Rs :
                 signal = cylinder.get_signal(self.d_par, R)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
-                progress.update()
+                pbar.update()
 
             # Zeppelin(s)
             for d in self.d_perps :
@@ -427,7 +444,7 @@ class CylinderZeppelinBall( BaseModel ) :
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
-                progress.update()
+                pbar.update()
 
             # Ball(s)
             for d in self.d_isos :
@@ -435,7 +452,7 @@ class CylinderZeppelinBall( BaseModel ) :
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
-                progress.update()
+                pbar.update()
 
 
     def resample( self, in_path, idx_out, Ylm_out, doMergeB0, ndirs ) :
@@ -453,7 +470,7 @@ class CylinderZeppelinBall( BaseModel ) :
 
         nATOMS = len(self.Rs) + len(self.d_perps) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
+        with ProgressBar(total=nATOMS, disable=get_verbose()<3) as pbar:
             # Cylinder(s)
             for i in range(len(self.Rs)) :
                 lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
@@ -461,7 +478,7 @@ class CylinderZeppelinBall( BaseModel ) :
                     ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
                 KERNELS['wmr'][i,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
                 idx += 1
-                progress.update()
+                pbar.update()
 
             # Zeppelin(s)
             for i in range(len(self.d_perps)) :
@@ -470,14 +487,14 @@ class CylinderZeppelinBall( BaseModel ) :
                     ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
                 KERNELS['wmh'][i,:,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
                 idx += 1
-                progress.update()
+                pbar.update()
 
             # Ball(s)
             for i in range(len(self.d_isos)) :
                 lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
                 KERNELS['iso'][i,:] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
                 idx += 1
-                progress.update()
+                pbar.update()
 
         return KERNELS
 
@@ -486,9 +503,12 @@ class CylinderZeppelinBall( BaseModel ) :
         super().fit(evaluation)
 
         # fit chunks in parallel
-        with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
-            futures = [executor.submit(self._fit, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for i, j in self.chunks]
-            chunked_results = [f.result() for f in futures]
+        global _multithread_progress
+        _init_multithread_progress(evaluation.nthreads)
+        with ProgressBar(total=evaluation.y.shape[0], multithread_progress=_multithread_progress, disable=get_verbose()<3):
+            with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
+                futures = [executor.submit(self._fit, thread_id, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for thread_id, (i, j) in self.chunks]
+                chunked_results = [f.result() for f in futures]
         
         # concatenate results and return
         results = {}
@@ -499,8 +519,9 @@ class CylinderZeppelinBall( BaseModel ) :
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _fit(self, y, dirs, hash_table, kernels):
+    def _fit(self, thread_id, y, dirs, hash_table, kernels):
         # configs
+        cdef int thread_id_c = thread_id
         cdef bint is_exvivo = 1 if self.isExvivo else 0
         cdef bint compute_rmse = 1 if self.configs['compute_rmse'] else 0
         cdef bint compute_nrmse = 1 if self.configs['compute_nrmse'] else 0
@@ -593,6 +614,8 @@ class CylinderZeppelinBall( BaseModel ) :
                 if compute_nrmse:
                     _compute_nrmse(A_view, y_view[i, :], x_view, &nrmse_view[i])
 
+                _update_multithread_progress(thread_id_c)
+
         results = {}
         results['estimates'] = estimates
         if compute_rmse:
@@ -664,7 +687,7 @@ class NODDI( BaseModel ) :
 
         nATOMS = len(self.IC_ODs)*len(self.IC_VFs) + 1
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
+        with ProgressBar(total=nATOMS, disable=get_verbose()<3) as pbar:
             # Coupled contributions
             IC_KAPPAs = 1 / np.tan(self.IC_ODs*np.pi/2)
             for kappa in IC_KAPPAs:
@@ -675,12 +698,12 @@ class NODDI( BaseModel ) :
                     lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                     np.save( pjoin( out_path, f'A_{idx+1:03d}.npy') , lm )
                     idx += 1
-                    progress.update()
+                    pbar.update()
             # Isotropic
             signal = noddi_iso.get_signal(self.dIso)
             lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
             np.save( pjoin( out_path, f'A_{nATOMS:03d}.npy') , lm )
-            progress.update()
+            pbar.update()
 
 
     def resample( self, in_path, idx_out, Ylm_out, doMergeB0, ndirs ):
@@ -700,7 +723,7 @@ class NODDI( BaseModel ) :
         KERNELS['norms'] = np.zeros( (self.scheme.dwi_count, nATOMS-1) )
 
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
+        with ProgressBar(total=nATOMS, disable=get_verbose()<3) as pbar:
             # Coupled contributions
             for i in range( len(self.IC_ODs) ):
                 for j in range( len(self.IC_VFs) ):
@@ -715,11 +738,11 @@ class NODDI( BaseModel ) :
                     else:
                         KERNELS['norms'][:,idx] = 1 / np.linalg.norm( KERNELS['wm'][idx,0,self.scheme.dwi_idx] ) # norm of coupled atoms (for l1 minimization)
                     idx += 1
-                    progress.update()
+                    pbar.update()
             # Isotropic
             lm = np.load( pjoin( in_path, f'A_{nATOMS:03d}.npy' ) )
             KERNELS['iso'] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
-            progress.update()
+            pbar.update()
 
         return KERNELS
 
@@ -729,9 +752,12 @@ class NODDI( BaseModel ) :
         self.configs['compute_modulated_maps'] = evaluation.get_config('doSaveModulatedMaps')
 
         # fit chunks in parallel
-        with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
-            futures = [executor.submit(self._fit, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for i, j in self.chunks]
-            chunked_results = [f.result() for f in futures]
+        global _multithread_progress
+        _init_multithread_progress(evaluation.nthreads)
+        with ProgressBar(total=evaluation.y.shape[0], multithread_progress=_multithread_progress, disable=get_verbose()<3):
+            with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
+                futures = [executor.submit(self._fit, thread_id, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for thread_id, (i, j) in enumerate(self.chunks)]
+                chunked_results = [f.result() for f in futures]
         
         # concatenate results and return
         results = {}
@@ -742,8 +768,9 @@ class NODDI( BaseModel ) :
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _fit(self, y, dirs, hash_table, kernels):
+    def _fit(self, thread_id, y, dirs, hash_table, kernels):
         # configs
+        cdef int thread_id_c = thread_id
         cdef bint is_exvivo = 1 if self.isExvivo else 0
         cdef bint single_b0 = 1 if y.shape[1] == (1 + self.scheme.dwi_count) else 0
         cdef bint compute_rmse = 1 if self.configs['compute_rmse'] else 0
@@ -903,6 +930,8 @@ class NODDI( BaseModel ) :
                     estimates_mod_view[i, 0] = ndi * tf
                     estimates_mod_view[i, 1] = odi * tf
 
+                _update_multithread_progress(thread_id_c)
+
         results = {}
         results['estimates'] = estimates
         if compute_rmse:
@@ -995,14 +1024,14 @@ class FreeWater( BaseModel ) :
 
         nATOMS = len(self.d_perps) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
+        with ProgressBar(total=nATOMS, disable=get_verbose()<3) as pbar:
             # Tensor compartment(s)
             for d in self.d_perps :
                 signal = zeppelin.get_signal(self.d_par, d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, False, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
-                progress.update()
+                pbar.update()
 
             # Isotropic compartment(s)
             for d in self.d_isos :
@@ -1010,7 +1039,7 @@ class FreeWater( BaseModel ) :
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
-                progress.update()
+                pbar.update()
 
 
     def resample( self, in_path, idx_out, Ylm_out, doMergeB0, ndirs ) :
@@ -1027,7 +1056,7 @@ class FreeWater( BaseModel ) :
 
         nATOMS = len(self.d_perps) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
+        with ProgressBar(total=nATOMS, disable=get_verbose()<3) as pbar:
             # Tensor compartment(s)
             for i in range(len(self.d_perps)) :
                 lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
@@ -1035,14 +1064,14 @@ class FreeWater( BaseModel ) :
                     ERROR( 'Outdated LUT. Call "generate_kernels( regenerate=True )" to update the LUT' )
                 KERNELS['D'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, False, ndirs )[:,merge_idx]
                 idx += 1
-                progress.update()
+                pbar.update()
 
             # Isotropic compartment(s)
             for i in range(len(self.d_isos)) :
                 lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
                 KERNELS['CSF'][i,...] = amico.lut.resample_kernel( lm, self.scheme.nS, idx_out, Ylm_out, True, ndirs )[merge_idx]
                 idx += 1
-                progress.update()
+                pbar.update()
 
         return KERNELS
 
@@ -1052,9 +1081,12 @@ class FreeWater( BaseModel ) :
         self.configs['save_corrected_DWI'] = evaluation.get_config('doSaveCorrectedDWI')
 
         # fit chunks in parallel
-        with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
-            futures = [executor.submit(self._fit, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for i, j in self.chunks]
-            chunked_results = [f.result() for f in futures]
+        global _multithread_progress
+        _init_multithread_progress(evaluation.nthreads)
+        with ProgressBar(total=evaluation.y.shape[0], multithread_progress=_multithread_progress, disable=get_verbose()<3):
+            with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
+                futures = [executor.submit(self._fit, thread_id, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for thread_id, (i, j) in self.chunks]
+                chunked_results = [f.result() for f in futures]
         
         # concatenate results and return
         results = {}
@@ -1065,8 +1097,9 @@ class FreeWater( BaseModel ) :
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _fit(self, y, dirs, hash_table, kernels):
+    def _fit(self, thread_id, y, dirs, hash_table, kernels):
         # configs
+        cdef int thread_id_c = thread_id
         cdef bint is_mouse = 1 if self.type == 'Mouse' else 0
         cdef bint compute_rmse = 1 if self.configs['compute_rmse'] else 0
         cdef bint compute_nrmse = 1 if self.configs['compute_nrmse'] else 0
@@ -1168,6 +1201,8 @@ class FreeWater( BaseModel ) :
                         y_corrected_view[i, j] = y_view[i, j] - y_fw_part[j]
                         if y_corrected_view[i, j] < 0.0:
                             y_corrected_view[i, j] = 0.0
+
+                _update_multithread_progress(thread_id_c)
 
         results = {}
         results['estimates'] = estimates
@@ -1292,28 +1327,28 @@ class SANDI( BaseModel ) :
 
         nATOMS = len(self.Rs) + len(self.d_in) + len(self.d_isos)
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
+        with ProgressBar(total=nATOMS, disable=get_verbose()<3) as pbar:
             # Soma = SPHERE
             for R in self.Rs :
                 signal = sphere.get_signal(self.d_is, R)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
-                progress.update()
+                pbar.update()
             # Neurites = ASTRO STICKS
             for d in self.d_in :
                 signal = astrosticks.get_signal(d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
-                progress.update()
+                pbar.update()
             # Extra-cellular = BALL
             for d in self.d_isos :
                 signal = ball.get_signal(d)
                 lm = amico.lut.rotate_kernel( signal, aux, idx_in, idx_out, True, ndirs )
                 np.save( pjoin( out_path, f'A_{idx+1:03d}.npy' ), lm )
                 idx += 1
-                progress.update()
+                pbar.update()
 
 
     def resample( self, in_path, idx_out, Ylm_out, doMergeB0, ndirs ) :
@@ -1330,7 +1365,7 @@ class SANDI( BaseModel ) :
         KERNELS['norms']  = np.zeros( nATOMS, dtype=np.float64 )
 
         idx = 0
-        with tqdm(total=nATOMS, ncols=70, bar_format='   |{bar}| {percentage:4.1f}%', disable=(get_verbose()<3)) as progress:
+        with ProgressBar(total=nATOMS, disable=get_verbose()<3) as pbar:
             # Soma = SPHERE
             for i in range(len(self.Rs)) :
                 lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
@@ -1338,7 +1373,7 @@ class SANDI( BaseModel ) :
                 KERNELS['norms'][idx] = 1.0 / np.linalg.norm( signal )
                 KERNELS['signal'][:,idx] = signal * KERNELS['norms'][idx]
                 idx += 1
-                progress.update()
+                pbar.update()
             # Neurites = STICKS
             for i in range(len(self.d_in)) :
                 lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
@@ -1346,7 +1381,7 @@ class SANDI( BaseModel ) :
                 KERNELS['norms'][idx] = 1.0 / np.linalg.norm( signal )
                 KERNELS['signal'][:,idx] = signal * KERNELS['norms'][idx]
                 idx += 1
-                progress.update()
+                pbar.update()
             # Extra-cellular = BALL
             for i in range(len(self.d_isos)) :
                 lm = np.load( pjoin( in_path, f'A_{idx+1:03d}.npy' ) )
@@ -1354,7 +1389,7 @@ class SANDI( BaseModel ) :
                 KERNELS['norms'][idx] = 1.0 / np.linalg.norm( signal )
                 KERNELS['signal'][:,idx] = signal * KERNELS['norms'][idx]
                 idx += 1
-                progress.update()
+                pbar.update()
 
         return KERNELS
 
@@ -1363,9 +1398,12 @@ class SANDI( BaseModel ) :
         super().fit(evaluation)
 
         # fit chunks in parallel
-        with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
-            futures = [executor.submit(self._fit, evaluation.y[i:j, :], evaluation.KERNELS) for i, j in self.chunks]
-            chunked_results = [f.result() for f in futures]
+        global _multithread_progress
+        _init_multithread_progress(evaluation.nthreads)
+        with ProgressBar(total=evaluation.y.shape[0], multithread_progress=_multithread_progress, disable=get_verbose()<3):
+            with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
+                futures = [executor.submit(self._fit, thread_id, evaluation.y[i:j, :], evaluation.KERNELS) for thread_id, (i, j) in self.chunks]
+                chunked_results = [f.result() for f in futures]
         
         # concatenate results and return
         results = {}
@@ -1376,8 +1414,9 @@ class SANDI( BaseModel ) :
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _fit(self, y, kernels):
+    def _fit(self, thread_id, y, kernels):
         # configs
+        cdef int thread_id_c = thread_id
         cdef bint compute_rmse = 1 if self.configs['compute_rmse'] else 0
         cdef bint compute_nrmse = 1 if self.configs['compute_nrmse'] else 0
         cdef int n_rs = len(self.Rs)
@@ -1481,6 +1520,8 @@ class SANDI( BaseModel ) :
                     _compute_rmse(A_view, y_view[i, :], x_view, &rmse_view[i])
                 if compute_nrmse:
                     _compute_nrmse(A_view, y_view[i, :], x_view, &nrmse_view[i])
+
+                _update_multithread_progress(thread_id_c)
 
         results = {}
         results['estimates'] = estimates
