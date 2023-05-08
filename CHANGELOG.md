@@ -23,7 +23,9 @@ _2023-03-##_
 
 ### Added ✨
 - C++ interfaces for NNLS and LASSO solvers (provided by `spams-cython`)
-- Loader-like context manager, `util.Loader()`
+- `util.ProgressBar()`
+    - Indeterminate progress bar
+    - Determinate progress bar with support for multithreading
 - `DTI_fit_method` config to choose the Diffusion Tensor model fit method (from DIPY)
     - `OLS` (Ordinary Least Squares)
     - `WLS` (Weighted Least Squares)
