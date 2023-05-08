@@ -3,8 +3,8 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 import os.path
 import itertools
-import threading
-import time
+from threading import Thread
+from time import time, sleep
 from sys import exit
 
 __VERBOSE_LEVEL__ = 3
@@ -115,7 +115,7 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = 
 
     # write corresponding scheme file
     np.savetxt( schemeFilename, np.c_[bvecs.T, bvals], fmt="%.06f", delimiter="\t", header="VERSION: BVECTOR", comments='' )
-    PRINT("-> Writing scheme file to [ %s ]" % schemeFilename)
+    LOG("\n-> Writing scheme file to [ %s ]" % schemeFilename)
     return schemeFilename
 
 
@@ -229,62 +229,113 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
 
     # write corresponding scheme file
     np.savetxt( schemeFilename, np.c_[bvecs.T, G, delta, smalldel, TE], fmt="%.06f", delimiter="\t", header="VERSION: 1", comments='' )
-    PRINT("-> Writing scheme file to [ %s ]" % schemeFilename)
+    LOG("\n-> Writing scheme file to [ %s ]" % schemeFilename)
     return schemeFilename
 
-class Loader:
-    """
-    A loader-like context manager
-    """
-    def __init__(self, message='Loading', end='[OK]', timeout=0.05, type=1, verbose=3):
-        self.message = message
-        self.end = end
-        self.timeout = timeout
-        self.type = type
-        self.verbose = verbose
+class ProgressBar:
+    """Class that provides a progress bar during long-running processes.
+    
+    It can be used either as a indeterminate or determinate progress bar.
+    Determinate progress bar supports multithreaded progress tracking.
+    It can be used as a context manager.
 
-        self._n = 0
-        self._m = 0
+    Parameters
+    ----------
+    total : int
+        Total number of steps (default: None)
+    ncols : int
+        Number of columns of the progress bar in the terminal (default: 58)
+    refresh : float
+        Refresh rate of the progress bar in seconds (default: 0.05)
+    eta_refresh : float
+        Refresh rate of the estimated time of arrival (eta) in seconds (default: 1)
+    multithread_progress : np.ndarray
+        Array of shape (nthreads,) that contains the progress of each thread (default: None)
+    disable : bool
+        Whether to disable the progress bar (default: False)
+    """
+    def __init__(self, total=None, ncols=58, refresh=0.05, eta_refresh=1, multithread_progress=None, disable=False):
+        self.total = total
+        self.ncols = ncols
+        self.refresh = refresh
+        self.eta_refresh = eta_refresh
+        self.multithread_progress = multithread_progress
+        self.disable = disable
 
-        if self.verbose == 3:
-            self._steps = []
-            if self.type == 1:
-                self._n = 1
-                self._steps = ['|', '/', '-', '\\']
-            if self.type == 2:
-                self._n = 12
-                self._m = 3
-                for i in range(self._n - self._m + 1 - 2):
-                    self._steps.append(f"|{' ' * i}{'█' * self._m}{' ' * (self._n - self._m - i - 2)}|")
-                for i in range(self._m - 1):
-                    self._steps.append(f"|{'█' * (i + 1)}{' ' * (self._n - self._m - 2)}{'█' * (self._m - i - 1)}|")
+        self._graphics = {
+            'clear_line': '\x1b[2K',
+            'reset': '\x1b[0m',
+            'black': '\x1b[30m',
+            'green': '\x1b[32m',
+            'magenta': '\x1b[35m',
+            'cyan': '\x1b[36m',
+            'bright_black': '\x1b[90m'
+        }
 
         self._done = False
-        self._thread = threading.Thread(target=self._animate, daemon=True)
+
+        if self.total is None:
+            bar_length = int(self.ncols // 2)
+            self._steps = []
+            for i in range(self.ncols - bar_length + 1):
+                self._steps.append(f"{self._graphics['bright_black']}{'━' * i}{self._graphics['magenta']}{'━' * bar_length}{self._graphics['bright_black']}{'━' * (self.ncols - bar_length - i)}")
+            for i in range(bar_length - 1):
+                self._steps.append(f"{self._graphics['magenta']}{'━' * (i + 1)}{self._graphics['bright_black']}{'━' * (self.ncols - bar_length)}{self._graphics['magenta']}{'━' * (bar_length - i - 1)}")
+        else:
+            self._eta = '<eta --m --s>'
+            self._start_time = 0
+            self._last_time = 0
+            self._progress = 0
 
     def __enter__(self):
         self.start()
+        return self
 
-    def __exit__(self, exc_type, exc_value, tb):
+    def __exit__(self, exc_type, exc_value, traceback):
         self.stop()
 
+    def _update_eta(self):
+        self._last_time = time()
+        if self.multithread_progress is not None:
+            self._progress = np.sum(self.multithread_progress)
+        eta = (time() - self._start_time) * (self.total - self._progress) / self._progress if self._progress > 0 else 0
+        self._eta = f'<eta {int(eta // 60):02d}m {int(eta % 60):02d}s>'
+
     def _animate(self):
-        if self.verbose == 3:
+        if self.total is None:
             for step in itertools.cycle(self._steps):
                 if self._done:
                     break
-                print(f'\r\t* {self.message}  {step}', end='', flush=True)
-                time.sleep(self.timeout)
-        if self.verbose == 2:
-            print(f'\t* {self.message}', end='', flush=True)
+                print(f"\r   {step}{self._graphics['reset']}", end='', flush=True)
+                sleep(self.refresh)
+        else:
+            while True:
+                if self._done:
+                    break
+                if time() - self._last_time > self.eta_refresh:
+                    self._update_eta()
+                if self.multithread_progress is not None:
+                    self._progress = np.sum(self.multithread_progress)
+                print(f"\r   {self._graphics['magenta']}{'━' * int(self.ncols * self._progress / self.total)}{self._graphics['bright_black']}{'━' * (self.ncols - int(self.ncols * self._progress / self.total))} {self._graphics['green']}{100 * self._progress / self.total:.1f}% {self._graphics['cyan']}{self._eta}{self._graphics['reset']}", end='', flush=True)
+                sleep(self.refresh)
 
     def start(self):
-        self._thread.start()
+        if not self.disable:
+            if self.total is not None:
+                self._start_time = time()
+                self._last_time = self._start_time
+            Thread(target=self._animate, daemon=True).start()
 
     def stop(self):
         self._done = True
-        if self.verbose == 3:
-            print(f"\r\t  {' ' * (len(self.message) + 2 + self._n)}", end='', flush=True)
-            print(f'\r\t* {self.message}  {self.end}')
-        if self.verbose == 2:
-            print(f'  {self.end}')
+        if not self.disable:
+            print(self._graphics['clear_line'], end='\r', flush=True)
+            if self.total is None:
+                print(f"\r   {self._graphics['green']}{'━' * self.ncols} 100.0%{self._graphics['reset']}")
+            else:
+                if self.multithread_progress is not None:
+                    self._progress = np.sum(self.multithread_progress)
+                print(f"\r   {self._graphics['green']}{'━' * int(self.ncols * self._progress / self.total)}{'━' * (self.ncols - int(self.ncols * self._progress / self.total))} {100 * self._progress / self.total:.1f}%{self._graphics['reset']}")
+
+    def update(self):
+        self._progress += 1
