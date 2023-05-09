@@ -507,7 +507,7 @@ class CylinderZeppelinBall( BaseModel ) :
         _init_multithread_progress(evaluation.nthreads)
         with ProgressBar(total=evaluation.y.shape[0], multithread_progress=_multithread_progress, disable=get_verbose()<3):
             with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
-                futures = [executor.submit(self._fit, thread_id, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for thread_id, (i, j) in self.chunks]
+                futures = [executor.submit(self._fit, thread_id, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for thread_id, (i, j) in enumerate(self.chunks)]
                 chunked_results = [f.result() for f in futures]
         
         # concatenate results and return
@@ -1085,7 +1085,7 @@ class FreeWater( BaseModel ) :
         _init_multithread_progress(evaluation.nthreads)
         with ProgressBar(total=evaluation.y.shape[0], multithread_progress=_multithread_progress, disable=get_verbose()<3):
             with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
-                futures = [executor.submit(self._fit, thread_id, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for thread_id, (i, j) in self.chunks]
+                futures = [executor.submit(self._fit, thread_id, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for thread_id, (i, j) in enumerate(self.chunks)]
                 chunked_results = [f.result() for f in futures]
         
         # concatenate results and return
@@ -1402,7 +1402,7 @@ class SANDI( BaseModel ) :
         _init_multithread_progress(evaluation.nthreads)
         with ProgressBar(total=evaluation.y.shape[0], multithread_progress=_multithread_progress, disable=get_verbose()<3):
             with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
-                futures = [executor.submit(self._fit, thread_id, evaluation.y[i:j, :], evaluation.KERNELS) for thread_id, (i, j) in self.chunks]
+                futures = [executor.submit(self._fit, thread_id, evaluation.y[i:j, :], evaluation.KERNELS) for thread_id, (i, j) in enumerate(self.chunks)]
                 chunked_results = [f.result() for f in futures]
         
         # concatenate results and return
