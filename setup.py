@@ -5,7 +5,7 @@ import cyspams
 import sys
 from os import cpu_count
 from os.path import isfile
-import configparser
+from configparser import ConfigParser
 
 # parallel compilation
 class build_ext(_build_ext):
@@ -23,7 +23,7 @@ include_dirs.extend(cyspams.get_include())
 if not isfile('site.cfg'):
       print(f'\033[31mFileNotFoundError: cannot find the site.cfg file\033[0m')
       exit(1)
-config = configparser.ConfigParser()
+config = ConfigParser()
 config.read('site.cfg')
 try:
       libraries.extend([config['openblas']['library']])
