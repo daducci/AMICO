@@ -5,7 +5,7 @@ jobs:
   build_windows_wheels:
     strategy:
       matrix:
-        py: [cp36, cp37, cp38, cp39, cp310]
+        py: [cp36, cp37, cp38, cp39, cp310, cp311]
         arch:
           - [AMD64, win_amd64, x64]
           - [x86, win32, x86]
@@ -45,7 +45,7 @@ jobs:
   build_macos_x86_64_wheels:
     strategy:
       matrix:
-        py: [cp36, cp37, cp38, cp39, cp310]
+        py: [cp36, cp37, cp38, cp39, cp310, cp311]
         arch:
           - [x86_64, macosx_x86_64]
     name: ${{ matrix.py }}-${{ matrix.arch[1] }}
@@ -98,7 +98,7 @@ jobs:
   build_linux_wheels:
     strategy:
       matrix:
-        py: [cp36, cp37, cp38, cp39, cp310]
+        py: [cp36, cp37, cp38, cp39, cp310, cp311]
         arch:
           - [x86_64, manylinux_x86_64, amd64]
           - [aarch64, manylinux_aarch64, arm64]

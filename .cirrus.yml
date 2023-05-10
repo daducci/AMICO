@@ -33,6 +33,8 @@ build_macos_arm64_wheels_task:
         CP: "39"
     - env:
         CP: "310"
+    - env:
+        CP: "311"
   env:
     MACOSX_DEPLOYMENT_TARGET: 11.0
     PATH: ${PATH}:/opt/homebrew/opt/python@3.10/bin
