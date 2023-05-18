@@ -9,7 +9,7 @@ from os.path import join as pjoin
 import sys
 import amico.lut
 from abc import ABC, abstractmethod
-from amico.util import PRINT, ERROR, get_verbose
+from amico.util import PRINT, ERROR, get_verbose, ProgressBar
 from amico.synthesis import Stick, Zeppelin, Ball, CylinderGPD, SphereGPD, Astrosticks, NODDIIntraCellular, NODDIExtraCellular, NODDIIsotropic
 from concurrent.futures import ThreadPoolExecutor
 
@@ -17,7 +17,6 @@ cimport cython
 from libc.stdlib cimport malloc, free
 from libc.math cimport pi, atan2, sqrt, pow as cpow
 from amico.lut cimport dir_to_lut_idx
-from amico.util import ProgressBar
 from cyspams.interfaces cimport nnls, lasso
 
 try:

@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 import numpy as np
-import numpy.matlib as matlib
-import scipy
+from scipy.special import erf, erfi, lpmv
 from amico.util import ERROR
 
 # Limits the required precision in gpd sum
@@ -390,7 +389,7 @@ class Astrosticks:
             else:
                 l_perp = 0
                 l_par = -b / (g * g) * diff
-                signal[i] = np.sqrt(np.pi) * 1 / (2 * g * np.sqrt(l_perp - l_par)) * np.exp(g * g * l_perp) * scipy.special.erf(g * np.sqrt(l_perp - l_par))
+                signal[i] = np.sqrt(np.pi) * 1 / (2 * g * np.sqrt(l_perp - l_par)) * np.exp(g * g * l_perp) * erf(g * np.sqrt(l_perp - l_par))
         return signal
 
 # CYLINDER
@@ -530,7 +529,7 @@ class NODDIIntraCellular:
 
         # Compute the spherical harmonic coefficients of the Watson's distribution
         coeff = self._watson_SH_coeff(kappa)
-        coeffMatrix = matlib.repmat(coeff, l_q, 1)
+        coeffMatrix = np.tile(coeff, (l_q, 1))
 
         # Compute the dot product between the symmetry axis of the Watson's distribution
         # and the gradient direction
@@ -549,7 +548,7 @@ class NODDIIntraCellular:
 
         # Compute the SH values at cosTheta
         sh = np.zeros(coeff.shape)
-        shMatrix = matlib.repmat(sh, l_q, 1)
+        shMatrix = np.tile(sh, (l_q, 1))
         for i in range(7):
             shMatrix[:,i] = np.sqrt((i+1 - .75)/np.pi)
             # legendre function returns coefficients of all m from 0 to l
@@ -558,7 +557,7 @@ class NODDIIntraCellular:
             # cosTheta is expected to be a COLUMN vector.
             tmp = np.zeros((l_q))
             for pol_i in range(l_q):
-                tmp[pol_i] = scipy.special.lpmv(0, 2*i, cosTheta[pol_i])
+                tmp[pol_i] = lpmv(0, 2*i, cosTheta[pol_i])
             shMatrix[:,i] = shMatrix[:,i]*tmp
 
         E = np.sum(lgi*coeffMatrix*shMatrix, 1)
@@ -608,7 +607,7 @@ class NODDIIntraCellular:
 
         I = np.zeros((len(Lpmp),mn))
         sqrtx = np.sqrt(Lpmp[exact])
-        I[exact,0] = np.sqrt(np.pi)*scipy.special.erf(sqrtx)/sqrtx
+        I[exact,0] = np.sqrt(np.pi)*erf(sqrtx)/sqrtx
         dx = 1.0/Lpmp[exact]
         emx = -np.exp(-Lpmp[exact])
         for i in range(1,mn):
@@ -682,7 +681,7 @@ class NODDIIntraCellular:
         k6 = k5*kappa
         k7 = k6*kappa
 
-        erfik = scipy.special.erfi(sk)
+        erfik = erfi(sk)
         ierfik = 1/erfik
         ek = np.exp(kappa)
         dawsonk = 0.5*np.sqrt(np.pi)*erfik/ek
@@ -800,7 +799,7 @@ class NODDIExtraCellular:
             dw[1] = dParP2dPerp/3.0 - 2.0*dParMdPerp*kappa/45.0 - 4.0*dParMdPerp*k2/945.0
         else:
             sk = np.sqrt(kappa)
-            dawsonf = 0.5*np.exp(-kappa)*np.sqrt(np.pi)*scipy.special.erfi(sk)
+            dawsonf = 0.5*np.exp(-kappa)*np.sqrt(np.pi)*erfi(sk)
             factor = sk/dawsonf
             dw[0] = (-dParMdPerp+2.0*dPerp*kappa+dParMdPerp*factor)/(2.0*kappa)
             dw[1] = (dParMdPerp+2.0*(dPar+dPerp)*kappa-dParMdPerp*factor)/(4.0*kappa)
