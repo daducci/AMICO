@@ -15,7 +15,6 @@ from amico.synthesis import Stick, Zeppelin, Ball, CylinderGPD, SphereGPD, Astro
 from concurrent.futures import ThreadPoolExecutor
 
 cimport cython
-from libc.stdlib cimport malloc, free
 from libc.math cimport pi, atan2, sqrt, pow as cpow
 from amico.lut cimport dir_to_lut_idx
 from cyspams.interfaces cimport nnls, lasso
@@ -47,37 +46,31 @@ cdef void _update_multithread_progress(int thread_id) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _compute_rmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *rmse_view) nogil:
-    cdef double *y_est = <double *>malloc(sizeof(double) * y_view.shape[0])
-
+cdef void _compute_rmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *y_est_view, double *rmse_view) nogil:
     cdef Py_ssize_t i, j
     for i in range(A_view.shape[0]):
-        y_est[i] = 0.0
+        y_est_view[i] = 0.0
         for j in range(A_view.shape[1]):
-            y_est[i] += A_view[i, j] * x_view[j]
-        rmse_view[0] += cpow(y_view[i] - y_est[i], 2.0) / y_view.shape[0]
+            y_est_view[i] += A_view[i, j] * x_view[j]
+        rmse_view[0] += cpow(y_view[i] - y_est_view[i], 2.0) / y_view.shape[0]
     rmse_view[0] = sqrt(rmse_view[0])
-    free(y_est)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _compute_nrmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *nrmse_view) nogil:
-    cdef double *y_est = <double *>malloc(sizeof(double) * y_view.shape[0])
+cdef void _compute_nrmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *y_est_view, double *nrmse_view) nogil:
     cdef double den = 0.0
-
     cdef Py_ssize_t i, j
     for i in range(A_view.shape[0]):
-        y_est[i] = 0.0
+        y_est_view[i] = 0.0
         den += cpow(y_view[i], 2.0)
         for j in range(A_view.shape[1]):
-            y_est[i] += A_view[i, j] * x_view[j]
+            y_est_view[i] += A_view[i, j] * x_view[j]
     if den > 1e-16:
         for i in range(A_view.shape[0]):
-            nrmse_view[0] += cpow(y_view[i] - y_est[i], 2.0) / den
+            nrmse_view[0] += cpow(y_view[i] - y_est_view[i], 2.0) / den
         nrmse_view[0] = sqrt(nrmse_view[0])
     else:
         nrmse_view[0] = 0.0
-    free(y_est)
 
 
 
@@ -566,11 +559,14 @@ class CylinderZeppelinBall( BaseModel ) :
         cdef double [::1]rs_view = self.Rs
 
         # fitting error
+        cdef double [::1]y_est_view
         cdef double [::1]rmse_view
+        cdef double [::1]nrmse_view
+        if compute_rmse or compute_nrmse:
+            y_est_view = np.zeros(y_view.shape[0], dtype=np.double)
         if compute_rmse:
             rmse = np.zeros(y_view.shape[0], dtype=np.double)
             rmse_view = rmse
-        cdef double [::1]nrmse_view
         if compute_nrmse:
             nrmse = np.zeros(y_view.shape[0], dtype=np.double)
             nrmse_view = nrmse
@@ -610,9 +606,9 @@ class CylinderZeppelinBall( BaseModel ) :
 
                 # fitting error
                 if compute_rmse:
-                    _compute_rmse(A_view, y_view[i, :], x_view, &rmse_view[i])
+                    _compute_rmse(A_view, y_view[i, :], x_view, &y_est_view[0], &rmse_view[i])
                 if compute_nrmse:
-                    _compute_nrmse(A_view, y_view[i, :], x_view, &nrmse_view[i])
+                    _compute_nrmse(A_view, y_view[i, :], x_view, &y_est_view[0], &nrmse_view[i])
 
                 _update_multithread_progress(thread_id_c)
 
@@ -833,11 +829,14 @@ class NODDI( BaseModel ) :
         cdef double sum_n_wm = 0.0
 
         # fitting error
+        cdef double [::1]y_est_view
         cdef double [::1]rmse_view
+        cdef double [::1]nrmse_view
+        if compute_rmse or compute_nrmse:
+            y_est_view = np.zeros(y_view.shape[0], dtype=np.double)
         if compute_rmse:
             rmse = np.zeros(y_view.shape[0], dtype=np.double)
             rmse_view = rmse
-        cdef double [::1]nrmse_view
         if compute_nrmse:
             nrmse = np.zeros(y_view.shape[0], dtype=np.double)
             nrmse_view = nrmse
@@ -920,9 +919,9 @@ class NODDI( BaseModel ) :
 
                 # fitting error
                 if compute_rmse:
-                    _compute_rmse(A_view, y_view[i, :], x_view, &rmse_view[i])
+                    _compute_rmse(A_view, y_view[i, :], x_view, &y_est_view[0], &rmse_view[i])
                 if compute_nrmse:
-                    _compute_nrmse(A_view, y_view[i, :], x_view, &nrmse_view[i])
+                    _compute_nrmse(A_view, y_view[i, :], x_view, &y_est_view[0], &nrmse_view[i])
 
                 # modulated maps
                 if compute_modulated_maps:
@@ -1138,11 +1137,14 @@ class FreeWater( BaseModel ) :
         cdef double x_n_perp_sum = 0.0
 
         # fitting error
+        cdef double [::1]y_est_view
         cdef double [::1]rmse_view
+        cdef double [::1]nrmse_view
+        if compute_rmse or compute_nrmse:
+            y_est_view = np.zeros(y_view.shape[0], dtype=np.double)
         if compute_rmse:
             rmse = np.zeros(y_view.shape[0], dtype=np.double)
             rmse_view = rmse
-        cdef double [::1]nrmse_view
         if compute_nrmse:
             nrmse = np.zeros(y_view.shape[0], dtype=np.double)
             nrmse_view = nrmse
@@ -1185,9 +1187,9 @@ class FreeWater( BaseModel ) :
 
                 # fitting error
                 if compute_rmse:
-                    _compute_rmse(A_view, y_view[i, :], x_view, &rmse_view[i])
+                    _compute_rmse(A_view, y_view[i, :], x_view, &y_est_view[0], &rmse_view[i])
                 if compute_nrmse:
-                    _compute_nrmse(A_view, y_view[i, :], x_view, &nrmse_view[i])
+                    _compute_nrmse(A_view, y_view[i, :], x_view, &y_est_view[0], &nrmse_view[i])
 
                 # y_corrected
                 if save_corrected_DWI:
@@ -1458,11 +1460,14 @@ class SANDI( BaseModel ) :
         cdef double xiso_sum = 0.0
 
         # fitting error
+        cdef double [::1]y_est_view
         cdef double [::1]rmse_view
+        cdef double [::1]nrmse_view
+        if compute_rmse or compute_nrmse:
+            y_est_view = np.zeros(y_view.shape[0], dtype=np.double)
         if compute_rmse:
             rmse = np.zeros(y_view.shape[0], dtype=np.double)
             rmse_view = rmse
-        cdef double [::1]nrmse_view
         if compute_nrmse:
             nrmse = np.zeros(y_view.shape[0], dtype=np.double)
             nrmse_view = nrmse
@@ -1517,9 +1522,9 @@ class SANDI( BaseModel ) :
 
                 # fitting error
                 if compute_rmse:
-                    _compute_rmse(A_view, y_view[i, :], x_view, &rmse_view[i])
+                    _compute_rmse(A_view, y_view[i, :], x_view, &y_est_view[0], &rmse_view[i])
                 if compute_nrmse:
-                    _compute_nrmse(A_view, y_view[i, :], x_view, &nrmse_view[i])
+                    _compute_nrmse(A_view, y_view[i, :], x_view, &y_est_view[0], &nrmse_view[i])
 
                 _update_multithread_progress(thread_id_c)
 
