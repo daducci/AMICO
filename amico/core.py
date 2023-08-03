@@ -454,7 +454,7 @@ class Evaluation :
         self.y[self.y < 0] = 0
 
         # precompute directions
-        LOG(f"\n-> Precomputing directions ({self.get_config('DTI_fit_method')}):")
+        LOG(f"\n-> Estimating principal directions ({self.get_config('DTI_fit_method')}):")
         if not self.get_config('doDirectionalAverage') and DTI is not None:
             with ProgressBar(disable=get_verbose()<3):
                 self.DIRs = np.squeeze(DTI.fit(self.y).directions)

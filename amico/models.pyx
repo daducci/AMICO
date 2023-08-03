@@ -27,22 +27,22 @@ except KeyError:
 except ImportError:
     pass
 
-_multithread_progress = np.zeros(1, dtype=np.intc)
-cdef int [::1]_multithread_progress_view = _multithread_progress
+_MULTITHREAD_PROGRESS = np.zeros(1, dtype=np.intc)
+cdef int [::1]_MULTITHREAD_PROGRESS_VIEW = _MULTITHREAD_PROGRESS
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void _init_multithread_progress(int nthreads):
-    global _multithread_progress
-    global _multithread_progress_view
-    _multithread_progress = np.zeros(nthreads, dtype=np.intc)
-    _multithread_progress_view = _multithread_progress
+    global _MULTITHREAD_PROGRESS
+    global _MULTITHREAD_PROGRESS_VIEW
+    _MULTITHREAD_PROGRESS = np.zeros(nthreads, dtype=np.intc)
+    _MULTITHREAD_PROGRESS_VIEW = _MULTITHREAD_PROGRESS
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void _update_multithread_progress(int thread_id) nogil:
-    global _multithread_progress_view
-    _multithread_progress_view[thread_id] += 1
+    global _MULTITHREAD_PROGRESS_VIEW
+    _MULTITHREAD_PROGRESS_VIEW[thread_id] += 1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -496,9 +496,9 @@ class CylinderZeppelinBall( BaseModel ) :
         super().fit(evaluation)
 
         # fit chunks in parallel
-        global _multithread_progress
+        global _MULTITHREAD_PROGRESS
         _init_multithread_progress(evaluation.nthreads)
-        with ProgressBar(total=evaluation.y.shape[0], multithread_progress=_multithread_progress, disable=get_verbose()<3):
+        with ProgressBar(total=evaluation.y.shape[0], multithread_progress=_MULTITHREAD_PROGRESS, disable=get_verbose()<3):
             with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
                 futures = [executor.submit(self._fit, thread_id, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for thread_id, (i, j) in enumerate(self.chunks)]
                 chunked_results = [f.result() for f in futures]
@@ -748,9 +748,9 @@ class NODDI( BaseModel ) :
         self.configs['compute_modulated_maps'] = evaluation.get_config('doSaveModulatedMaps')
 
         # fit chunks in parallel
-        global _multithread_progress
+        global _MULTITHREAD_PROGRESS
         _init_multithread_progress(evaluation.nthreads)
-        with ProgressBar(total=evaluation.y.shape[0], multithread_progress=_multithread_progress, disable=get_verbose()<3):
+        with ProgressBar(total=evaluation.y.shape[0], multithread_progress=_MULTITHREAD_PROGRESS, disable=get_verbose()<3):
             with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
                 futures = [executor.submit(self._fit, thread_id, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for thread_id, (i, j) in enumerate(self.chunks)]
                 chunked_results = [f.result() for f in futures]
@@ -1080,9 +1080,9 @@ class FreeWater( BaseModel ) :
         self.configs['save_corrected_DWI'] = evaluation.get_config('doSaveCorrectedDWI')
 
         # fit chunks in parallel
-        global _multithread_progress
+        global _MULTITHREAD_PROGRESS
         _init_multithread_progress(evaluation.nthreads)
-        with ProgressBar(total=evaluation.y.shape[0], multithread_progress=_multithread_progress, disable=get_verbose()<3):
+        with ProgressBar(total=evaluation.y.shape[0], multithread_progress=_MULTITHREAD_PROGRESS, disable=get_verbose()<3):
             with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
                 futures = [executor.submit(self._fit, thread_id, evaluation.y[i:j, :], evaluation.DIRs[i:j, :], evaluation.htable, evaluation.KERNELS) for thread_id, (i, j) in enumerate(self.chunks)]
                 chunked_results = [f.result() for f in futures]
@@ -1400,9 +1400,9 @@ class SANDI( BaseModel ) :
         super().fit(evaluation)
 
         # fit chunks in parallel
-        global _multithread_progress
+        global _MULTITHREAD_PROGRESS
         _init_multithread_progress(evaluation.nthreads)
-        with ProgressBar(total=evaluation.y.shape[0], multithread_progress=_multithread_progress, disable=get_verbose()<3):
+        with ProgressBar(total=evaluation.y.shape[0], multithread_progress=_MULTITHREAD_PROGRESS, disable=get_verbose()<3):
             with ThreadPoolExecutor(max_workers=evaluation.nthreads) as executor:
                 futures = [executor.submit(self._fit, thread_id, evaluation.y[i:j, :], evaluation.KERNELS) for thread_id, (i, j) in enumerate(self.chunks)]
                 chunked_results = [f.result() for f in futures]
