@@ -3,7 +3,8 @@ from __future__ import print_function
 import numpy as np
 from scipy.optimize import minimize
 import scipy.special
-from amico.util import get_verbose, ProgressBar
+from amico.util import get_verbose
+from dicelib.ui import ProgressBar
 
 # Kaden's functionals
 def F_norm_Diff_K(E0,Signal,sigma_diff):

@@ -2,4 +2,5 @@ numpy>=1.19.5
 scipy>=1.5.4
 dipy>=1.4.1
 threadpoolctl>=3.1.0
+dicelib
 importlib-metadata>=4.8.3; python_version<"3.8"

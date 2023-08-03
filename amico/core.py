@@ -17,7 +17,8 @@ import amico.models
 from amico.lut import is_valid, valid_dirs
 from dipy.core.gradients import gradient_table
 import dipy.reconst.dti as dti
-from amico.util import PRINT, LOG, WARNING, ERROR, get_verbose, ProgressBar
+from amico.util import PRINT, LOG, WARNING, ERROR, get_verbose
+from dicelib.ui import ProgressBar
 from pkg_resources import get_distribution
 from threadpoolctl import ThreadpoolController
 

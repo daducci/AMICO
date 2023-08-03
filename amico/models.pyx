@@ -9,7 +9,8 @@ from os.path import join as pjoin
 import sys
 import amico.lut
 from abc import ABC, abstractmethod
-from amico.util import PRINT, ERROR, get_verbose, ProgressBar
+from amico.util import PRINT, ERROR, get_verbose
+from dicelib.ui import ProgressBar
 from amico.synthesis import Stick, Zeppelin, Ball, CylinderGPD, SphereGPD, Astrosticks, NODDIIntraCellular, NODDIExtraCellular, NODDIIsotropic
 from concurrent.futures import ThreadPoolExecutor
 
