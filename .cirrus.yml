@@ -3,7 +3,7 @@ compile_openblas_macos_arm64_task:
   alias: compile_openblas_macos_arm64
   trigger_type: manual
   macos_instance:
-    image: ghcr.io/cirruslabs/macos-monterey-xcode
+    image: ghcr.io/cirruslabs/macos-monterey-xcode:latest
   env:
     MACOSX_DEPLOYMENT_TARGET: "11.0"
   clone_script:
@@ -25,7 +25,7 @@ build_macos_arm64_wheels_task:
   name: Build MacOS arm64 wheels
   alias: build_macos_arm64_wheels
   macos_instance:
-    image: ghcr.io/cirruslabs/macos-monterey-xcode
+    image: ghcr.io/cirruslabs/macos-monterey-xcode:latest
   matrix:
     - env:
         CP: "38"
@@ -47,7 +47,7 @@ build_macos_arm64_wheels_task:
     - brew install p7zip
     - brew install jq
     - brew install python@3.10
-    - python3.10 -m pip install cibuildwheel==2.12.3
+    - python3.10 -m pip install cibuildwheel==2.14.1
   download_compiled_openblas_script:
     - CIRRUS_BUILD_ID=$(curl -H "Accept:application/vnd.github+json" -H "Authorization:Bearer ${REPO_TOKEN}" -H "X-GitHub-Api-Version:2022-11-28" https://api.github.com/repos/daducci/AMICO/actions/variables/CIRRUS_BUILD_ID | jq -r .value)
     - curl -L -o OpenBLAS.zip https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}/compile_openblas_macos_arm64/compiled_openblas/OpenBLAS_macos_arm64.zip
@@ -63,7 +63,7 @@ trigger_github_workflow_task:
   name: Trigger GitHub workflow
   depends_on: build_macos_arm64_wheels
   macos_instance:
-    image: ghcr.io/cirruslabs/macos-monterey-xcode
+    image: ghcr.io/cirruslabs/macos-monterey-xcode:latest
   clone_script:
     - echo SKIP CLONE
   install_requirements_script:

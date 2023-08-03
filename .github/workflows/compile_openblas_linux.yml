@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 600 # NOTE: need this to compile the arm64 version
     steps:
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2.1.0
+        uses: docker/setup-qemu-action@v2.2.0
         with:
           platforms: ${{ matrix.arch[3] }}
       
