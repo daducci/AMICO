@@ -250,7 +250,22 @@ class StickZeppelinBall( BaseModel ) :
         self.d_isos      = np.array([ 3.0E-3 ])                             # Isotropic diffusivitie(s) [mm^2/s]
 
 
-    def set( self, d_par, d_perps_zep, d_isos, d_par_zep=None, d_perp=0 ) :
+    def set( self, d_par, d_perps_zep, d_isos, d_par_zep=None, d_perp=0 ):
+        """For setting all the parameters specific to the model.
+
+        Parameters
+        ----------
+        d_par : float
+            Parallel diffusivity for the Stick [mm^2/s]
+        d_perps_zep : list of floats
+            Perpendicular diffusivitie(s) for the Zeppelins [mm^2/s]
+        d_isos : list of floats
+            Isotropic diffusivitie(s) [mm^2/s]
+        d_par_zep : float, optional
+            Parallel diffusivity for the Zeppelins [mm^2/s]
+        d_perp : float, optional
+            Perpendicular diffusivity for the Stick [mm^2/s]
+        """
         self.d_par = d_par
         self.d_perp = d_perp
         if d_par_zep is None:

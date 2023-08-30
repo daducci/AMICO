@@ -7,6 +7,7 @@ import sys
 from os import makedirs, remove, cpu_count
 from os.path import exists, join as pjoin, isfile
 import inspect
+from typing import Union
 
 import nibabel
 import pickle
@@ -22,16 +23,18 @@ from dicelib.ui import ProgressBar
 from pkg_resources import get_distribution
 from threadpoolctl import ThreadpoolController
 
-def setup( lmax=12 ) :
+def setup(lmax: int=12) -> None:
     """General setup/initialization of the AMICO framework.
 
     Parameters
     ----------
-    lmax : int
-        Maximum SH order to use for the rotation phase (default : 12).
-        NB: change only if you know what you are doing.
+    lmax : int, default=12
+        Maximum SH order to use for the rotation phase.
+    
+    !!! warning
+        Change `lmax` only if you know what you are doing.
     """
-    LOG( '\n-> Precomputing rotation matrices:' )
+    LOG('\n-> Precomputing rotation matrices:')
     dirs = valid_dirs()
     with ProgressBar(total=len(dirs), disable=get_verbose()<3) as pbar:
         for dir in dirs:
@@ -42,22 +45,23 @@ def setup( lmax=12 ) :
 
 
 class Evaluation :
-    """Class to hold all the information (data and parameters) when performing an
-    evaluation with the AMICO framework.
+    """Class to hold all the information (data and parameters) when performing an evaluation with the AMICO framework.
     """
 
-    def __init__( self, study_path='.', subject='.', output_path=None ) :
+    def __init__(self, study_path: str='.', subject: str='.', output_path: Union[None, str]=None):
         """Setup the data structure with default values.
 
         Parameters
         ----------
-        study_path : string
-            The path to the folder containing all the subjects from one study
-        subject : string
-            The path (relative to previous folder) to the subject folder
-        output_path : string
-            Optionally sets a custom full path for the output. Leave as None
-            for default behaviour - output in study_path/subject/AMICO/<MODEL>
+        study_path : str, default='.'
+            The path to the folder containing all the subjects from one study.
+        subject : str, default='.'
+            The path (relative to the study_path folder) to the subject folder.
+        output_path : Union[None, str], default=None
+            The path to the folder where the output will be saved.
+        
+        !!! note
+            If `output_path = None`, the output will be saved in `study_path/subject/AMICO/<MODEL>`.
         """
         self.niiDWI        = None    # set by "load_data" method
         self.niiDWI_img    = None
@@ -99,30 +103,51 @@ class Evaluation :
 
         self._controller = ThreadpoolController()
 
-    def set_config( self, key, value ) :
-        self.CONFIG[ key ] = value
+    def set_config(self, key: str, value: Union[int, float, str, bool]) -> None:
+        """Set a configuration parameter for the evaluation.
 
-    def get_config( self, key ) :
-        return self.CONFIG.get( key )
+        Parameters
+        ----------
+        key : str
+            The name of the parameter to set.
+        value : Union[int, float, str, bool]
+            The value of the parameter to set.
+        """
+        self.CONFIG[key] = value
+
+    def get_config(self, key: str) -> Union[int, float, str, bool]:
+        """Get a configuration parameter for the evaluation.
+
+        Parameters
+        ----------
+        key : str
+            The name of the parameter to get.
+            
+        Returns
+        -------
+        : Union[int, float, str, bool]
+            The value of the parameter.
+        """
+        return self.CONFIG.get(key)
 
 
-    def load_data( self, dwi_filename='DWI.nii', scheme_filename='DWI.scheme', mask_filename=None, b0_thr=0, b0_min_signal=0, replace_bad_voxels=None ) :
+    def load_data(self, dwi_filename: str='DWI.nii', scheme_filename: str='DWI.scheme', mask_filename: Union[None, str]=None, b0_thr: float=0, b0_min_signal: float=0, replace_bad_voxels: Union[None, float]=None) -> None:
         """Load the diffusion signal and its corresponding acquisition scheme.
 
         Parameters
         ----------
-        dwi_filename : string
-            The file name of the DWI data, relative to the subject folder (default : 'DWI.nii')
-        scheme_filename : string
-            The file name of the corresponding acquisition scheme (default : 'DWI.scheme')
-        mask_filename : string
-            The file name of the (optional) binary mask (default : None)
-        b0_thr : float
-            The threshold below which a b-value is considered a b0 (default : 0)
-        b0_min_signal : float, optional
-            Crop to zero the signal in voxels where the b0 <= b0_min_signal * mean(b0[b0>0]). (default : 0)
-        replace_bad_voxels : float, optional
-            Value to be used to fill NaN and Inf values in the signal. (default : do nothing)
+        dwi_filename : str, default='DWI.nii'
+            The file name of the DWI data, relative to the subject folder.
+        scheme_filename : str, default='DWI.scheme'
+            The file name of the corresponding acquisition scheme.
+        mask_filename : Union[None, str], default=None
+            The file name of the (optional) binary mask.
+        b0_thr : float, default=0
+            The threshold below which a b-value is considered a b0.
+        b0_min_signal : float, default=0
+            Crop to zero the signal in voxels where the `b0 <= b0_min_signal * mean(b0[b0>0])`.
+        replace_bad_voxels : Union[None, float], default=None
+            Value to be used to fill `NaN` and `Inf` values in the signal.
         """
         # Loading data, acquisition scheme and mask (optional)
         LOG( '\n-> Loading data:' )
@@ -280,13 +305,16 @@ class Evaluation :
         LOG( f'   [ {time.time() - tic:.1f} seconds ]' )
 
 
-    def set_model( self, model_name ) :
+    def set_model(self, model_name: str) -> None:
         """Set the model to use to describe the signal contributions in each voxel.
 
         Parameters
         ----------
-        model_name : string
-            The name of the model (must match a class name in "amico.models" module)
+        model_name : str
+            The name of the model.
+
+        !!! note
+            `model_name` must match a class name in the `amico.models` module.
         """
         # Call the specific model constructor
         if hasattr(amico.models, model_name ) :
@@ -300,17 +328,28 @@ class Evaluation :
         self.set_solver()
 
 
-    def set_solver( self, **params ) :
+    def set_solver(self, **params) -> None:
         """Set up the specific parameters of the solver to fit the model.
-        Dispatch to the proper function, depending on the model; a model should provide a "set_solver" function to set these parameters.
-        Currently supported parameters are:
-        StickZeppelinBall:      'set_solver()' not implemented
-        CylinderZeppelinBall:   lambda1 = 0.0, lambda2 = 4.0
-        NODDI:                  lambda1 = 5e-1, lambda2 = 1e-3
-        FreeWater:              lambda1 = 0.0, lambda2 = 1e-3
-        VolumeFractions:        'set_solver()' not implemented
-        SANDI:                  lambda1 = 0.0, lambda2 = 5e-3
-        NOTE: non-existing parameters will be ignored
+        
+        Dispatch to the proper function, depending on the model.
+
+        Other Parameters
+        ----------
+        lambda1 : float
+            The regularization parameter for the L1-norm of the solution.
+        lambda2 : float
+            The regularization parameter for the L2-norm of the solution.
+
+        !!! note
+            A model should provide a `set_solver()` function to set these parameters. Non-existing parameters will be ignored.  
+            Currently supported models and default values for `lambda1` and `lambda2` are:
+
+            | __Model__            | __lambda1__ | __lambda2__ |
+            |:---------------------:|:----------:|:-----------:|
+            | CylinderZeppelinBall | 0           | 4           |
+            | NODDI                | 5e-1        | 1e-3        |
+            | FreeWater            | 0           | 1e-3        |
+            | SANDI                | 0           | 5e-3        |
         """
         if self.model is None :
             ERROR( 'Model not set; call "set_model()" method first' )
@@ -327,18 +366,19 @@ class Evaluation :
         self.set_config('solver_params', params_new)
 
 
-    def generate_kernels( self, regenerate = False, lmax = 12, ndirs = 500 ) :
+    def generate_kernels(self, regenerate: bool=False, lmax: int=12, ndirs: int=500) -> None:
         """Generate the high-resolution response functions for each compartment.
+        
         Dispatch to the proper function, depending on the model.
 
         Parameters
         ----------
-        regenerate : boolean
-            Regenerate kernels if they already exist (default : False)
-        lmax : int
-            Maximum SH order to use for the rotation procedure (default : 12)
-        ndirs : int
-            Number of directions on the half of the sphere representing the possible orientations of the response functions (default : 500)
+        regenerate : bool, default=False
+            Regenerate kernels if they already exist.
+        lmax : int, default=12
+            Maximum SH order to use for the rotation procedure.
+        ndirs : int, default=500
+            Number of directions on the half of the sphere representing the possible orientations of the response functions.
         """
         if self.scheme is None :
             ERROR( 'Scheme not loaded; call "load_data()" first' )
@@ -379,8 +419,9 @@ class Evaluation :
         LOG( f'   [ {time.time() - tic:.1f} seconds ]' )
 
 
-    def load_kernels( self ) :
+    def load_kernels(self) -> None:
         """Load rotated kernels and project to the specific gradient scheme of this subject.
+        
         Dispatch to the proper function, depending on the model.
         """
         if self.model is None :
@@ -406,9 +447,10 @@ class Evaluation :
         LOG( f'   [ {time.time() - tic:.1f} seconds ]')
 
 
-    def fit( self ) :
+    def fit(self) -> None:
         """Fit the model to the data.
-        Call the appropriate fit() method of the actual model used.
+
+        Call the appropriate `fit()` method of the actual model used.
         """
         if self.niiDWI is None :
             ERROR( 'Data not loaded; call "load_data()" first' )
@@ -500,17 +542,15 @@ class Evaluation :
             self.RESULTS['DWI_corrected'][self.niiMASK_img==1, :] = y_corrected
 
 
-    def save_results( self, path_suffix = None, save_dir_avg = False ) :
-        """Save the output (directions, maps etc).
+    def save_results(self, path_suffix: Union[None, str]=None, save_dir_avg: bool=False) -> None:
+        """Save the output (directions, maps, etc.).
 
         Parameters
         ----------
-        path_suffix : string
-            Text to be appended to the output path (default : None)
-        save_dir_avg : boolean
-            If true and the option doDirectionalAverage is true
-            the directional average signal and the scheme
-            will be saved in files (default : False)
+        path_suffix : Union[None, str], default=None
+            Text to be appended to the output path.
+        save_dir_avg : bool, default=False
+            If `True` and the option `doDirectionalAverage=True` the directional average signal and the scheme will be saved in files.
         """
         if self.RESULTS is None :
             ERROR( 'Model not fitted to the data; call "fit()" first' )
