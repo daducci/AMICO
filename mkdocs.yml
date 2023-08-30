@@ -1,0 +1,61 @@
+site_name: dmri-amico
+site_url: null # dmri-amico.readthedocs
+repo_url: https://github.com/daducci/AMICO
+edit_uri: tree/master/docs/
+site_description: null
+site_author: null
+copyright: null
+nav:
+  - Home: index.md
+  - What's new: news.md # TODO make folder
+  - How to install: installation.md # TODO make folder
+  - Tutorials:
+    - NODDI: tutorials/NODDI.md
+    - SANDI: tutorials/SANDI.md
+    - ActiveAx: tutorials/ACTIVEAX.md
+  - Configuration:
+    - Configuration parameters: configuration/config_params.md
+    - Models parameters: configuration/models_params.md
+    - Angular resolution of the look-up tables: configuration/angular_resolution.md
+    - Removing rician bias before fitting: configuration/rician_bias.md
+    - Multithreading: configuration/multithreading.md
+  - API Reference:
+    - Core module: api_reference/core.md
+    - Models module: api_reference/models.md
+  - About:
+    - License: about/LICENSE.md
+    - Credits: about/credits.md
+theme:
+  name: readthedocs
+  # palette:
+  #   # Palette toggle for light mode
+  #   - media: "(prefers-color-scheme: light)"
+  #     scheme: default
+  #     toggle:
+  #       icon: material/brightness-7
+  #       name: Switch to dark mode
+  #   # Palette toggle for dark mode
+  #   - media: "(prefers-color-scheme: dark)"
+  #     scheme: slate
+  #     toggle:
+  #       icon: material/brightness-4
+  #       name: Switch to light mode
+  # locale: en
+  # logo: null
+  # highlightjs: true
+  # hljs_languages:
+  #   - python
+  #   - bash
+extra_css:
+  - css/extra.css
+markdown_extensions:
+  - admonition
+  - tables
+plugins:
+  - search
+  - mkdocstrings
+  # - mkdocstrings:
+  #     handlers:
+  #       python:
+  #         paths: [.]
+  # https://github.com/danielfrg/mkdocs-jupyter

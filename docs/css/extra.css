@@ -1,0 +1,11 @@
+/* Max width of the content. */
+.wy-nav-content-wrap .wy-nav-content {
+    max-width: 1200px;
+}
+
+/* Indentation. */
+div.doc-contents:not(.first) {
+    padding-left: 25px;
+    border-left: .05rem solid rgba(200, 200, 200, 0.2);
+}
+  

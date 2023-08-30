@@ -1,0 +1,81 @@
+```text
+################################################################################
+                        AMICO software license agreement
+                          Version 2.0.0, 24 July 2023
+################################################################################
+
+------------------------------------PREAMBLE------------------------------------
+This license agreement (“Agreement”) is a legal agreement between you and the
+Diffusion Imaging and Connectivity Estimation laboratory (“DICE lab”) for the
+use of the AMICO software (“Software”). By downloading and/or using the
+Software, you hereby accept and agree to all the terms and conditions of this
+Agreement. As used in this Agreement, “you” refers to any individual or
+organization that uses the Software.
+
+
+------------------------------TERMS AND CONDITIONS------------------------------
+[1] License Grant
+Subject to all the terms and conditions of this Agreement, the DICE lab hereby
+grants you a worldwide, non-exclusive, non-transferable, limited license to
+copy, use, modify, and redistribute the Software solely for research and
+educational purposes, free of charge.
+
+[2] Commercial use
+You may not use the Software and/or any work based on or using the Software for
+any commercial purpose, including but not limited to selling, licensing,
+distributing, renting, or leasing the Software for profit. If you want to use
+the Software for commercial purposes, you may contact the DICE lab to obtain a
+commercial license agreement. The DICE lab may consider offering a commercial
+license, subject to negotiation of appropriate terms and conditions, including
+but not limited to the payment of a license fee and compliance with any
+additional restriction on the use of the Software.
+
+[3] Attributions and Acknowledgments
+You agree to provide an acknowledgement identifying the Software and referencing
+its use in any publication, presentation, research result, and product related
+to or arising from the use of the Software. You also agree to give proper
+attribution to the original Software and reproduce this Agreement in any
+modified and/or redistributed work based on the Software.
+
+[4] Patents
+If you plan to file a patent application based on or using the Software, you
+must contact the DICE lab. The DICE lab may have certain rights or restrictions
+related to such patents that need to be addressed before filing the application.
+
+[5] Compliance with Law
+In exercising your rights under this Agreement, you agree to comply with all
+applicable governmental laws and regulations, including but not limited to the
+use, export, and transmission of the Software. You are solely responsible for
+ensuring that your use of the Software complies with such laws and regulations.
+The DICE lab is not responsible for any violations of such laws or regulations
+by you.
+
+[6] Warranty
+The Software is provided "AS IS" without warranty of any kind, express or
+implied, including but not limited to the warranties of merchantability, fitness
+for a particular purpose and non-infringement of third-party rights. The
+Software may also contain errors and is subject to further development and
+revision. The DICE lab does not guarantee the accuracy of the Software or any
+result or data arising from the use of the Software.
+
+[7] Disclaimers
+The Software has been designed for research purposes only and has not been
+reviewed or approved by the Food and Drug Administration or by any other agency.
+You acknowledge and agree that clinical applications are neither recommended nor
+advised.
+
+[8] Limitation of Liability
+In no event shall the DICE lab be liable to any party for any direct, indirect,
+special, incidental, exemplary, or consequential damages, however caused and
+under any theory of liability, arising in any way related to the Software, even
+if the DICE lab has been advised of the possibility of such damages. Except to
+the extent prohibited by law or regulation, you assume all risk and liability
+for your use of the Software. You also agree to indemnify and hold harmless the
+DICE lab from and against all claims, suits, actions, demands, and judgments
+arising from your use or misuse of the Software.
+
+
+------------------------------------CONTACT-------------------------------------
+If you have any question about the terms of this Agreement, you may contact the
+head of the DICE lab Alessandro Daducci at alessandro.daducci@univr.it
+```
