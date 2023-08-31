@@ -13,6 +13,7 @@ from amico.util import PRINT, ERROR, get_verbose
 from dicelib.ui import ProgressBar
 from amico.synthesis import Stick, Zeppelin, Ball, CylinderGPD, SphereGPD, Astrosticks, NODDIIntraCellular, NODDIExtraCellular, NODDIIsotropic
 from concurrent.futures import ThreadPoolExecutor
+from typing import Union
 
 cimport cython
 from libc.math cimport pi, atan2, sqrt, pow as cpow
@@ -374,19 +375,19 @@ class StickZeppelinBall( BaseModel ) :
 class CylinderZeppelinBall( BaseModel ) :
     """Implements the Cylinder-Zeppelin-Ball model [1].
 
-    The intra-cellular contributions from within the axons are modeled as "cylinders"
-    with specific radii (Rs) and a given axial diffusivity (d_par).
+    The intra-cellular contributions from within the axons are modeled as cylinders
+    with specific radii (`Rs`) and a given axial diffusivity (`d_par`).
     Extra-cellular contributions are modeled as tensors with the same axial diffusivity
-    as the cylinders (d_par) and, possibily, a series of perpendicular diffusivities (d_perps).
-    Isotropic contributions are modeled as tensors with isotropic diffusivities (d_isos).
+    as the cylinders (`d_par`) and, possibily, a series of perpendicular diffusivities (`d_perps`).
+    Isotropic contributions are modeled as tensors with isotropic diffusivities (`d_isos`).
 
-    NB: this model works only with schemes containing the full specification of
-        the diffusion gradients (eg gradient strength, small delta etc).
+    !!! note
+        this model works only with schemes containing the full specification of the diffusion gradients (eg. gradient strength, small delta etc).
 
-    References
-    ----------
-    .. [1] Panagiotaki et al. (2012) Compartment models of the diffusion MR signal
-           in brain white matter: A taxonomy and comparison. NeuroImage, 59: 2241-54
+    Notes
+    -----
+    [1] Panagiotaki et al. (2012) Compartment models of the diffusion MR signal
+        in brain white matter: A taxonomy and comparison. NeuroImage, 59: 2241-54
     """
     def __init__( self ) :
         self.id         = 'CylinderZeppelinBall'
@@ -401,7 +402,20 @@ class CylinderZeppelinBall( BaseModel ) :
         self.isExvivo  = False                                                      # Add dot compartment to dictionary (exvivo data)
 
 
-    def set( self, d_par, Rs, d_perps, d_isos ) :
+    def set(self, d_par: float, Rs: Union[list[float], np.ndarray[float]], d_perps: Union[list[float], np.ndarray[float]], d_isos: Union[list[float], np.ndarray[float]]):
+        """Set the parameters of the model.
+
+        Parameters
+        ----------
+        d_par : float
+            Parallel diffusivity [mm^2/s]
+        Rs : Union[list[float], np.ndarray[float]]
+            Radii of the axons [meters]
+        d_perps : Union[list[float], np.ndarray[float]]
+            Perpendicular diffusivities [mm^2/s]
+        d_isos : Union[list[float], np.ndarray[float]]
+            Isotropic diffusivities [mm^2/s]
+        """
         self.d_par   = d_par
         self.Rs      = np.array(Rs)
         self.d_perps = np.array(d_perps)
@@ -640,13 +654,10 @@ class CylinderZeppelinBall( BaseModel ) :
 class NODDI( BaseModel ) :
     """Implements the NODDI model [2].
 
-    NB: this model does not require to have the "NODDI MATLAB toolbox" installed;
-        all the necessary functions have been ported to Python.
-
-    References
-    ----------
-    .. [2] Zhang et al. (2012) NODDI: Practical in vivo neurite orientation
-           dispersion and density imaging of the human brain. NeuroImage, 61: 1000-16
+    Notes
+    -----
+    [2] Zhang et al. (2012) NODDI: Practical in vivo neurite orientation
+        dispersion and density imaging of the human brain. NeuroImage, 61: 1000-16
     """
     def __init__( self ):
         self.id         = "NODDI"
@@ -661,7 +672,22 @@ class NODDI( BaseModel ) :
         self.isExvivo  = False
 
 
-    def set( self, dPar, dIso, IC_VFs, IC_ODs, isExvivo ):
+    def set(self, dPar: float, dIso: float, IC_VFs: Union[list[float], np.ndarray[float]], IC_ODs: Union[list[float], np.ndarray[float]], isExvivo: bool):
+        """Set the parameters of the model.
+
+        Parameters
+        ----------
+        dPar : float
+            Parallel diffusivity [mm^2/s]
+        dIso : float
+            Isotropic diffusivity [mm^2/s]
+        IC_VFs : Union[list[float], np.ndarray[float]]
+            Intra-cellular volume fractions
+        IC_ODs : Union[list[float], np.ndarray[float]]
+            Intra-cellular orientation dispersions
+        isExvivo : bool
+            Exvivo data (add dot compartment to dictionary)
+        """
         self.dPar      = dPar
         self.dIso      = dIso
         self.IC_VFs    = np.array( IC_VFs )
@@ -1286,16 +1312,16 @@ class SANDI( BaseModel ) :
     """Implements the SANDI model [1].
 
     The intra-cellular contributions from within the neural cells are modeled as intra-soma + intra-neurite,
-    with the soma modelled as "sphere" of radius (Rs) and fixed intra-soma diffusivity (d_is) to 3 micron^2/ms;
-    the neurites are modelled as randomly oriented sticks with axial intra-neurite diffusivity (d_in).
-    Extra-cellular contributions are modeled as isotropic gaussian diffusion, i.e. "ball", with the mean diffusivity (d_iso)
+    with the soma modelled as sphere of radius (`Rs`) and fixed intra-soma diffusivity (`d_is`) to 3 micron^2/ms;
+    the neurites are modelled as randomly oriented sticks with axial intra-neurite diffusivity (`d_in`).
+    Extra-cellular contributions are modeled as isotropic gaussian diffusion, i.e. ball, with the mean diffusivity (`d_iso`).
 
-    NB: this model works only with direction-averaged signal and schemes containing the full specification of
-        the diffusion gradients (eg gradient strength, small delta etc).
+    !!! note
+        This model works only with direction-averaged signal and schemes containing the full specification of the diffusion gradients (eg gradient strength, small delta etc).
 
-    References
-    ----------
-    .. [1] Palombo, Marco, et al. "SANDI: a compartment-based model for non-invasive apparent soma and neurite imaging by diffusion MRI." Neuroimage 215 (2020): 116835.
+    Notes
+    -----
+    [1] Palombo, Marco, et al. "SANDI: a compartment-based model for non-invasive apparent soma and neurite imaging by diffusion MRI." Neuroimage 215 (2020): 116835.
     """
     def __init__( self ) :
         self.id         = 'SANDI'
@@ -1309,7 +1335,20 @@ class SANDI( BaseModel ) :
         self.d_isos = np.linspace(0.25,3.0,5) * 1E-3    # Extra-cellular isotropic mean diffusivitie(s) [mm^2/s]
 
 
-    def set( self, d_is, Rs, d_in, d_isos ) :
+    def set(self, d_is: float, Rs: Union[list[float], np.ndarray[float]], d_in: Union[list[float], np.ndarray[float]], d_isos: Union[list[float], np.ndarray[float]]):
+        """Set the parameters of the model.
+
+        Parameters
+        ----------
+        d_is : float
+            Intra-soma diffusivity [mm^2/s]
+        Rs : Union[list[float], np.ndarray[float]]
+            Radii of the soma [meters]
+        d_in : Union[list[float], np.ndarray[float]]
+            Intra-neurite diffusivitie(s) [mm^2/s]
+        d_isos : Union[list[float], np.ndarray[float]]
+            Extra-cellular isotropic mean diffusivitie(s) [mm^2/s]
+        """
         self.d_is   = d_is
         self.Rs     = np.array(Rs)
         self.d_in   = np.array(d_in)

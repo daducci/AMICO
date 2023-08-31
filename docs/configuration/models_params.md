@@ -8,4 +8,4 @@ You can set the model parameters by calling the `set()` method of the `model` at
 >>> ae.model.set(param1=value1, param2=value2, ...)
 ```
 
-Here is a list of the parameters that can be set for each model:
+See the [models api reference](../api_reference/models.md) for more information about the available parameters for each model.
