@@ -42,7 +42,7 @@ if sys.platform.startswith('darwin') or sys.platform.startswith('linux'):
 extensions = [
       Extension(
             'amico.models',
-            sources=['amico/models.pyx'],
+            sources=['src/amico/models.pyx'],
             include_dirs=include_dirs,
             libraries=libraries,
             library_dirs=library_dirs,
@@ -50,7 +50,7 @@ extensions = [
       ),
       Extension(
             'amico.lut',
-            sources=['amico/lut.pyx'],
+            sources=['src/amico/lut.pyx'],
             extra_compile_args=extra_compile_args
       )
 ]
