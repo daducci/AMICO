@@ -56,7 +56,7 @@ class Evaluation :
         study_path : str, default='.'
             The path to the folder containing all the subjects from one study.
         subject : str, default='.'
-            The path (relative to the study_path folder) to the subject folder.
+            The path (relative to the `study_path`) to the subject folder.
         output_path : Union[None, str], default=None
             The path to the folder where the output will be saved.
         
