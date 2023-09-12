@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 600 # NOTE: need this to compile the arm64 version
     steps:
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2.2.0
+        uses: docker/setup-qemu-action@v3.0.0
         with:
           platforms: ${{ matrix.arch[3] }}
       
@@ -27,7 +27,7 @@ jobs:
           docker exec -i openblas_${{ matrix.arch[0] }} sh -c "make install -C /host/OpenBLAS-0.3.21 PREFIX=/host/OpenBLAS"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v3.1.3
         with:
           name: OpenBLAS_linux_${{ matrix.arch[0] }}
           path: ./OpenBLAS
