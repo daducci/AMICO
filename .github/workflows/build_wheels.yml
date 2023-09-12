@@ -17,7 +17,7 @@ jobs:
     runs-on: windows-2019
     steps:
       - name: Checkout
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v4.0.0
 
       - name: Download compiled OpenBLAS
         run: |
@@ -29,7 +29,7 @@ jobs:
           python setup_site.py openblas libopenblas ${{ github.workspace }}\OpenBLAS\lib ${{ github.workspace }}\OpenBLAS\include
 
       - name: Build wheel ${{ matrix.py }}-${{ matrix.arch[1] }}
-        uses: pypa/cibuildwheel@v2.12.0
+        uses: pypa/cibuildwheel@v2.15.0
         env:
           CIBW_PLATFORM: windows
           CIBW_BUILD: ${{ matrix.py }}-${{ matrix.arch[1] }}
@@ -40,7 +40,7 @@ jobs:
             delvewheel repair --add-path ${{ github.workspace }}\OpenBLAS\bin -w {dest_dir} -v {wheel}
       
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v3.1.3
         with:
           name: wheels_windows_${{ matrix.arch[0] }}
           path: ./wheelhouse/*.whl
@@ -56,10 +56,10 @@ jobs:
     runs-on: macos-11
     steps:
       - name: Checkout
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v4.0.0
 
       - name: Download compiled OpenBLAS
-        uses: dawidd6/action-download-artifact@v2.26.0
+        uses: dawidd6/action-download-artifact@v2.27.0
         with:
           workflow: compile_openblas_macos_x86_64.yml
           workflow_conclusion: success
@@ -73,7 +73,7 @@ jobs:
           python3 setup_site.py openblas openblas ${{ github.workspace }}/OpenBLAS/lib ${{ github.workspace }}/OpenBLAS/include
 
       - name: Build wheel ${{ matrix.py }}-${{ matrix.arch[1] }}
-        uses: pypa/cibuildwheel@v2.12.0
+        uses: pypa/cibuildwheel@v2.15.0
         env:
           MACOSX_DEPLOYMENT_TARGET: 10.9
           CIBW_PLATFORM: macos
@@ -83,7 +83,7 @@ jobs:
             DYLD_LIBRARY_PATH=${{ github.workspace }}/OpenBLAS/lib delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v3.1.3
         with:
           name: wheels_macos_${{ matrix.arch[0] }}
           path: ./wheelhouse/*.whl
@@ -110,10 +110,10 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v4.0.0
 
       - name: Download compiled OpenBLAS
-        uses: dawidd6/action-download-artifact@v2.26.0
+        uses: dawidd6/action-download-artifact@v2.27.0
         with:
           workflow: compile_openblas_linux.yml
           workflow_conclusion: success
@@ -127,12 +127,12 @@ jobs:
           python setup_site.py openblas openblas /host${{ github.workspace }}/OpenBLAS/lib /host${{ github.workspace }}/OpenBLAS/include
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2.1.0
+        uses: docker/setup-qemu-action@v3.0.0
         with:
           platforms: ${{ matrix.arch[2] }}
 
       - name: Build wheel ${{ matrix.py }}-${{ matrix.arch[1] }}
-        uses: pypa/cibuildwheel@v2.12.0
+        uses: pypa/cibuildwheel@v2.15.0
         env:
           CIBW_PLATFORM: linux
           CIBW_BUILD: ${{ matrix.py }}-${{ matrix.arch[1] }}
@@ -141,7 +141,7 @@ jobs:
             LD_LIBRARY_PATH=/host${{ github.workspace }}/OpenBLAS/lib auditwheel repair -w {dest_dir} {wheel}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v3.1.3
         with:
           name: wheels_linux_${{ matrix.arch[0] }}
           path: ./wheelhouse/*.whl
@@ -152,7 +152,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v4.0.0
 
       - name: Set up the configuration file
         run: |
@@ -165,7 +165,7 @@ jobs:
           python -m build --sdist
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v3.1.3
         with:
           name: sdist
           path: ./dist/*.tar.gz
