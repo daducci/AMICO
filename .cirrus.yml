@@ -24,6 +24,7 @@ compile_openblas_macos_arm64_task:
 build_macos_arm64_wheels_task:
   name: Build MacOS arm64 wheels
   alias: build_macos_arm64_wheels
+  only_if: ${CIRRUS_BRANCH} == "master" || ${CIRRUS_BRANCH} =~ "releases/.*"
   macos_instance:
     image: ghcr.io/cirruslabs/macos-monterey-xcode
   matrix:

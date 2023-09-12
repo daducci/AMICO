@@ -1,6 +1,10 @@
 name: Build wheels
 run-name: Build wheels - ${{ github.sha }}
-on: push
+on:
+  push:
+    branches:
+      - master
+      - releases/**
 jobs:
   build_windows_wheels:
     strategy:
