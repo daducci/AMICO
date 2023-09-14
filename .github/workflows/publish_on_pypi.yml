@@ -6,26 +6,67 @@ on:
 jobs:
   publish_on_pypi:
     name: Publish on PyPI
-    strategy:
-      matrix:
-        artifact:
-          - [build_wheels, windows, AMD64]
-          - [build_wheels, windows, x86]
-          - [build_wheels, macos, x86_64]
-          - [macos_arm64_wheels, macos, arm64]
-          - [build_wheels, linux, x86_64]
-          - [build_wheels, linux, aarch64]
     runs-on: ubuntu-20.04
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
-      - name: Download wheels
+      - name: Download windows_AMD64 wheels
         uses: dawidd6/action-download-artifact@v2.27.0
         with:
-          workflow: ${{ matrix.artifact[0] }}.yml
+          workflow: build_wheels.yml
           workflow_conclusion: success
           commit: ${{github.event.pull_request.head.sha}}
-          name: wheels_${{ matrix.artifact[1] }}_${{ matrix.artifact[2] }}
+          name: wheels_windows_AMD64
+          path: dist
+          search_artifacts: true
+
+      - name: Download windows_x86 wheels
+        uses: dawidd6/action-download-artifact@v2.27.0
+        with:
+          workflow: build_wheels.yml
+          workflow_conclusion: success
+          commit: ${{github.event.pull_request.head.sha}}
+          name: wheels_windows_x86
+          path: dist
+          search_artifacts: true
+
+      - name: Download macos_x86_64 wheels
+        uses: dawidd6/action-download-artifact@v2.27.0
+        with:
+          workflow: build_wheels.yml
+          workflow_conclusion: success
+          commit: ${{github.event.pull_request.head.sha}}
+          name: wheels_macos_x86_64
+          path: dist
+          search_artifacts: true
+
+      - name: Download macos_arm64 wheels
+        uses: dawidd6/action-download-artifact@v2.27.0
+        with:
+          workflow: macos_arm64_wheels.yml
+          workflow_conclusion: success
+          commit: ${{github.event.pull_request.head.sha}}
+          name: wheels_macos_arm64
+          path: dist
+          search_artifacts: true
+
+      - name: Download linux_x86_64 wheels
+        uses: dawidd6/action-download-artifact@v2.27.0
+        with:
+          workflow: build_wheels.yml
+          workflow_conclusion: success
+          commit: ${{github.event.pull_request.head.sha}}
+          name: wheels_linux_x86_64
+          path: dist
+          search_artifacts: true
+
+      - name: Download linux_aarch64 wheels
+        uses: dawidd6/action-download-artifact@v2.27.0
+        with:
+          workflow: build_wheels.yml
+          workflow_conclusion: success
+          commit: ${{github.event.pull_request.head.sha}}
+          name: wheels_linux_aarch64
           path: dist
           search_artifacts: true
 
