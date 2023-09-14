@@ -1,7 +1,7 @@
 # Change Log
 ### All notable changes to `AMICO` will be documented in this file.
 
-## `v2.0.0`<br>_2023-08-##_
+## `v2.0.0`<br>_2023-09-14_
 ### 🛠️Changed
 - From multiprocessing to `multithreading` (huge speedup in models fit! 🚀)
     - `models` and `lut` modules in Cython
