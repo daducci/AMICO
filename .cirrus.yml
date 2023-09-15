@@ -1,6 +1,7 @@
 compile_openblas_macos_arm64_task:
   name: Compile OpenBLAS on MacOS arm64
   alias: compile_openblas_macos_arm64
+  only_if: ${CIRRUS_TAG} == '' && ${CIRRUS_PR} == ''
   trigger_type: manual
   macos_instance:
     image: ghcr.io/cirruslabs/macos-monterey-xcode:latest
@@ -24,7 +25,7 @@ compile_openblas_macos_arm64_task:
 build_macos_arm64_wheels_task:
   name: Build MacOS arm64 wheels
   alias: build_macos_arm64_wheels
-  only_if: ${CIRRUS_BRANCH} =~ "release/.*"
+  only_if: (${CIRRUS_BRANCH} == 'master' || ${CIRRUS_BRANCH} =~ 'release/.*') && ${CIRRUS_TAG} == '' && ${CIRRUS_PR} == ''
   macos_instance:
     image: ghcr.io/cirruslabs/macos-monterey-xcode:latest
   matrix:
@@ -62,7 +63,7 @@ build_macos_arm64_wheels_task:
 
 trigger_github_workflow_task:
   name: Trigger GitHub workflow
-  only_if: ${CIRRUS_BRANCH} =~ "release/.*"
+  only_if: (${CIRRUS_BRANCH} == 'master' || ${CIRRUS_BRANCH} =~ 'release/.*') && ${CIRRUS_TAG} == '' && ${CIRRUS_PR} == ''
   depends_on: build_macos_arm64_wheels
   macos_instance:
     image: ghcr.io/cirruslabs/macos-monterey-xcode:latest

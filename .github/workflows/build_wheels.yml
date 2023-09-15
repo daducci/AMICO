@@ -3,7 +3,8 @@ run-name: Build wheels - ${{ github.sha }}
 on:
   push:
     branches:
-      - release/**
+      - 'master'
+      - 'release/**'
 jobs:
   build_windows_wheels:
     strategy:
