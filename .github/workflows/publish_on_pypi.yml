@@ -85,7 +85,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@v1.8.10
         with:
           repository_url: https://test.pypi.org/legacy/
-          skip_existing: true
+          skip-existing: true
           verbose: true
           print-hash: true
 
@@ -93,6 +93,6 @@ jobs:
         if: github.event.release.prerelease == false
         uses: pypa/gh-action-pypi-publish@v1.8.10
         with:
-          skip_existing: true
+          skip-existing: true
           verbose: true
           print-hash: true
