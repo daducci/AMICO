@@ -1,0 +1,43 @@
+# This is an example site.cfg file for dmri-amico. Create a copy of this file, rename
+# it to 'site.cfg' and follow the instructions below.
+#
+# This file provides configuration information about non-Python dependencies for
+# the dmri-amico package. The format of the file is that provided by the ConfigParser
+# class in the standard library. See https://docs.python.org/3/library/configparser.html
+# for details.
+#
+# OpenBLAS
+# --------
+# OpenBLAS is an open source optimized Basic Linear Algebra Subprograms (BLAS) library
+# and is the default choice for dmri-amico pre-built wheels published on PyPI. OpenBLAS
+# is licensed under the BSD 3-clause license, available at https://github.com/xianyi/OpenBLAS/blob/develop/LICENSE.
+# Only the OpenBLAS library is currently supported, but other BLAS libraries may
+# be supported in the future. Uncomment the [openblas] section below and edit the
+# corresponding paths to set up the OpenBLAS library to use when compiling extensions.
+#
+#   library
+#       Name of the OpenBLAS library (without the extension).
+#       On Windows:
+#           library = libopenblas
+#       On MacOS/Linux:
+#           library = openblas
+#
+#   library_dir
+#       Path to the directory containing the OpenBLAS library.
+#       On Windows:
+#           library_dir = C:\OpenBLAS\lib
+#       On MacOS/Linux:
+#           library_dir = /home/OpenBLAS/lib
+#
+#   include_dir
+#       Path to the directory containing the OpenBLAS headers.
+#       On Windows:
+#           include_dir = C:\OpenBLAS\include
+#       On MacOS/Linux:
+#           include_dir = /home/OpenBLAS/include
+#
+# Uncomment the following section and edit the paths to set up the OpenBLAS library.
+# [openblas]
+# library = libopenblas
+# library_dir = C:\OpenBLAS\lib
+# include_dir = C:\OpenBLAS\include

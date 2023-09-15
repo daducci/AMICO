@@ -1,9 +1,6 @@
-packaging
-wheel
-setuptools>=46.1
-numpy>=1.12
-scipy>=1.0
-dipy>=1.0
-spams>=2.6.5.2
-tqdm>=4.56.0
-joblib>=1.0.1
+numpy>=1.19.5
+scipy>=1.5.4
+dipy>=1.4.1
+threadpoolctl>=3.1.0
+dmri-dicelib>=1.0.0
+importlib-metadata>=4.8.3; python_version<"3.8"

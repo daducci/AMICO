@@ -23,7 +23,7 @@ jobs:
 
       - name: Upload artifacts
         id: upload_artifacts
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v3.1.3
         with:
           name: wheels_macos_arm64
           path: ./wheelhouse/*.whl
@@ -32,9 +32,9 @@ jobs:
       - name: Complete MacOS arm64 check
         if: env.DOWNLOAD_RESPONSE == 200 && steps.upload_artifacts.conclusion == 'success'
         run: |
-          curl -X PATCH -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ github.token }}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/nightwnvol/amico_gh_actions/check-runs/${{ inputs.check_id_macos_arm64 }} -d '{"name":"cp*-macosx_arm64","status":"completed","conclusion":"success"}'
+          curl -X PATCH -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ github.token }}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/daducci/AMICO/check-runs/${{ inputs.check_id_macos_arm64 }} -d '{"name":"cp*-macosx_arm64","status":"completed","conclusion":"success"}'
 
       - name: Complete MacOS arm64 check
         if: (failure() && steps.upload_artifacts.conclusion != 'success') || env.DOWNLOAD_RESPONSE != 200
         run: |
-          curl -X PATCH -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ github.token }}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/nightwnvol/amico_gh_actions/check-runs/${{ inputs.check_id_macos_arm64 }} -d '{"name":"cp*-macosx_arm64","status":"completed","conclusion":"failure"}'
+          curl -X PATCH -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ github.token }}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/daducci/AMICO/check-runs/${{ inputs.check_id_macos_arm64 }} -d '{"name":"cp*-macosx_arm64","status":"completed","conclusion":"failure"}'

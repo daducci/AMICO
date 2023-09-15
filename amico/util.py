@@ -112,7 +112,7 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = 
 
     # write corresponding scheme file
     np.savetxt( schemeFilename, np.c_[bvecs.T, bvals], fmt="%.06f", delimiter="\t", header="VERSION: BVECTOR", comments='' )
-    PRINT("-> Writing scheme file to [ %s ]" % schemeFilename)
+    LOG("\n-> Writing scheme file to [ %s ]" % schemeFilename)
     return schemeFilename
 
 
@@ -160,22 +160,22 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
         if delta.ndim !=1  or  delta.shape[0] != bvals.shape[0]:
             ERROR('incorrect/incompatible delta files')
         if delta.mean( ) > 0.1:
-            WARNING('The mean of the delta values is {:.4f}, these values must be in seconds.'.format(delta.mean()))
+            WARNING(f'The mean of the delta values is {delta.mean():.4f}, these values must be in seconds.')
     else:
         delta = np.ones_like(bvals) * Delta_data
         if Delta_data > 0.1:
-            WARNING('The delta value is {:.4f}, this value must be in seconds.'.format(delta.mean()))
+            WARNING(f'The delta value is {delta.mean():.4f}, this value must be in seconds.')
 
     if type(smalldel_data) is str :
         smalldel = np.loadtxt( smalldel_data, delimiter=delimiter)
         if smalldel.ndim !=1 or  smalldel.shape[0] != bvals.shape[0]:
             ERROR('incorrect/incompatible small delta files')
         if smalldel.mean() > 0.1:
-            WARNING('The mean of the small delta values is {:.4f}, these values must be in seconds.'.format(smalldel.mean()))
+            WARNING(f'The mean of the small delta values is {smalldel.mean():.4f}, these values must be in seconds.')
     else:
         smalldel = np.ones_like(bvals) * smalldel_data
         if smalldel_data > 0.1:
-            WARNING('The small delta value is {:.4f}, this value must be in seconds.'.format(smalldel.mean()))
+            WARNING(f'The small delta value is {smalldel.mean():.4f}, this value must be in seconds.')
 
 
 
@@ -226,5 +226,5 @@ def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_da
 
     # write corresponding scheme file
     np.savetxt( schemeFilename, np.c_[bvecs.T, G, delta, smalldel, TE], fmt="%.06f", delimiter="\t", header="VERSION: 1", comments='' )
-    PRINT("-> Writing scheme file to [ %s ]" % schemeFilename)
+    LOG("\n-> Writing scheme file to [ %s ]" % schemeFilename)
     return schemeFilename

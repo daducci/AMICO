@@ -1,5 +1,40 @@
 # Change Log
-All notable changes to AMICO will be documented in this file.
+### All notable changes to `AMICO` will be documented in this file.
+
+## `v2.0.0`<br>_2023-09-14_
+### 🛠️Changed
+- From multiprocessing to `multithreading` (huge speedup in models fit! 🚀)
+    - `models` and `lut` modules in Cython
+    - `fit()` methods in Cython
+    - `dir_to_lut_idx()` method in Cython
+- New `NODDI` maps names:
+    - from `ICVF` to `NDI`
+    - from `OD` to `ODI`
+    - from `FISO` to `FWF`
+- New output images name casing (e.g. from `FIT_NDI.nii.gz` to `fit_NDI.nii.gz`)
+- Default Diffusion Tensor model fit method to compute the primary direction in each voxel from `WLS` to `OLS`
+- Default number of threads used by BLAS libraries from `-1` (all threads) to `1`
+- Parallel threads config name from `parallel_jobs` to `n_threads`
+- Default `study_path='.'` and `subject='.'` in `core.Evaluation()`
+- Default `ndirs=500` in `core.generate_kernels()`
+- Expire the deprecated `ndirs` parameter in `core.setup()`
+- Replace `tqdm` with `dicelib.ui.ProgressBar()`
+- Switched to proprietary license (see `LICENSE` file)
+
+### ✨Added
+- C++ interfaces for NNLS and LASSO solvers (provided by `spams-cython`)
+- `DTI_fit_method` config to choose the Diffusion Tensor model fit method (from DIPY)
+    - `OLS` (Ordinary Least Squares)
+    - `WLS` (Weighted Least Squares)
+- `BLAS_n_threads` config to set the number of threads used in the threadpool-backend of common BLAS implementations (e.g. OpenBLAS)
+- `doComputeRMSE` config to compute the Root Mean Square Error image
+- `doSaveModulatedMaps` to compute modulated maps for the NODDI model ([Tissue-weighted mean](https://csparker.github.io/research/2021/11/16/Tissue-weighted-mean.html)), e.g. `fit_NDI_modulated.nii.gz`
+
+### 🐛Fixed
+- DeprecationWarning: `dipy.reconst.shm.real_sym_sh_basis` (with dipy>=1.4.0)
+
+---
+---
 
 ## [1.5.4] - 2023-02-15
 
