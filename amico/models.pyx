@@ -1230,6 +1230,10 @@ class VolumeFractions( BaseModel ) :
         self.maps_descr = [ ]
 
 
+    def set( self ) :
+        return
+
+
     def get_params( self ) :
         params = {}
         params['id'] = self.id
