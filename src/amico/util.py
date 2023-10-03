@@ -4,7 +4,22 @@ import numpy as np
 import os.path
 from sys import exit
 
+try:
+    from importlib.metadata import version
+except ImportError:
+    from importlib_metadata import version
+
 __VERBOSE_LEVEL__ = 3
+
+def get_version() -> str:
+    """Get the version of AMICO.
+
+    Returns
+    -------
+    str
+        The version of AMICO.
+    """
+    return version('dmri-amico')
 
 def set_verbose( verbose: int ):
 	"""Set the verbosity of all functions.

@@ -1,18 +1,8 @@
 from __future__ import absolute_import, division, print_function
 
 from amico.core import Evaluation, setup
-from amico.util import set_verbose, get_verbose
-# from amico import core
-# from amico import scheme
-# from amico import lut
-# from amico import models
-# from amico import util
+from amico.util import get_version, set_verbose, get_verbose
 
-try:
-    from importlib.metadata import version
-except ImportError:
-    from importlib_metadata import version
-__version__ = version('dmri-amico')
+__version__ = get_version()
 
-# TODO: add __all__ a cosa serve??
-# __all__ = ['Evaluation', 'setup', 'set_verbose', 'get_verbose']
+__all__ = ['Evaluation', 'setup', 'set_verbose', 'get_verbose', '__version__']

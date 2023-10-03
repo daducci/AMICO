@@ -18,9 +18,8 @@ import amico.models
 from amico.lut import is_valid, valid_dirs
 from dipy.core.gradients import gradient_table
 import dipy.reconst.dti as dti
-from amico.util import PRINT, LOG, WARNING, ERROR, get_verbose
+from amico.util import PRINT, LOG, WARNING, ERROR, get_version, get_verbose
 from dicelib.ui import ProgressBar
-from pkg_resources import get_distribution
 from threadpoolctl import ThreadpoolController
 
 def setup(lmax: int=12) -> None:
@@ -80,7 +79,7 @@ class Evaluation :
 
         # store all the parameters of an evaluation with AMICO
         self.CONFIG = {}
-        self.set_config('version', get_distribution('dmri-amico').version)
+        self.set_config('version', get_version())
         self.set_config('study_path', study_path)
         self.set_config('subject', subject)
         self.set_config('DATA_path', pjoin( study_path, subject ))
