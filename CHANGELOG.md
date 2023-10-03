@@ -1,6 +1,16 @@
 # Change Log
 ### All notable changes to `AMICO` will be documented in this file.
 
+## `v2.0.1`<br>_2023-09-21_
+### 🛠️Changed
+- Bump `dmri-dicelib` to `v1.0.1`
+
+### 🐛Fixed
+- Implement the `set()` method in the `VolumeFractions` model
+
+---
+---
+
 ## `v2.0.0`<br>_2023-09-14_
 ### 🛠️Changed
 - From multiprocessing to `multithreading` (huge speedup in models fit! 🚀)
