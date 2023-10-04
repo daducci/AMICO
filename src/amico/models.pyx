@@ -382,7 +382,7 @@ class CylinderZeppelinBall( BaseModel ) :
     Isotropic contributions are modeled as tensors with isotropic diffusivities (`d_isos`).
 
     !!! note
-        this model works only with schemes containing the full specification of the diffusion gradients (eg. gradient strength, small delta etc).
+        This model works only with schemes containing the full specification of the diffusion gradients (e.g. gradient strength, small delta etc).
 
     Notes
     -----
@@ -408,13 +408,13 @@ class CylinderZeppelinBall( BaseModel ) :
         Parameters
         ----------
         d_par : float
-            Parallel diffusivity [mm^2/s]
+            Parallel diffusivity $[mm^2/s]$
         Rs : Union[list[float], np.ndarray[float]]
-            Radii of the axons [meters]
+            Radii of the axons $[meters]$
         d_perps : Union[list[float], np.ndarray[float]]
-            Perpendicular diffusivities [mm^2/s]
+            Perpendicular diffusivities $[mm^2/s]$
         d_isos : Union[list[float], np.ndarray[float]]
-            Isotropic diffusivities [mm^2/s]
+            Isotropic diffusivities $[mm^2/s]$
         """
         self.d_par   = d_par
         self.Rs      = np.array(Rs)
@@ -678,9 +678,9 @@ class NODDI( BaseModel ) :
         Parameters
         ----------
         dPar : float
-            Parallel diffusivity [mm^2/s]
+            Parallel diffusivity $[mm^2/s]$
         dIso : float
-            Isotropic diffusivity [mm^2/s]
+            Isotropic diffusivity $[mm^2/s]$
         IC_VFs : Union[list[float], np.ndarray[float]]
             Intra-cellular volume fractions
         IC_ODs : Union[list[float], np.ndarray[float]]
@@ -1316,12 +1316,12 @@ class SANDI( BaseModel ) :
     """Implements the SANDI model [1].
 
     The intra-cellular contributions from within the neural cells are modeled as intra-soma + intra-neurite,
-    with the soma modelled as sphere of radius (`Rs`) and fixed intra-soma diffusivity (`d_is`) to 3 micron^2/ms;
+    with the soma modelled as sphere of radius (`Rs`) and fixed intra-soma diffusivity (`d_is`) to 3 $micron^2/ms$;
     the neurites are modelled as randomly oriented sticks with axial intra-neurite diffusivity (`d_in`).
     Extra-cellular contributions are modeled as isotropic gaussian diffusion, i.e. ball, with the mean diffusivity (`d_iso`).
 
     !!! note
-        This model works only with direction-averaged signal and schemes containing the full specification of the diffusion gradients (eg gradient strength, small delta etc).
+        This model works only with direction-averaged signal and schemes containing the full specification of the diffusion gradients (e.g. gradient strength, small delta etc).
 
     Notes
     -----
@@ -1345,13 +1345,13 @@ class SANDI( BaseModel ) :
         Parameters
         ----------
         d_is : float
-            Intra-soma diffusivity [mm^2/s]
+            Intra-soma diffusivity $[mm^2/s]$
         Rs : Union[list[float], np.ndarray[float]]
-            Radii of the soma [meters]
+            Radii of the soma $[meters]$
         d_in : Union[list[float], np.ndarray[float]]
-            Intra-neurite diffusivitie(s) [mm^2/s]
+            Intra-neurite diffusivitie(s) $[mm^2/s]$
         d_isos : Union[list[float], np.ndarray[float]]
-            Extra-cellular isotropic mean diffusivitie(s) [mm^2/s]
+            Extra-cellular isotropic mean diffusivitie(s) $[mm^2/s]$
         """
         self.d_is   = d_is
         self.Rs     = np.array(Rs)

@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 import os.path
+from typing import Union
 from sys import exit
 
 try:
@@ -12,33 +13,47 @@ except ImportError:
 __VERBOSE_LEVEL__ = 3
 
 def get_version() -> str:
-    """Get the version of AMICO.
+    """Get the version of dmri-amico.
 
     Returns
     -------
-    str
-        The version of AMICO.
+    : str
+        The version of dmri-amico.
     """
     return version('dmri-amico')
 
-def set_verbose( verbose: int ):
+def get_verbose() -> int:
+    """Get the verbosity of all functions.
+
+    Returns
+    -------
+    : int
+        The verbosity level.
+    """
+    return __VERBOSE_LEVEL__
+
+def set_verbose(verbose: int) -> None:
 	"""Set the verbosity of all functions.
 
-	Parameters
-	----------
-	verbose : int
-        3 = show everything
-		2 = show messages but no progress bars
-        1 = show only warnings/errors
+    Parameters
+    ----------
+    verbose: int
+        The verbosity level.  
+        Possible values are:  
+        3 = show everything  
+        2 = show messages but no progress bars  
+        1 = show only warnings/errors  
         0 = hide everything
+
+    Raises
+    ------
+    TypeError
+        If verbose is not an integer in [0, 1, 2, 3].
 	"""
 	global __VERBOSE_LEVEL__
-	if type(verbose) != int or verbose not in [0,1,2,3]:
-		raise TypeError( '"verbose" must be either 0, 1, 2 or 3' )
+	if type(verbose) != int or verbose not in [0, 1, 2, 3]:
+		raise TypeError('"verbose" must be either 0, 1, 2 or 3')
 	__VERBOSE_LEVEL__ = verbose
-
-def get_verbose():
-    return __VERBOSE_LEVEL__
 
 def PRINT( *args, **kwargs ):
     if __VERBOSE_LEVEL__ >= 2:
@@ -66,19 +81,33 @@ def ERROR( msg, prefix='' ):
         exit(1) # Exit with error code 1 if on Windows system
 
 
-def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = [False,False,False], bStep = 1.0, delimiter = None ):
+def fsl2scheme(bvalsFilename: str,
+               bvecsFilename: str,
+               schemeFilename: Union[None, str]=None,
+               flipAxes: list[bool, bool, bool]=[False,False,False],
+               bStep: Union[float, list[float]]=1.0,
+               delimiter: Union[None, str]=None) -> str:
     """Create a scheme file from bvals+bvecs and write to file.
-
-    If required, b-values can be rounded up to a specific threshold (bStep parameter).
 
     Parameters
     ----------
-    :param str bvalsFilename: The path to bval file.
-    :param str bvecsFilename: The path to bvec file.
-    :param str schemeFilename: The path to output scheme file (optional).
-    :param list of three boolean flipAxes: Whether to flip or not each axis (optional).
-    :param float or list or np.bStep: If bStep is a scalar, round b-values to nearest integer multiple of bStep. If bStep is a list, it is treated as an array of shells in increasing order. B-values will be forced to the nearest shell value.
-    :param str delimiter: Change the delimiter used by np.loadtxt (optional). None means "all white spaces".
+    bvalsFilename: str
+        The path to bval file.
+    bvecsFilename: str
+        The path to bvec file.
+    schemeFilename: Union[None, str], default=None
+        The path to output scheme file. If None, the scheme file will be saved as `bvalsFilename.scheme`.
+    flipAxes: list[bool, bool, bool], default=[False,False,False]
+        Whether to flip or not each axis.
+    bStep: Union[float, list[float]], default=1.0
+        If `bStep` is a scalar, round b-values to nearest integer multiple of `bStep`. If `bStep` is a list, it is treated as an array of shells in increasing order. B-values will be forced to the nearest shell value.
+    delimiter: Union[None, str], default=None
+        Change the delimiter used by `np.loadtxt`. `None` means "all white spaces".
+
+    Returns
+    -------
+    schemeFilename: str
+        The path to the output scheme file.
     """
 
     if not os.path.exists(bvalsFilename):
@@ -131,22 +160,42 @@ def fsl2scheme( bvalsFilename, bvecsFilename, schemeFilename = None, flipAxes = 
     return schemeFilename
 
 
-def sandi2scheme( bvalsFilename, bvecsFilename, Delta_data, smalldel_data, TE_data = None, schemeFilename = None, flipAxes = [False,False,False], bStep = 1.0, delimiter = None ):
+def sandi2scheme(bvalsFilename: str,
+                 bvecsFilename: str,
+                 Delta_data: Union[str, float, list[float]],
+                 smalldel_data: Union[str, float, list[float]],
+                 TE_data: Union[None, str, float, list[float]]=None,
+                 schemeFilename: Union[None, str]=None,
+                 flipAxes: list[bool, bool, bool]=[False,False,False],
+                 bStep: Union[float, list[float]]=1.0,
+                 delimiter: Union[None, str]=None) -> str:
     """Create a scheme file from bvals+bvecs and write to file.
 
-    If required, b-values can be rounded up to a specific threshold (bStep parameter).
-
     Parameters
-    ----------
-    :param str bvalsFilename: The path to bval file.
-    :param str bvecsFilename: The path to bvec file.
-    :param str Delta_data: string or numpy.ndarray. The path to Delta file or a value to use in all the scheme (seconds).
-    :param str smalldel_data: string or numpy.ndarray. The path to (small) delta file or a value to use in all the scheme (seconds).
-    :param str TE_data: string or numpy.ndarray. The path to echo time file or a value to use in all the scheme (seconds) (optional).
-    :param str schemeFilename: The path to output scheme file (optional).
-    :param list of three boolean flipAxes: Whether to flip or not each axis (optional).
-    :param float or list or np.bStep: If bStep is a scalar, round b-values to nearest integer multiple of bStep. If bStep is a list, it is treated as an array of shells in increasing order. B-values will be forced to the nearest shell value.
-    :param str delimiter: Change the delimiter used by np.loadtxt (optional). None means "all white spaces".
+    ---------
+    bvalsFilename: str
+        The path to bval file.
+    bvecsFilename: str
+        The path to bvec file.
+    Delta_data: Union[str, float, list[float]]
+        The path to Delta file or a value to use in all the scheme $[s]$.
+    smalldel_data: Union[str, float, list[float]]
+        The path to (small) delta file or a value to use in all the scheme $[s]$.
+    TE_data: Union[None, str, float, list[float]], default=None
+        The path to echo time file or a value to use in all the scheme $[s]$.
+    schemeFilename: Union[None, str], default=None
+        The path to output scheme file. If `None`, the scheme file will be saved as `bvalsFilename.scheme`.
+    flipAxes: list[bool, bool, bool], default=[False,False,False]
+        Whether to flip or not each axis.
+    bStep: Union[float, list[float]], default=1.0
+        If `bStep` is a scalar, round b-values to nearest integer multiple of `bStep`. If `bStep` is a list, it is treated as an array of shells in increasing order. B-values will be forced to the nearest shell value.
+    delimiter: Union[None, str], default=None
+        Change the delimiter used by `np.loadtxt`. `None` means "all white spaces".
+
+    Returns
+    -------
+    schemeFilename: str
+        The path to the output scheme file.
     """
 
     if not os.path.exists(bvalsFilename):

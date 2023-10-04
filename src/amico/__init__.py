@@ -1,3 +1,10 @@
+"""
+Attributes
+----------
+__version__ : str
+    The version of dmri-amico
+"""
+
 from __future__ import absolute_import, division, print_function
 
 from amico.core import Evaluation, setup
