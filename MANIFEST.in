@@ -1,4 +1,4 @@
 include site.cfg.example
 include setup_site.py
-include amico/*pyx
-include amico/*pxd
+include src/amico/*pyx
+include src/amico/*pxd

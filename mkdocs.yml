@@ -1,14 +1,14 @@
 site_name: dmri-amico
-site_url: null # dmri-amico.readthedocs
+site_url: null # TODO: dmri-amico.readthedocs
 repo_url: https://github.com/daducci/AMICO
 edit_uri: tree/master/docs/
-site_description: null
-site_author: null
-copyright: null
+site_description: null # TODO
+site_author: null # TODO
+copyright: null # TODO
 nav:
   - Home: index.md
-  - What's new: news.md # TODO make folder
-  - How to install: installation.md # TODO make folder
+  - What's new: news.md
+  - How to install: installation.md
   - Tutorials:
     - NODDI: tutorials/NODDI.md
     - SANDI: tutorials/SANDI.md
@@ -20,14 +20,20 @@ nav:
     - Removing rician bias before fitting: configuration/rician_bias.md
     - Multithreading: configuration/multithreading.md
   - API Reference:
-    - amico module: api_reference/amico.md
-    - amico.models module: api_reference/models.md
-    - amico.util module: api_reference/util.md
+    - amico: api_reference/amico.md
+    - amico.models: api_reference/models.md
+    - amico.util: api_reference/util.md
   - About:
     - License: about/LICENSE.md
     - Credits: about/credits.md
 theme:
   name: readthedocs
+  hljs_languages:
+    - python
+    - bash
+    - ini
+    - plaintext
+  locale: en
   # palette:
   #   # Palette toggle for light mode
   #   - media: "(prefers-color-scheme: light)"
@@ -41,12 +47,6 @@ theme:
   #     toggle:
   #       icon: material/brightness-4
   #       name: Switch to light mode
-  # locale: en
-  # logo: null
-  # highlightjs: true
-  # hljs_languages:
-  #   - python
-  #   - bash
 extra_css:
   - css/extra.css
 extra_javascript:
@@ -61,8 +61,3 @@ markdown_extensions:
 plugins:
   - search
   - mkdocstrings
-  # - mkdocstrings:
-  #     handlers:
-  #       python:
-  #         paths: [.]
-  # https://github.com/danielfrg/mkdocs-jupyter
