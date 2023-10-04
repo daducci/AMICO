@@ -1,5 +1,4 @@
-# What's new
-### New features and improvements in `AMICO` v2.0.0
+# What's new - features and improvements from `AMICO v2.0.0`
 ## Multithreading
 `AMICO` now uses multithreading insted of multiprocessing. This allows to further speed up the fitting process. See the [multithreading](configuration/multithreading.md) section for more information.
 

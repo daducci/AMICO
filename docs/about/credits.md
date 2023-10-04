@@ -15,6 +15,7 @@ _Alessandro Daducci_ with all the __Diffusion Imaging and Connectivity Estimatio
 - Maxime Descoteaux (Université de Sherbrooke)
 - Simona Schiavi (University of Verona)
 - Clorindo Notte (University of Verona)
+- Ilaria Gabusi (University of Verona)
 
 ## Other contributors
 - Brainhack team who helped in adapting AMICO to fit the SANDI model
