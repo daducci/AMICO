@@ -20,8 +20,9 @@ nav:
     - Removing rician bias before fitting: configuration/rician_bias.md
     - Multithreading: configuration/multithreading.md
   - API Reference:
-    - Core module: api_reference/core.md
-    - Models module: api_reference/models.md
+    - amico module: api_reference/amico.md
+    - amico.models module: api_reference/models.md
+    - amico.util module: api_reference/util.md
   - About:
     - License: about/LICENSE.md
     - Credits: about/credits.md
