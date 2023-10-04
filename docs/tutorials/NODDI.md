@@ -9,7 +9,7 @@ Download the sample dataset from the NODDI official website:
 - [NODDI_example_dataset.zip](https://www.nitrc.org/frs/download.php/11758/NODDI_example_dataset.zip)
 
 After unzipping, your directory structure should look like this:
-```Shell
+```bash
 NODDI_example_dataset/
 ├── brain_mask.hdr
 ├── brain_mask.img
@@ -25,13 +25,13 @@ Usually, DWI images need some preprocessing (e.g., eddy current correction, head
 ## Run `AMICO`
 ### Initialization
 Move into the `NODDI_example_dataset` directory and run a Python interpreter:
-```Shell
+```bash
 $ cd NODDI_example_dataset
 $ python
 ```
 
 In the Python shell, import the `AMICO` library and setup/initialize the framework:
-```Python
+```python
 >>> import amico
 >>> amico.setup()
 
@@ -42,12 +42,12 @@ In the Python shell, import the `AMICO` library and setup/initialize the framewo
 	This step will precompute all the necessary rotation matrices and store them in `~/.dipy`. This initialization step is necessary only the first time you use `AMICO`.
 
 Now you can instantiate an `Evaluation` object and start the analysis:
-```Python
+```python
 >>> ae = amico.Evaluation()
 ```
 
 You can generate the scheme file from the bvals/bvecs files of your acquisition with the `fsl2scheme()` method:
-```Python
+```python
 >>> amico.util.fsl2scheme('NODDI_protocol.bval', 'NODDI_protocol.bvec')
 
 -> Writing scheme file to [ NODDI_protocol.scheme ]
@@ -56,7 +56,7 @@ You can generate the scheme file from the bvals/bvecs files of your acquisition 
 
 ### Load the data
 Load your data with the `load_data()` method:
-```Python
+```python
 >>> ae.load_data('NODDI_DWI.img', 'NODDI_protocol.scheme', mask_filename='brain_mask.img', b0_thr=0)
 
 -> Loading data:
@@ -80,7 +80,7 @@ Load your data with the `load_data()` method:
 
 ### Compute the response functions
 Set the `NODDI` model with the `set_model()` method and generate the response functions with the `generate_kernels()` method:
-```Python
+```python
 >>> ae.set_model('NODDI')
 >>> ae.generate_kernels(regenerate=True)
 
@@ -91,7 +91,7 @@ Set the `NODDI` model with the `set_model()` method and generate the response fu
 	You need to compute the reponse functions only once per study; in fact, scheme files with same b-values but different number/distribution of samples on each shell will result in the same precomputed kernels (which are actually computed at higher angular resolution). The method `generate_kernels()` does not recompute the kernels if they already exist, unless the flag `regenerate` is set, e.g. `generate_kernels(regenerate=True)`.
 
 Load the precomputed kernels (at higher resolution) and adapt them to the actual scheme (distribution of points on each shell) of the current subject with the `load_kernels()` method:
-```Python
+```python
 >>> ae.load_kernels()
 
 -> Resampling LUT for subject ".":
@@ -100,7 +100,7 @@ Load the precomputed kernels (at higher resolution) and adapt them to the actual
 
 ### Fit the model to the data
 Fit the model to the data with the `fit()` method:
-```Python
+```python
 >>> ae.fit()
 
 -> Estimating principal directions (OLS):
@@ -112,7 +112,7 @@ Fit the model to the data with the `fit()` method:
 
 ### Save the results
 Finally, save the results as NIfTI images with the `save_results()` method:
-```Python
+```python
 >>> ae.save_results()
 
 -> Saving output to "AMICO/NODDI/*":
@@ -126,7 +126,7 @@ Finally, save the results as NIfTI images with the `save_results()` method:
 
 ## Visualize the results
 🎉Congratulations! You have successfully fitted the `NODDI` model to your data.🎉 You will find the estimated parameters in the `NODDI_example_dataset/AMICO/NODDI` directory:
-```Shell
+```bash
 NODDI_example_dataset/AMICO/NODDI/
 ├── config.pickle
 ├── fit_dir.nii.gz

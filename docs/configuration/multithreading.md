@@ -1,7 +1,7 @@
 # Multithreading
 ## Fitting threads
 By default, `AMICO` uses all the available cores on your machine to speed up the fitting process. However, you can specify the number of threads to use with the `n_threads` configuration parameter:
-```Python
+```python
 >>> import amico
 
 >>> ae = amico.Evaluation()
@@ -12,7 +12,7 @@ By default, `AMICO` uses all the available cores on your machine to speed up the
 
 ## BLAS threads
 `AMICO` limits to `1` the number of threads used in the threadpool-backend of common BLAS implementations (e.g. `OpenBLAS`). This is done optimize light computations and avoid oversubscription of resources when using multithreaded methods of other packages (e.g. `numpy.linalg`). You can change this behaviour by setting the `BLAS_n_threads` configuration parameter:
-```Python
+```python
 >>> import amico
 
 >>> ae = amico.Evaluation()

@@ -1,6 +1,6 @@
 # How to install AMICO
 ## Install from PyPI
-```Shell
+```bash
 $ pip install dmri-amico
 ```
 
@@ -22,14 +22,14 @@ $ pip install dmri-amico
     To build and install `dmri-amico` you need to have the OpenBLAS library on your system. Other BLAS/LAPACK libraries may be supported in the future (e.g. Intel MKL).
 
 ### 1. Clone the repository
-```Shell
+```bash
 $ git clone https://github.com/daducci/AMICO.git
 $ cd AMICO
 ```
 
 ### 2. Set up OpenBLAS
 The location of the OpenBLAS library must be specified in a `site.cfg` file located in the root of the `AMICO` repository. You can use the `setup_site.py` helper script, which will create a `site.cfg` file with the specified settings for you.
-```Shell
+```bash
 # Help
 $ python setup_site.py --help
 usage: setup_site.py [-h] section library library_dir include_dir
@@ -65,13 +65,13 @@ include_dirs = /home/OpenBLAS/include
 ```
 
 ### 3. Build the wheel
-```Shell
+```bash
 $ pip install build
 $ python -m build -w
 ```
 
 ### 4. Repair the wheel (add runtime dependency on OpenBLAS)
-```Shell
+```bash
 # Windows
 $ pip install delvewheel
 $ delvewheel repair --add-path OpenBLAS\bin -w dest_dir -v wheel_to_repair.whl
@@ -87,6 +87,6 @@ $ LD_LIBRARY_PATH=OpenBLAS/lib auditwheel repair --plat target_platform -w dest_
 ```
 
 ### 5. Install the `dmri-amico` repaired wheel
-```Shell
+```bash
 $ pip install dest_dir/repaired_wheel.whl
 ```

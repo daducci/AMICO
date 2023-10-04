@@ -14,7 +14,7 @@ Download the sample dataset available from the BrainHack repository:
 	These data were kindly provided by Dr. Andrada Ianus and Dr. Noam Shemesh were acquired in the Preclinical MRI Lab at Champalimaud Foundation.
 
 After unzipping, your directory structure should look like this:
-```Shell
+```bash
 SANDI_Data_BrainHack_Shared/
 ├── bvals.bval
 ├── bvecs.bvec
@@ -28,13 +28,13 @@ Usually, DWI images need some preprocessing (e.g., eddy current correction, head
 ## Run `AMICO`
 ### Initialization
 Move into the `SANDI_Data_BrainHack_Shared` directory and run a Python interpreter:
-```Shell
+```bash
 $ cd SANDI_Data_BrainHack_Shared
 $ python
 ```
 
 In the Python shell, import the `AMICO` library and setup/initialize the framework:
-```Python
+```python
 >>> import amico
 >>> amico.setup()
 
@@ -45,17 +45,17 @@ In the Python shell, import the `AMICO` library and setup/initialize the framewo
 	This step will precompute all the necessary rotation matrices and store them in `~/.dipy`. This initialization step is necessary only the first time you use `AMICO`.
 
 Now you can instantiate an `Evaluation` object and start the analysis:
-```Python
+```python
 >>> ae = amico.Evaluation()
 ```
 
 To fit the `SANDI` model you also need to perform a directional average on your data. You can do it by setting the `doDirectionalAverage` flag to `True` with the `set_config()` method:
-```Python
+```python
 >>> ae.set_config('doDirectionalAverage', True)
 ```
 
 You can generate the scheme file from the bvals/bvecs files and values of delta and small_delta of your acquisition with the `sandi2scheme()` method:
-```Python
+```python
 >>> delta = 0.02 # Time between pulses [s]
 >>> small_delta = 0.0055 # Pulses duration in [s]
 >>> TE = 0.03 # Echo time if different from delta+small_delta [s] (optional)
@@ -71,7 +71,7 @@ You can generate the scheme file from the bvals/bvecs files and values of delta 
 
 ### Load the data
 Load your data with the `load_data()` method:
-```Python
+```python
 >>> ae.load_data(dwi_filename='MouseData_Slice.nii', scheme_filename='SANDI_scheme.txt', mask_filename='MouseData_Slice_Mask.nii', b0_thr=10)
 
 -> Loading data:
@@ -101,7 +101,7 @@ Load your data with the `load_data()` method:
 
 ### Compute the response functions
 Set the `SANDI` model with the `set_model()` method and generate the response functions with the `generate_kernels()` method:
-```Python
+```python
 >>> ae.set_model('SANDI')
 >>> d_is = 3e-3 # Intra-soma diffusivity [mm^2/s]
 >>> Rs = np.array([1.55555556e-06, 3.44444444e-06, 4.44444444e-06, 5.33333333e-06, 6.00000000e-06, 6.55555556e-06, 8.11111111e-06, 9.55555556e-06, 1.16666667e-05]) # Radii of the soma [meters]
@@ -118,7 +118,7 @@ Set the `SANDI` model with the `set_model()` method and generate the response fu
 	- You need to compute the reponse functions only once per study; in fact, scheme files with same b-values but different number/distribution of samples on each shell will result in the same precomputed kernels (which are actually computed at higher angular resolution). The method `generate_kernels()` does not recompute the kernels if they already exist, unless the flag `regenerate` is set, e.g. `generate_kernels(regenerate=True)`.
 
 Load the precomputed kernels (at higher resolution) and adapt them to the actual scheme (distribution of points on each shell) of the current subject with the `load_kernels()` method:
-```Python
+```python
 >>> ae.load_kernels()
 
 -> Resampling LUT for subject ".":
@@ -127,7 +127,7 @@ Load the precomputed kernels (at higher resolution) and adapt them to the actual
 
 ### Fit the model to the data
 Fit the model to the data with the `fit()` method:
-```Python
+```python
 >>> lambda1 = 0 # L1 regularization term (MUST be varied according to data)
 >>> lambda2 = 5e-3 # L2 regularization term (MUST be varied according to data)
 >>> ae.set_solver(lambda1=lambda1, lambda2=lambda2)
@@ -141,7 +141,7 @@ Fit the model to the data with the `fit()` method:
 
 ### Save the results
 Finally, save the results as NIfTI images with the `save_results()` method:
-```Python
+```python
 >>> ae.save_results(save_dir_avg=True)
 
 -> Saving output to "AMICO/SANDI/*":
@@ -159,7 +159,7 @@ Finally, save the results as NIfTI images with the `save_results()` method:
 
 ## Visualize the results
 🎉Congratulations! You have successfully fitted the `SANDI` model to your data.🎉 You will find the estimated parameters in the `SANDI_Data_BrainHack_Shared/AMICO/SANDI` directory:
-```Shell
+```bash
 SANDI_Data_BrainHack_Shared/AMICO/SANDI/
 ├── config.pickle
 ├── dir_avg.scheme

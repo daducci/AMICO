@@ -1,6 +1,6 @@
 # Models parameters
 You can set the model parameters by calling the `set()` method of the `model` attribute of the `Evaluation` class:
-```Python
+```python
 >>> import amico
 
 >>> ae = amico.Evaluation()

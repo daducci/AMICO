@@ -1,4 +1,4 @@
-```text
+```plaintext
 ################################################################################
                         AMICO software license agreement
                           Version 2.0.0, 24 July 2023

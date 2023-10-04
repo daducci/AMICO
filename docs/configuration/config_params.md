@@ -1,6 +1,6 @@
 # Configuration parameters
 You can set the configuration parameters of `AMICO` by calling the `set_config()` method of the `Evaluation` class:
-```Python
+```python
 >>> import amico
 
 >>> ae = amico.Evaluation()

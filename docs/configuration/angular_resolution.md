@@ -5,7 +5,7 @@ This tutorial illustrates how to __change the resolution of the look-up tables (
 In order to change the resolution of the LUT internally used by AMICO, we can specify the desired number of directions using the parameter `ndirs` of the `generate_kernels()` method.
 
 For example, if we want to instruct AMICO to use only __32761 directions__ (over the half-sphere) to discretize the possible orientations of the fiber populations in each voxel, we sh. The modified code should be like this:
-```Python
+```python
 >>> import amico
 
 >>> amico.setup()

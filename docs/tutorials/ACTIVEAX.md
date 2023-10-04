@@ -12,7 +12,7 @@ Download the sample DWI data:
 - [DRCMR_MAP_ActiveAx4CCfit_exvivo_E2503_Mbrain1_PGSE_b3091_3b0_N90.nii.gz](https://osf.io/download/fkpm3/)
 
 Merge the downloaded datasets into one:
-```Shell
+```bash
 $ export FSLOUTPUTTYPE=NIFTI_GZ
 $ fslmerge -t DWI.nii.gz DRCMR_MAP_ActiveAx4CCfit_exvivo_E2503_Mbrain1_PGSE_b13183_3b0_N90.nii.gz DRCMR_MAP_ActiveAx4CCfit_exvivo_E2503_Mbrain1_PGSE_b1925_3b0_N90.nii.gz DRCMR_MAP_ActiveAx4CCfit_exvivo_E2503_Mbrain1_PGSE_b1931_3b0_N90.nii.gz DRCMR_MAP_ActiveAx4CCfit_exvivo_E2503_Mbrain1_PGSE_b3091_3b0_N90.nii.gz
 ```
@@ -23,7 +23,7 @@ Download the scheme file and the binary mask of the corpus callosum:
 - [ActiveAx_Tutorial_MidSagCC.nii](http://hardi.epfl.ch/static/data/AMICO_demos/ActiveAx_Tutorial_MidSagCC.nii)
 
 Move all the files into a directory named `sub_01`. Your directory structure should look like this:
-```Shell
+```bash
 sub_01/
 ├── ActiveAxG140_PM.scheme1
 ├── ActiveAx_Tutorial_MidSagCC.nii
@@ -40,13 +40,13 @@ Usually, DWI images need some preprocessing (e.g., eddy current correction, head
 ## Run `AMICO`
 ### Initialization
 Move into the `sub_01` directory and run a Python interpreter:
-```Shell
+```bash
 $ cd sub_01
 $ python
 ```
 
 In the Python shell, import the `AMICO` library and setup/initialize the framework:
-```Python
+```python
 >>> import amico
 >>> amico.setup()
 
@@ -57,13 +57,13 @@ In the Python shell, import the `AMICO` library and setup/initialize the framewo
 	This step will precompute all the necessary rotation matrices and store them in `~/.dipy`. This initialization step is necessary only the first time you use `AMICO`.
 
 Now you can instantiate an `Evaluation` object and start the analysis:
-```Python
+```python
 >>> ae = amico.Evaluation()
 ```
 
 ### Load the data
 Load your data with the `load_data()` method:
-```Python
+```python
 >>> ae.load_data(dwi_filename='DWI.nii.gz', scheme_filename='ActiveAxG140_PM.scheme1', mask_filename='ActiveAx_Tutorial_MidSagCC.nii', b0_thr=0)
 
 -> Loading data:
@@ -87,7 +87,7 @@ Load your data with the `load_data()` method:
 
 ### Compute the response functions
 Set the `CylinderZeppelinBall` model with the `set_model()` method and generate the response functions with the `generate_kernels()` method:
-```Python
+```python
 >>> ae.set_model('CylinderZeppelinBall')
 >>> ae.generate_kernels(regenerate=True)
 
@@ -98,7 +98,7 @@ Set the `CylinderZeppelinBall` model with the `set_model()` method and generate 
 	You need to compute the reponse functions only once per study; in fact, scheme files with same b-values but different number/distribution of samples on each shell will result in the same precomputed kernels (which are actually computed at higher angular resolution). The method `generate_kernels()` does not recompute the kernels if they already exist, unless the flag `regenerate` is set, e.g. `generate_kernels(regenerate=True)`.
 
 Load the precomputed kernels (at higher resolution) and adapt them to the actual scheme (distribution of points on each shell) of the current subject with the `load_kernels()` method:
-```Python
+```python
 >>> ae.load_kernels()
 
 -> Resampling LUT for subject ".":
@@ -107,7 +107,7 @@ Load the precomputed kernels (at higher resolution) and adapt them to the actual
 
 ### Fit the model to the data
 Fit the model to the data with the `fit()` method:
-```Python
+```python
 >>> ae.fit()
 
 -> Estimating principal directions (OLS):
@@ -119,7 +119,7 @@ Fit the model to the data with the `fit()` method:
 
 ### Save the results
 Finally, save the results as NIfTI images with the `save_results()` method:
-```Python
+```python
 >>> ae.save_results()
 
 -> Saving output to "AMICO/CylinderZeppelinBall/*":
@@ -133,7 +133,7 @@ Finally, save the results as NIfTI images with the `save_results()` method:
 
 ## Visualize the results
 🎉Congratulations! You have successfully fitted the `ActiveAx` model to your data.🎉 You will find the estimated parameters in the `sub_01/AMICO/CylinderZeppelinBall` directory:
-```Shell
+```bash
 sub_01/AMICO/CylinderZeppelinBall/
 ├── config.pickle
 ├── fit_a.nii.gz
