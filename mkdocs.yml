@@ -34,6 +34,7 @@ theme:
     - ini
     - plaintext
   locale: en
+  logo: images/logo_DICE.png
   # palette:
   #   # Palette toggle for light mode
   #   - media: "(prefers-color-scheme: light)"
