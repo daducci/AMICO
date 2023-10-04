@@ -4,7 +4,7 @@
 With this tutorial you will learn how to fit the `SANDI` model to a sample dataset.
 !!! important
 	- Default setting we present here should be used only on data with at least 5 b shells. Although we strongly discourage it, to fit the model to data with less b shells, one or more model parameters must be fixed (e.g., for data with only 3 shells, 2 of the 5 model parameters must be fixed to a reasonable value).
-	- Interpretation of the compartments of this model as meaningful biological structures holds under specific assumptions that can be valid in specific experimental regimes (see [Palombo, Marco, et al. 2020](https://doi.org/10.1016/j.neuroimage.2020.116835)). In particular, for in vivo studies, diffusion time <~25 ms and some data at b>3000s/mm^2. Although we strongly discourage it, the model can be used to analyze also data outside this experimental regime, but then the biological interpretation of the model parameters should be taken vary carefully.
+	- Interpretation of the compartments of this model as meaningful biological structures holds under specific assumptions that can be valid in specific experimental regimes (see [Palombo, Marco, et al. 2020](https://doi.org/10.1016/j.neuroimage.2020.116835)). In particular, for in vivo studies, diffusion time <~25ams and some data at b>3000$s/mm^2$. Although we strongly discourage it, the model can be used to analyze also data outside this experimental regime, but then the biological interpretation of the model parameters should be taken vary carefully.
 
 ## Prepare the dataset
 Download the sample dataset available from the BrainHack repository:
