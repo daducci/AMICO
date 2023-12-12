@@ -17,7 +17,7 @@ jobs:
     runs-on: windows-2019
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.0.0
+        uses: actions/checkout@v4.1.1
 
       - name: Download compiled OpenBLAS
         run: |
@@ -29,7 +29,7 @@ jobs:
           python setup_site.py openblas libopenblas ${{ github.workspace }}\OpenBLAS\lib ${{ github.workspace }}\OpenBLAS\include
 
       - name: Build wheel ${{ matrix.py }}-${{ matrix.arch[1] }}
-        uses: pypa/cibuildwheel@v2.15.0
+        uses: pypa/cibuildwheel@v2.16.2
         env:
           CIBW_PLATFORM: windows
           CIBW_BUILD: ${{ matrix.py }}-${{ matrix.arch[1] }}
@@ -56,10 +56,10 @@ jobs:
     runs-on: macos-11
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.0.0
+        uses: actions/checkout@v4.1.1
 
       - name: Download compiled OpenBLAS
-        uses: dawidd6/action-download-artifact@v2.27.0
+        uses: dawidd6/action-download-artifact@v2.28.0
         with:
           workflow: compile_openblas_macos_x86_64.yml
           workflow_conclusion: success
@@ -73,7 +73,7 @@ jobs:
           python3 setup_site.py openblas openblas ${{ github.workspace }}/OpenBLAS/lib ${{ github.workspace }}/OpenBLAS/include
 
       - name: Build wheel ${{ matrix.py }}-${{ matrix.arch[1] }}
-        uses: pypa/cibuildwheel@v2.15.0
+        uses: pypa/cibuildwheel@v2.16.2
         env:
           MACOSX_DEPLOYMENT_TARGET: 10.9
           CIBW_PLATFORM: macos
@@ -110,10 +110,10 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.0.0
+        uses: actions/checkout@v4.1.1
 
       - name: Download compiled OpenBLAS
-        uses: dawidd6/action-download-artifact@v2.27.0
+        uses: dawidd6/action-download-artifact@v2.28.0
         with:
           workflow: compile_openblas_linux.yml
           workflow_conclusion: success
@@ -132,7 +132,7 @@ jobs:
           platforms: ${{ matrix.arch[2] }}
 
       - name: Build wheel ${{ matrix.py }}-${{ matrix.arch[1] }}
-        uses: pypa/cibuildwheel@v2.15.0
+        uses: pypa/cibuildwheel@v2.16.2
         env:
           CIBW_PLATFORM: linux
           CIBW_BUILD: ${{ matrix.py }}-${{ matrix.arch[1] }}
@@ -152,7 +152,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.0.0
+        uses: actions/checkout@v4.1.1
 
       - name: Set up the configuration file
         run: |
