@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function
-
 from .core import Evaluation, setup
 from .util import set_verbose, get_verbose
 from . import core
