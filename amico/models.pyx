@@ -38,13 +38,13 @@ cdef void _init_multithread_progress(int nthreads):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _update_multithread_progress(int thread_id) nogil:
+cdef void _update_multithread_progress(int thread_id) noexcept nogil:
     global _MULTITHREAD_PROGRESS_VIEW
     _MULTITHREAD_PROGRESS_VIEW[thread_id] += 1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _compute_rmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *y_est_view, double *rmse_view) nogil:
+cdef void _compute_rmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *y_est_view, double *rmse_view) noexcept nogil:
     cdef Py_ssize_t i, j
     for i in range(A_view.shape[0]):
         y_est_view[i] = 0.0
@@ -55,7 +55,7 @@ cdef void _compute_rmse(double [::1, :]A_view, double [::1]y_view, double [::1]x
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _compute_nrmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *y_est_view, double *nrmse_view) nogil:
+cdef void _compute_nrmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *y_est_view, double *nrmse_view) noexcept nogil:
     cdef double den = 0.0
     cdef Py_ssize_t i, j
     for i in range(A_view.shape[0]):
