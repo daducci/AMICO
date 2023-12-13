@@ -24,7 +24,7 @@ compile_openblas_macos_arm64_task:
 build_macos_arm64_wheels_task:
   name: Build MacOS arm64 wheels
   alias: build_macos_arm64_wheels
-  only_if: ${CIRRUS_CHANGE_IN_REPO} != ${CIRRUS_LAST_GREEN_CHANGE}
+  only_if: ${CIRRUS_CHANGE_IN_REPO} != ${CIRRUS_LAST_GREEN_CHANGE} && (${CIRRUS_BRANCH} == 'master' || ${CIRRUS_BRANCH} =~ 'release/.*')
   macos_instance:
     image: ghcr.io/cirruslabs/macos-monterey-xcode:latest
   matrix:
@@ -62,7 +62,7 @@ build_macos_arm64_wheels_task:
 
 trigger_github_workflow_task:
   name: Trigger GitHub workflow
-  only_if: ${CIRRUS_CHANGE_IN_REPO} != ${CIRRUS_LAST_GREEN_CHANGE}
+  only_if: ${CIRRUS_CHANGE_IN_REPO} != ${CIRRUS_LAST_GREEN_CHANGE} && (${CIRRUS_BRANCH} == 'master' || ${CIRRUS_BRANCH} =~ 'release/.*')
   depends_on: build_macos_arm64_wheels
   macos_instance:
     image: ghcr.io/cirruslabs/macos-monterey-xcode:latest
