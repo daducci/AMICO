@@ -29,9 +29,9 @@ def setup(lmax: int=12) -> None:
     ----------
     lmax : int, default=12
         Maximum SH order to use for the rotation phase.
-    
-    !!! warning
-        Change `lmax` only if you know what you are doing.
+
+        !!! warning
+            Change `lmax` only if you know what you are doing.
     """
     LOG('\n-> Precomputing rotation matrices:')
     dirs = valid_dirs()
@@ -58,9 +58,9 @@ class Evaluation :
             The path (relative to the `study_path`) to the subject folder.
         output_path : Union[None, str], default=None
             The path to the folder where the output will be saved.
-        
-        !!! note
-            If `output_path = None`, the output will be saved in `study_path/subject/AMICO/<MODEL>`.
+
+            !!! note
+                If `output_path = None`, the output will be saved in `study_path/subject/AMICO/<MODEL>`.
         """
         self.niiDWI        = None    # set by "load_data" method
         self.niiDWI_img    = None
@@ -312,8 +312,8 @@ class Evaluation :
         model_name : str
             The name of the model.
 
-        !!! note
-            `model_name` must match a class name in the `amico.models` module.
+            !!! note
+                `model_name` must match a class name in the `amico.models` module.
         """
         # Call the specific model constructor
         if hasattr(amico.models, model_name ) :
@@ -339,16 +339,17 @@ class Evaluation :
         lambda2 : float
             The regularization parameter for the L2-norm of the solution.
 
-        !!! note
-            A model should provide a `set_solver()` function to set these parameters. Non-existing parameters will be ignored.  
-            Currently supported models and default values for `lambda1` and `lambda2` are:
+        Note
+        ----
+        A model should provide a `set_solver()` function to set these parameters. Non-existing parameters will be ignored.  
+        Currently supported models and default values for `lambda1` and `lambda2` are:
 
-            | __Model__            | __lambda1__ | __lambda2__ |
-            |:---------------------:|:----------:|:-----------:|
-            | CylinderZeppelinBall | 0           | 4           |
-            | NODDI                | 5e-1        | 1e-3        |
-            | FreeWater            | 0           | 1e-3        |
-            | SANDI                | 0           | 5e-3        |
+        | __Model__            | __lambda1__ | __lambda2__ |
+        |:---------------------:|:----------:|:-----------:|
+        | CylinderZeppelinBall | 0           | 4           |
+        | NODDI                | 5e-1        | 1e-3        |
+        | FreeWater            | 0           | 1e-3        |
+        | SANDI                | 0           | 5e-3        |
         """
         if self.model is None :
             ERROR( 'Model not set; call "set_model()" method first' )
