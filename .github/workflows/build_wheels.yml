@@ -109,6 +109,11 @@ jobs:
           path: OpenBLAS
           search_artifacts: true
 
+      - name: Install requirements
+        run: |
+          brew install pipx
+          brew install python@3.11
+
       - name: Set up the configuration file
         run: |
           python3 setup_site.py openblas openblas ${{ github.workspace }}/OpenBLAS/lib ${{ github.workspace }}/OpenBLAS/include
