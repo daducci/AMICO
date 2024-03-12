@@ -47,7 +47,7 @@ jobs:
       - name: Download macos_arm64 wheels
         uses: dawidd6/action-download-artifact@v2.28.0
         with:
-          workflow: macos_arm64_wheels.yml
+          workflow: build_wheels.yml
           workflow_conclusion: success
           commit: ${{github.event.pull_request.head.sha}}
           name: wheels_macos_arm64
@@ -134,7 +134,7 @@ jobs:
       - name: Download macos_arm64 wheels
         uses: dawidd6/action-download-artifact@v2.28.0
         with:
-          workflow: macos_arm64_wheels.yml
+          workflow: build_wheels.yml
           workflow_conclusion: success
           commit: ${{github.event.pull_request.head.sha}}
           name: wheels_macos_arm64
