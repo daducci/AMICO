@@ -1,18 +1,19 @@
-name: Compile OpenBLAS on MacOS x86_64
-run-name: Compile OpenBLAS on MacOS x86_64 - ${{ github.sha }}
+name: Compile OpenBLAS on MacOS
+run-name: Compile OpenBLAS on MacOS - ${{ github.sha }}
 on: workflow_dispatch
 jobs:
   compile_openblas:
     strategy:
       matrix:
         arch:
-          - [x86_64, SANDYBRIDGE]
+          - [x86_64, SANDYBRIDGE, 10.9, macos-11]
+          - [arm64, ARMV8, 11.0, macos-14]
     name: ${{ matrix.arch[0] }}
-    runs-on: macos-11
+    runs-on: ${{ matrix.arch[3] }}
     steps:
       - name: Compile OpenBLAS
         env:
-          MACOSX_DEPLOYMENT_TARGET: "10.9"
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.arch[2] }}
         run: |
           curl -L -o OpenBLAS-0.3.25.tar.gz https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.25/OpenBLAS-0.3.25.tar.gz
           tar -xzf OpenBLAS-0.3.25.tar.gz
