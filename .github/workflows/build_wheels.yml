@@ -29,7 +29,7 @@ jobs:
           python setup_site.py openblas libopenblas ${{ github.workspace }}\OpenBLAS\lib ${{ github.workspace }}\OpenBLAS\include
 
       - name: Build wheel ${{ matrix.py }}-${{ matrix.arch[1] }}
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.17.0
         env:
           CIBW_PLATFORM: windows
           CIBW_BUILD: ${{ matrix.py }}-${{ matrix.arch[1] }}
@@ -112,14 +112,13 @@ jobs:
       - name: Install requirements
         run: |
           brew install pipx
-          brew install python@3.11
 
       - name: Set up the configuration file
         run: |
           python3 setup_site.py openblas openblas ${{ github.workspace }}/OpenBLAS/lib ${{ github.workspace }}/OpenBLAS/include
 
       - name: Build wheel ${{ matrix.config.py }}-${{ matrix.config.arch[1] }}
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.17.0
         env:
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.config.arch[2] }}
           CIBW_PLATFORM: macos
@@ -168,7 +167,7 @@ jobs:
           platforms: ${{ matrix.arch[2] }}
 
       - name: Build wheel ${{ matrix.py }}-${{ matrix.arch[1] }}
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.17.0
         env:
           CIBW_PLATFORM: linux
           CIBW_BUILD: ${{ matrix.py }}-${{ matrix.arch[1] }}
