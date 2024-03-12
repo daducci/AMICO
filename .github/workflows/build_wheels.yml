@@ -109,7 +109,8 @@ jobs:
           path: OpenBLAS
           search_artifacts: true
 
-      - name: Install requirements
+      - name: Install pipx # NOTE: required only for arm64
+        if: startsWith(matrix.config.arch[0], 'arm64')
         run: |
           brew install pipx
 
