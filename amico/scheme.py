@@ -5,8 +5,6 @@ from re import match as re_match
 from amico.util import LOG, NOTE, WARNING, ERROR
 from amico.synthesis import _GAMMA
 
-DEBUG = True
-
 class Scheme :
     """A class to hold information about an acquisition scheme.
 
@@ -88,13 +86,6 @@ class Scheme :
             self.b = self.b_par + 2*self.b_perp
         else :
             ERROR( 'Unrecognized scheme format' )
-
-        if DEBUG:
-            print('version', self.version)
-            print('bvecs', self.raw[:5, :3])
-            print('bpar', self.b_par[:5])
-            print('bperp', self.b_perp[:5])
-            print('b', self.b[:5])
 
         # store information about the volumes
         self.b0_thr    = b0_thr
