@@ -133,13 +133,20 @@ class BaseTensor(ABC):
         signal : ndarray
             The computed signal.
         """
-        evecs = np.eye(3)
-        d = np.linalg.multi_dot([evecs, np.diag(evals), evecs.T])
-        g_dir = self.scheme.raw[:, :3]
-        b = self.scheme.b
-        signal = np.zeros(len(self.scheme.raw))
-        for i, g in enumerate(g_dir):
-            signal[i] = np.exp(-b[i] * np.linalg.multi_dot([g.T, d, g]))
+        if self.scheme.version in [0, 1]:
+            evecs = np.eye(3)
+            d = np.linalg.multi_dot([evecs, np.diag(evals), evecs.T])
+            g_dir = self.scheme.raw[:, :3]
+            b = self.scheme.b
+            signal = np.zeros(len(self.scheme.raw))
+            for i, g in enumerate(g_dir):
+                signal[i] = np.exp(-b[i] * np.linalg.multi_dot([g.T, d, g]))
+        elif self.scheme.version == 2:
+            g_dir = self.scheme.raw[:, :3]
+            d = np.linalg.multi_dot([evecs, np.diag(evals), evecs.T])
+            signal = np.zeros(len(self.scheme.raw))
+            for i, g in enumerate(g_dir):
+                signal[i] = np.exp(-((self.scheme.b_par - self.scheme.b_perp) * np.linalg.multi_dot([g.T, d, g])) - self.scheme.b_perp * (evals[2] - evals[1]) - (self.scheme.b_par - self.scheme.b_perp) - self.scheme.b_perp * evals[1])
         return signal
 
 # TENSOR
