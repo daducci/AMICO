@@ -142,6 +142,7 @@ class BaseTensor(ABC):
             for i, g in enumerate(g_dir):
                 signal[i] = np.exp(-b[i] * np.linalg.multi_dot([g.T, d, g]))
         elif self.scheme.version == 2:
+            evecs = np.eye(3)
             g_dir = self.scheme.raw[:, :3]
             d = np.linalg.multi_dot([evecs, np.diag(evals), evecs.T])
             signal = np.zeros(len(self.scheme.raw))
