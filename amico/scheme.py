@@ -5,6 +5,8 @@ from re import match as re_match
 from amico.util import LOG, NOTE, WARNING, ERROR
 from amico.synthesis import _GAMMA
 
+DEBUG = True
+
 class Scheme :
     """A class to hold information about an acquisition scheme.
 
@@ -79,8 +81,20 @@ class Scheme :
         elif self.raw.shape[1] == 7 :
             self.version = 1
             self.b = ( _GAMMA * self.raw[:,3] * self.raw[:,5] )**2 * (self.raw[:,4] - self.raw[:,5]/3.0) * 1e-6 # in mm^2/s
+        elif self.raw.shape[1] == 5 :
+            self.version = 2
+            self.b_par = self.raw[:,3]
+            self.b_perp = self.raw[:,4]
+            self.b = self.b_par + 2*self.b_perp
         else :
             ERROR( 'Unrecognized scheme format' )
+
+        if DEBUG:
+            print('version', self.version)
+            print('bvecs', self.raw[:5, :3])
+            print('bpar', self.b_par[:5])
+            print('bperp', self.b_perp[:5])
+            print('b', self.b[:5])
 
         # store information about the volumes
         self.b0_thr    = b0_thr
@@ -111,11 +125,14 @@ class Scheme :
                 shell['Delta'] = None
                 shell['delta'] = None
                 shell['TE']    = None
-            else :
+            elif self.version == 1 :
                 shell['G']     = schemeUnique[i][0]
                 shell['Delta'] = schemeUnique[i][1]
                 shell['delta'] = schemeUnique[i][2]
                 shell['TE']    = schemeUnique[i][3]
+            elif self.version == 2 :
+                shell['b_par'] = schemeUnique[i][0]
+                shell['b_perp'] = schemeUnique[i][1]
 
             shell['idx']  = np.where((tmp == schemeUnique[i]).all(axis=1))[0]
             shell['grad'] = self.raw[shell['idx'],0:3]
@@ -148,6 +165,13 @@ class Scheme :
                 scheme_table[shell['idx'], 4 ]      = shell['Delta']
                 scheme_table[shell['idx'], 5 ]      = shell['delta']
                 scheme_table[shell['idx'], 6 ]      = shell['TE']
+
+        if self.version == 2:
+            scheme_table = np.zeros([self.b0_count + self.dwi_count, 5])
+            for shell in self.shells:
+                scheme_table[shell['idx'], 0:3 ]    = shell['grad']
+                scheme_table[shell['idx'], 3 ]      = shell['b_par']
+                scheme_table[shell['idx'], 4 ]      = shell['b_perp']
                     
         return scheme_table
              

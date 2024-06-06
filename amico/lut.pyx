@@ -370,17 +370,20 @@ def create_high_resolution_scheme( scheme, b_scale = 1 ) :
         If needed, apply a scaling to the b-values (default : 1)
     """
     n = len( scheme.shells )
-    raw = np.zeros( (500*n, 4 if scheme.version==0 else 7) )
+    raw = np.zeros( (500*n, 4 if scheme.version==0 else 7 if scheme.version==1 else 5) )
     row = 0
     for i in range(n) :
         raw[row:row+500,0:3] = grad
         if scheme.version == 0 :
             raw[row:row+500,3] = scheme.shells[i]['b'] * b_scale
-        else :
+        elif scheme.version == 1 :
             raw[row:row+500,3] = scheme.shells[i]['G']
             raw[row:row+500,4] = scheme.shells[i]['Delta']
             raw[row:row+500,5] = scheme.shells[i]['delta']
             raw[row:row+500,6] = scheme.shells[i]['TE']
+        elif scheme.version == 2 :
+            raw[row:row+500,3] = scheme.shells[i]['b_par'] # * b_scale
+            raw[row:row+500,4] = scheme.shells[i]['b_perp'] # * b_scale
         row += 500
 
     return amico.scheme.Scheme( raw )
