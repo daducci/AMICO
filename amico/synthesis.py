@@ -147,7 +147,8 @@ class BaseTensor(ABC):
             d = np.linalg.multi_dot([evecs, np.diag(evals), evecs.T])
             signal = np.zeros(len(self.scheme.raw))
             for i, g in enumerate(g_dir):
-                signal[i] = np.exp(-(self.scheme.b_par[i] - self.scheme.b_perp[i]) * np.linalg.multi_dot([g.T, d, g]) - self.scheme.b_perp[i] * (evals[2] - evals[1]) - (self.scheme.b_par[i] - self.scheme.b_perp[i]) - self.scheme.b_perp[i] * evals[1])
+                dot = np.linalg.multi_dot([g.T, d, g])
+                signal[i] = np.exp(-(self.scheme.b_par[i] - self.scheme.b_perp[i]) * dot / np.linalg.norm(dot) * (evals[2] - evals[1]) - self.scheme.b_perp[i] * (evals[2] - evals[1]) - (self.scheme.b_par[i] - self.scheme.b_perp[i]) - self.scheme.b_perp[i] * evals[1])
         return signal
 
 # TENSOR
