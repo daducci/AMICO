@@ -248,7 +248,14 @@ class StickZeppelinBall( BaseModel ) :
         self.d_isos      = np.array([ 3.0E-3 ])                             # Isotropic diffusivitie(s) [mm^2/s]
 
 
-    def set( self, d_par, d_perps_zep, d_isos, d_par_zep=None, d_perp=0 ) :
+    def set(
+        self,
+        d_par=1.7E-3,
+        d_perps_zep=np.array([1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]),
+        d_isos=np.array([3.0E-3]),
+        d_par_zep=1.7E-3,
+        d_perp=0
+        ):
         self.d_par = d_par
         self.d_perp = d_perp
         if d_par_zep is None:
@@ -384,7 +391,13 @@ class CylinderZeppelinBall( BaseModel ) :
         self.isExvivo  = False                                                      # Add dot compartment to dictionary (exvivo data)
 
 
-    def set( self, d_par, Rs, d_perps, d_isos ) :
+    def set(
+        self,
+        d_par=0.6E-3,
+        Rs=np.concatenate(([0.01], np.linspace(0.5, 8.0, 20))) * 1E-6,
+        d_perps=np.array([1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]),
+        d_isos=np.array([2.0E-3])
+        ):
         self.d_par   = d_par
         self.Rs      = np.array(Rs)
         self.d_perps = np.array(d_perps)
@@ -644,11 +657,18 @@ class NODDI( BaseModel ) :
         self.isExvivo  = False
 
 
-    def set( self, dPar, dIso, IC_VFs, IC_ODs, isExvivo ):
+    def set(
+        self,
+        dPar=1.7E-33,
+        dIso=3.0E-3,
+        IC_VFs=np.linspace(0.1, 0.99, 12),
+        IC_ODs=np.hstack((np.array([0.03, 0.06]), np.linspace(0.09, 0.99, 10))),
+        isExvivo=False
+        ):
         self.dPar      = dPar
         self.dIso      = dIso
-        self.IC_VFs    = np.array( IC_VFs )
-        self.IC_ODs    = np.array( IC_ODs )
+        self.IC_VFs    = np.array( IC_VFs ) if isinstance(IC_VFs, list) else IC_VFs
+        self.IC_ODs    = np.array( IC_ODs ) if isinstance(IC_ODs, list) else IC_ODs
         self.isExvivo  = isExvivo
         if isExvivo:
             self.maps_name.append('dot')
@@ -969,7 +989,13 @@ class FreeWater( BaseModel ) :
             self.d_isos  = [ 2.5E-3 ]                   # Isotropic diffusivities [mm^2/s]
 
 
-    def set( self, d_par, d_perps, d_isos, type ) :
+    def set(
+        self,
+        d_par=1.0E-3,
+        d_perps=np.linspace(0.1, 1.0, 10) * 1E-3,
+        d_isos=np.array([2.5E-3]),
+        type='Human'
+        ):
         self.d_par   = d_par
         self.d_perps = d_perps
         self.d_isos  = d_isos
@@ -1296,7 +1322,13 @@ class SANDI( BaseModel ) :
         self.d_isos = np.linspace(0.25,3.0,5) * 1E-3    # Extra-cellular isotropic mean diffusivitie(s) [mm^2/s]
 
 
-    def set( self, d_is, Rs, d_in, d_isos ) :
+    def set(
+        self,
+        d_is=3.0E-3,
+        Rs=np.linspace(1.0, 12.0, 5) * 1E-6,
+        d_in=np.linspace(0.25, 3.0, 5) * 1E-3,
+        d_isos=np.linspace(0.25, 3.0, 5) * 1E-3
+        ):
         self.d_is   = d_is
         self.Rs     = np.array(Rs)
         self.d_in   = np.array(d_in)
