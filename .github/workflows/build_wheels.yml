@@ -9,7 +9,7 @@ jobs:
   build_windows_wheels:
     strategy:
       matrix:
-        py: [cp36, cp37, cp38, cp39, cp310, cp311]
+        py: [cp36, cp37, cp38, cp39, cp310, cp311, cp312]
         arch:
           - [AMD64, win_amd64, x64]
           - [x86, win32, x86]
@@ -21,7 +21,7 @@ jobs:
 
       - name: Download compiled OpenBLAS
         run: |
-          curl -L -o OpenBLAS-0.3.25.zip https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.25/OpenBLAS-0.3.25-${{ matrix.arch[2] }}.zip
+          curl -L -o OpenBLAS-0.3.25.zip https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.27/OpenBLAS-0.3.27-${{ matrix.arch[2] }}.zip
           7z x OpenBLAS-0.3.25.zip -o"OpenBLAS"
 
       - name: Set up the configuration file
@@ -76,6 +76,10 @@ jobs:
               arch: [x86_64, macosx_x86_64, 10.9, macos-11]
             },
             {
+              py: cp312,
+              arch: [x86_64, macosx_x86_64, 10.9, macos-11]
+            },
+            {
               py: cp38,
               arch: [arm64, macosx_arm64, 11.0, macos-14]
             },
@@ -89,6 +93,10 @@ jobs:
             },
             {
               py: cp311,
+              arch: [arm64, macosx_arm64, 11.0, macos-14]
+            },
+            {
+              py: cp312,
               arch: [arm64, macosx_arm64, 11.0, macos-14]
             }
           ]
@@ -138,7 +146,7 @@ jobs:
   build_linux_wheels:
     strategy:
       matrix:
-        py: [cp36, cp37, cp38, cp39, cp310, cp311]
+        py: [cp36, cp37, cp38, cp39, cp310, cp311, cp312]
         arch:
           - [x86_64, manylinux_x86_64, amd64]
           - [aarch64, manylinux_aarch64, arm64]
