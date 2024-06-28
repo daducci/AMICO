@@ -53,31 +53,31 @@ jobs:
           [
             {
               py: cp36,
-              arch: [x86_64, macosx_x86_64, 10.9, macos-11]
+              arch: [x86_64, macosx_x86_64, 10.9, macos-12]
             },
             {
               py: cp37,
-              arch: [x86_64, macosx_x86_64, 10.9, macos-11]
+              arch: [x86_64, macosx_x86_64, 10.9, macos-12]
             },
             {
               py: cp38,
-              arch: [x86_64, macosx_x86_64, 10.9, macos-11]
+              arch: [x86_64, macosx_x86_64, 10.9, macos-12]
             },
             {
               py: cp39,
-              arch: [x86_64, macosx_x86_64, 10.9, macos-11]
+              arch: [x86_64, macosx_x86_64, 10.9, macos-12]
             },
             {
               py: cp310,
-              arch: [x86_64, macosx_x86_64, 10.9, macos-11]
+              arch: [x86_64, macosx_x86_64, 10.9, macos-12]
             },
             {
               py: cp311,
-              arch: [x86_64, macosx_x86_64, 10.9, macos-11]
+              arch: [x86_64, macosx_x86_64, 10.9, macos-12]
             },
             {
               py: cp312,
-              arch: [x86_64, macosx_x86_64, 10.9, macos-11]
+              arch: [x86_64, macosx_x86_64, 10.9, macos-12]
             },
             {
               py: cp38,

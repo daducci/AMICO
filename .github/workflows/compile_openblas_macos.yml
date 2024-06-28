@@ -6,7 +6,7 @@ jobs:
     strategy:
       matrix:
         arch:
-          - [x86_64, SANDYBRIDGE, 10.9, macos-11]
+          - [x86_64, SANDYBRIDGE, 10.9, macos-12]
           - [arm64, ARMV8, 11.0, macos-14]
     name: ${{ matrix.arch[0] }}
     runs-on: ${{ matrix.arch[3] }}
