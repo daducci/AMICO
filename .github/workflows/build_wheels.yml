@@ -21,8 +21,8 @@ jobs:
 
       - name: Download compiled OpenBLAS
         run: |
-          curl -L -o OpenBLAS-0.3.25.zip https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.27/OpenBLAS-0.3.27-${{ matrix.arch[2] }}.zip
-          7z x OpenBLAS-0.3.25.zip -o"OpenBLAS"
+          curl -L -o OpenBLAS-0.3.27.zip https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.27/OpenBLAS-0.3.27-${{ matrix.arch[2] }}.zip
+          7z x OpenBLAS-0.3.27.zip -o"OpenBLAS"
 
       - name: Set up the configuration file
         run: |

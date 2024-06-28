@@ -15,11 +15,11 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.arch[2] }}
         run: |
-          curl -L -o OpenBLAS-0.3.25.tar.gz https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.27/OpenBLAS-0.3.27.tar.gz
-          tar -xzf OpenBLAS-0.3.25.tar.gz
+          curl -L -o OpenBLAS-0.3.27.tar.gz https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.27/OpenBLAS-0.3.27.tar.gz
+          tar -xzf OpenBLAS-0.3.27.tar.gz
           sudo ln -fs /usr/local/bin/gfortran-11 /usr/local/bin/gfortran
-          make -C OpenBLAS-0.3.25 TARGET=${{ matrix.arch[1] }} DYNAMIC_ARCH=1
-          make install -C OpenBLAS-0.3.25 PREFIX=${GITHUB_WORKSPACE}/OpenBLAS
+          make -C OpenBLAS-0.3.27 TARGET=${{ matrix.arch[1] }} DYNAMIC_ARCH=1
+          make install -C OpenBLAS-0.3.27 PREFIX=${GITHUB_WORKSPACE}/OpenBLAS
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
