@@ -1,6 +1,6 @@
 name: Compile OpenBLAS on Linux
 run-name: Compile OpenBLAS on Linux - ${{ github.sha }}
-on: push
+on: workflow_dispatch
 jobs:
   compile_openblas:
     strategy:
