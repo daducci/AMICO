@@ -25,23 +25,23 @@ def get_verbose():
 
 def PRINT( *args, **kwargs ):
     if __VERBOSE_LEVEL__ >= 2:
-        print( *args, **kwargs )
+        print( *args, **kwargs, flush=True )
 
 def LOG( msg, prefix='' ):
     if __VERBOSE_LEVEL__ >= 2:
-        print( prefix+"\033[0;32m%s\033[0m" % msg )
+        print( prefix+"\033[0;32m%s\033[0m" % msg, flush=True )
 
 def NOTE( msg, prefix='' ):
     if __VERBOSE_LEVEL__ == 2:
-        print( prefix+"\033[0;30;44m[ NOTE ]\033[0;34m %s\033[0m" % msg )
+        print( prefix+"\033[0;30;44m[ NOTE ]\033[0;34m %s\033[0m" % msg, flush=True )
 
 def WARNING( msg, prefix='' ):
     if __VERBOSE_LEVEL__ >= 1:
-        print( prefix+"\033[0;30;43m[ WARNING ]\033[0;33m %s\033[0m" % msg )
+        print( prefix+"\033[0;30;43m[ WARNING ]\033[0;33m %s\033[0m" % msg, flush=True )
 
 def ERROR( msg, prefix='' ):
     if __VERBOSE_LEVEL__ >= 1:
-        print( prefix+"\033[0;30;41m[ ERROR ]\033[0;31m %s\033[0m\n" % msg )
+        print( prefix+"\033[0;30;41m[ ERROR ]\033[0;31m %s\033[0m\n" % msg, flush=True )
     try:
         from os import EX_USAGE # Only available on UNIX systems
         exit(EX_USAGE)
