@@ -15,7 +15,7 @@ jobs:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
       - name: Download windows_AMD64 wheels
-        uses: dawidd6/action-download-artifact@v2.28.0
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build_wheels.yml
           workflow_conclusion: success
@@ -25,7 +25,7 @@ jobs:
           search_artifacts: true
 
       - name: Download windows_x86 wheels
-        uses: dawidd6/action-download-artifact@v2.28.0
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build_wheels.yml
           workflow_conclusion: success
@@ -35,7 +35,7 @@ jobs:
           search_artifacts: true
 
       - name: Download macos_x86_64 wheels
-        uses: dawidd6/action-download-artifact@v2.28.0
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build_wheels.yml
           workflow_conclusion: success
@@ -45,7 +45,7 @@ jobs:
           search_artifacts: true
 
       - name: Download macos_arm64 wheels
-        uses: dawidd6/action-download-artifact@v2.28.0
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build_wheels.yml
           workflow_conclusion: success
@@ -55,7 +55,7 @@ jobs:
           search_artifacts: true
 
       - name: Download linux_x86_64 wheels
-        uses: dawidd6/action-download-artifact@v2.28.0
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build_wheels.yml
           workflow_conclusion: success
@@ -65,7 +65,7 @@ jobs:
           search_artifacts: true
 
       - name: Download linux_aarch64 wheels
-        uses: dawidd6/action-download-artifact@v2.28.0
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build_wheels.yml
           workflow_conclusion: success
@@ -75,7 +75,7 @@ jobs:
           search_artifacts: true
 
       - name: Download source distribution
-        uses: dawidd6/action-download-artifact@v2.28.0
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build_wheels.yml
           workflow_conclusion: success
@@ -102,7 +102,7 @@ jobs:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
       - name: Download windows_AMD64 wheels
-        uses: dawidd6/action-download-artifact@v2.28.0
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build_wheels.yml
           workflow_conclusion: success
@@ -112,7 +112,7 @@ jobs:
           search_artifacts: true
 
       - name: Download windows_x86 wheels
-        uses: dawidd6/action-download-artifact@v2.28.0
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build_wheels.yml
           workflow_conclusion: success
@@ -122,7 +122,7 @@ jobs:
           search_artifacts: true
 
       - name: Download macos_x86_64 wheels
-        uses: dawidd6/action-download-artifact@v2.28.0
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build_wheels.yml
           workflow_conclusion: success
@@ -132,7 +132,7 @@ jobs:
           search_artifacts: true
 
       - name: Download macos_arm64 wheels
-        uses: dawidd6/action-download-artifact@v2.28.0
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build_wheels.yml
           workflow_conclusion: success
@@ -142,7 +142,7 @@ jobs:
           search_artifacts: true
 
       - name: Download linux_x86_64 wheels
-        uses: dawidd6/action-download-artifact@v2.28.0
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build_wheels.yml
           workflow_conclusion: success
@@ -152,7 +152,7 @@ jobs:
           search_artifacts: true
 
       - name: Download linux_aarch64 wheels
-        uses: dawidd6/action-download-artifact@v2.28.0
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build_wheels.yml
           workflow_conclusion: success
@@ -162,7 +162,7 @@ jobs:
           search_artifacts: true
 
       - name: Download source distribution
-        uses: dawidd6/action-download-artifact@v2.28.0
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build_wheels.yml
           workflow_conclusion: success
