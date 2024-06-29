@@ -1,13 +1,13 @@
 name: Compile OpenBLAS on MacOS
 run-name: Compile OpenBLAS on MacOS - ${{ github.sha }}
-on: workflow_dispatch
+on: push
 jobs:
   compile_openblas:
     strategy:
       matrix:
         arch:
-          - [x86_64, SANDYBRIDGE, 10.9, macos-12]
-          - [arm64, ARMV8, 11.0, macos-14]
+          - [x86_64, SANDYBRIDGE, 12.0, macos-12]
+          - [arm64, ARMV8, 12.0, macos-14]
     name: ${{ matrix.arch[0] }}
     runs-on: ${{ matrix.arch[3] }}
     steps:

@@ -53,51 +53,51 @@ jobs:
           [
             {
               py: cp36,
-              arch: [x86_64, macosx_x86_64, 10.9, macos-12]
+              arch: [x86_64, macosx_x86_64, 12.0, macos-12]
             },
             {
               py: cp37,
-              arch: [x86_64, macosx_x86_64, 10.9, macos-12]
+              arch: [x86_64, macosx_x86_64, 12.0, macos-12]
             },
             {
               py: cp38,
-              arch: [x86_64, macosx_x86_64, 10.9, macos-12]
+              arch: [x86_64, macosx_x86_64, 12.0, macos-12]
             },
             {
               py: cp39,
-              arch: [x86_64, macosx_x86_64, 10.9, macos-12]
+              arch: [x86_64, macosx_x86_64, 12.0, macos-12]
             },
             {
               py: cp310,
-              arch: [x86_64, macosx_x86_64, 10.9, macos-12]
+              arch: [x86_64, macosx_x86_64, 12.0, macos-12]
             },
             {
               py: cp311,
-              arch: [x86_64, macosx_x86_64, 10.9, macos-12]
+              arch: [x86_64, macosx_x86_64, 12.0, macos-12]
             },
             {
               py: cp312,
-              arch: [x86_64, macosx_x86_64, 10.9, macos-12]
+              arch: [x86_64, macosx_x86_64, 12.0, macos-12]
             },
             {
               py: cp38,
-              arch: [arm64, macosx_arm64, 11.0, macos-14]
+              arch: [arm64, macosx_arm64, 12.0, macos-14]
             },
             {
               py: cp39,
-              arch: [arm64, macosx_arm64, 11.0, macos-14]
+              arch: [arm64, macosx_arm64, 12.0, macos-14]
             },
             {
               py: cp310,
-              arch: [arm64, macosx_arm64, 11.0, macos-14]
+              arch: [arm64, macosx_arm64, 12.0, macos-14]
             },
             {
               py: cp311,
-              arch: [arm64, macosx_arm64, 11.0, macos-14]
+              arch: [arm64, macosx_arm64, 12.0, macos-14]
             },
             {
               py: cp312,
-              arch: [arm64, macosx_arm64, 11.0, macos-14]
+              arch: [arm64, macosx_arm64, 12.0, macos-14]
             }
           ]
     name: ${{ matrix.config.py }}-${{ matrix.config.arch[1] }}
@@ -121,13 +121,6 @@ jobs:
         if: startsWith(matrix.config.arch[0], 'arm64')
         run: |
           brew install pipx
-
-      - name: Reinstall gfortran to satisfy MacOS version requirements # NOTE: required only for x86_64
-        if: startsWith(matrix.config.arch[0], 'x86_64')
-        env:
-          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.config.arch[2] }}
-        run: |
-          brew reinstall gcc@11
 
       - name: Set up the configuration file
         run: |
