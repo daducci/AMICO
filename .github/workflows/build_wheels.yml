@@ -122,6 +122,13 @@ jobs:
         run: |
           brew install pipx
 
+      - name: Reinstall gfortran to satisfy MacOS version requirements # NOTE: required only for x86_64
+        if: startsWith(matrix.config.arch[0], 'x86_64')
+        env:
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.config.arch[2] }}
+        run: |
+          brew reinstall gcc@11
+
       - name: Set up the configuration file
         run: |
           python3 setup_site.py openblas openblas ${{ github.workspace }}/OpenBLAS/lib ${{ github.workspace }}/OpenBLAS/include
