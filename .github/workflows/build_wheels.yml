@@ -129,7 +129,8 @@ jobs:
       - name: Build wheel ${{ matrix.config.py }}-${{ matrix.config.arch[1] }}
         uses: pypa/cibuildwheel@v2.19.1
         env:
-          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.config.arch[2] }}
+          CIBW_ENVIRONMENT_MACOS: >
+            MACOSX_DEPLOYMENT_TARGET=${{ matrix.config.arch[2] }}
           CIBW_PLATFORM: macos
           CIBW_BUILD: ${{ matrix.config.py }}-${{ matrix.config.arch[1] }}
           CIBW_ARCHS_MACOS: ${{ matrix.config.arch[0] }}
