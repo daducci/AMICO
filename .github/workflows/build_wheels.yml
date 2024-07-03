@@ -42,7 +42,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wheels_${{ matrix.arch[1] }}_${{ matrix.py }}
+          name: wheels_${{ matrix.py }}_${{ matrix.arch[1] }}
           path: ./wheelhouse/*.whl
           if-no-files-found: error
 
@@ -140,7 +140,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wheels_macos_${{ matrix.config.arch[1] }}_${{ matrix.config.py }}
+          name: wheels_${{ matrix.config.py }}_${{ matrix.config.arch[1] }}
           path: ./wheelhouse/*.whl
           if-no-files-found: error
 
@@ -188,7 +188,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wheels_linux_${{ matrix.arch[1] }}_${{ matrix.py }}
+          name: wheels_${{ matrix.py }}_${{ matrix.arch[1] }}
           path: ./wheelhouse/*.whl
           if-no-files-found: error
 
