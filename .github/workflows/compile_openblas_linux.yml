@@ -9,7 +9,7 @@ jobs:
             - [x86_64, manylinux2014_x86_64, HASWELL, amd64]
             - [aarch64, manylinux2014_aarch64, ARMV8, arm64]
     name: ${{ matrix.arch[0] }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     timeout-minutes: 600 # NOTE: need this to compile the arm64 version
     steps:
       - name: Set up QEMU

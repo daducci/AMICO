@@ -7,7 +7,7 @@ jobs:
   publish_on_pypi:
     name: Publish on PyPI
     if: github.event.release.prerelease == false
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     environment:
       name: pypi
       url: https://pypi.org/project/dmri-amico
@@ -32,7 +32,7 @@ jobs:
   publish_on_pypi_test:
     name: Publish on PyPI Test
     if: github.event.release.prerelease == true && contains(github.event.release.tag_name, 'rc')
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     environment:
       name: testpypi
       url: https://test.pypi.org/project/dmri-amico

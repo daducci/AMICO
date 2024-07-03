@@ -14,7 +14,7 @@ jobs:
           - [AMD64, win_amd64, x64]
           - [x86, win32, x86]
     name: ${{ matrix.py }}-${{ matrix.arch[1] }}
-    runs-on: windows-2019
+    runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -150,7 +150,7 @@ jobs:
           - [x86_64, manylinux_x86_64, amd64]
           - [aarch64, manylinux_aarch64, arm64]
     name: ${{ matrix.py }}-${{ matrix.arch[1] }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -190,7 +190,7 @@ jobs:
 
   build_source_distribution:
     name: sdist
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
