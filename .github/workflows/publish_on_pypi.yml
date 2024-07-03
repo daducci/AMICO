@@ -18,7 +18,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GH_PAT }}
-          run-id: ${{ secrets.ARTIFACTS_RUN_ID }}
+          run-id: ${{ secrets.WHEELS_ARTIFACTS_RUN_ID }}
           path: dist
           merge-multiple: true
 
@@ -43,7 +43,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GH_PAT }}
-          run-id: ${{ secrets.ARTIFACTS_RUN_ID }}
+          run-id: ${{ secrets.WHEELS_ARTIFACTS_RUN_ID }}
           path: dist
           merge-multiple: true
 
