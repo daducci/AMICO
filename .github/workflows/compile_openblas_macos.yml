@@ -1,6 +1,6 @@
 name: Compile OpenBLAS on MacOS
 run-name: Compile OpenBLAS on MacOS - ${{ github.sha }}
-on: workflow_dispatch
+on: push
 jobs:
   compile_openblas:
     strategy:
