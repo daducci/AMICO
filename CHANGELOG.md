@@ -1,7 +1,7 @@
 # Change Log
 ### All notable changes to `AMICO` will be documented in this file.
 
-## `v2.0.2`<br>_2024-07-01_
+## `v2.0.2`<br>_2024-07-04_
 ### ✨Added
 - Added `cp312` wheels to github actions
 
