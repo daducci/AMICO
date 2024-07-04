@@ -1,12 +1,12 @@
-from __future__ import absolute_import, division, print_function
+from amico.core import Evaluation, setup
+from amico.util import set_verbose, get_verbose
+# from amico import core
+# from amico import scheme
+# from amico import lut
+# from amico import models
+# from amico import util
 
-from .core import Evaluation, setup
-from .util import set_verbose, get_verbose
-from . import core
-from . import scheme
-from . import lut
-from . import models
-from . import util
+__all__ = ['Evaluation', 'setup', 'set_verbose', 'get_verbose']
 
 try:
     from importlib.metadata import version

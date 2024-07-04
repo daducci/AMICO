@@ -1,8 +1,6 @@
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 from re import match as re_match
-from amico.util import LOG, NOTE, WARNING, ERROR
+from amico.util import ERROR
 from amico.synthesis import _GAMMA
 
 class Scheme :

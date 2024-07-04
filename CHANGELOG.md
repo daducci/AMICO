@@ -1,7 +1,23 @@
 # Change Log
 ### All notable changes to `AMICO` will be documented in this file.
 
-## `v2.0.0`<br>_2023-09-21_
+## `v2.0.2`<br>_2024-07-04_
+### ✨Added
+- Added `cp312` wheels to github actions
+
+### 🛠️Changed
+- Restict the `numpy` version to `<2.0.0` (due to `dipy` problems)
+- Parameters in the `set()` method of the models have now default values
+- `MacOS arm64` wheels are now compiled with GitHub Actions instead of Cirrus CI
+
+### 🐛Fixed
+- Link to installation guide in `README.md`
+- Improved `print()` statements when running from `Jupyter notebooks`
+
+---
+---
+
+## `v2.0.1`<br>_2023-09-21_
 ### 🛠️Changed
 - Bump `dmri-dicelib` to `v1.0.1`
 

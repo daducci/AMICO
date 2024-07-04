@@ -1,0 +1,40 @@
+name: Compile OpenBLAS on MacOS
+run-name: Compile OpenBLAS on MacOS - ${{ github.sha }}
+on: workflow_dispatch
+jobs:
+  compile_openblas:
+    strategy:
+      matrix:
+        arch:
+          - [x86_64, SANDYBRIDGE, 12.0, macos-12]
+          - [arm64, ARMV8, 12.0, macos-14]
+    name: ${{ matrix.arch[0] }}
+    runs-on: ${{ matrix.arch[3] }}
+    steps:
+      - name: Compile OpenBLAS
+        env:
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.arch[2] }}
+        run: |
+          curl -L -o OpenBLAS-0.3.27.tar.gz https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.27/OpenBLAS-0.3.27.tar.gz
+          tar -xzf OpenBLAS-0.3.27.tar.gz
+          sudo ln -fs /usr/local/bin/gfortran-11 /usr/local/bin/gfortran
+          make -C OpenBLAS-0.3.27 TARGET=${{ matrix.arch[1] }} DYNAMIC_ARCH=1
+          make install -C OpenBLAS-0.3.27 PREFIX=${GITHUB_WORKSPACE}/OpenBLAS
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenBLAS_macos_${{ matrix.arch[0] }}
+          path: ./OpenBLAS
+          if-no-files-found: error
+
+  run_id:
+    name: Create/Update OPENBLAS_MACOS_ARTIFACTS_RUN_ID secret
+    runs-on: ubuntu-latest
+    needs: [compile_openblas]
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          gh secret set OPENBLAS_MACOS_ARTIFACTS_RUN_ID --body ${{ github.run_id }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}

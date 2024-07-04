@@ -7,85 +7,23 @@ jobs:
   publish_on_pypi:
     name: Publish on PyPI
     if: github.event.release.prerelease == false
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     environment:
       name: pypi
       url: https://pypi.org/project/dmri-amico
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
-      - name: Download windows_AMD64 wheels
-        uses: dawidd6/action-download-artifact@v2.27.0
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
         with:
-          workflow: build_wheels.yml
-          workflow_conclusion: success
-          commit: ${{github.event.pull_request.head.sha}}
-          name: wheels_windows_AMD64
+          github-token: ${{ secrets.GH_PAT }}
+          run-id: ${{ secrets.WHEELS_ARTIFACTS_RUN_ID }}
           path: dist
-          search_artifacts: true
-
-      - name: Download windows_x86 wheels
-        uses: dawidd6/action-download-artifact@v2.27.0
-        with:
-          workflow: build_wheels.yml
-          workflow_conclusion: success
-          commit: ${{github.event.pull_request.head.sha}}
-          name: wheels_windows_x86
-          path: dist
-          search_artifacts: true
-
-      - name: Download macos_x86_64 wheels
-        uses: dawidd6/action-download-artifact@v2.27.0
-        with:
-          workflow: build_wheels.yml
-          workflow_conclusion: success
-          commit: ${{github.event.pull_request.head.sha}}
-          name: wheels_macos_x86_64
-          path: dist
-          search_artifacts: true
-
-      - name: Download macos_arm64 wheels
-        uses: dawidd6/action-download-artifact@v2.27.0
-        with:
-          workflow: macos_arm64_wheels.yml
-          workflow_conclusion: success
-          commit: ${{github.event.pull_request.head.sha}}
-          name: wheels_macos_arm64
-          path: dist
-          search_artifacts: true
-
-      - name: Download linux_x86_64 wheels
-        uses: dawidd6/action-download-artifact@v2.27.0
-        with:
-          workflow: build_wheels.yml
-          workflow_conclusion: success
-          commit: ${{github.event.pull_request.head.sha}}
-          name: wheels_linux_x86_64
-          path: dist
-          search_artifacts: true
-
-      - name: Download linux_aarch64 wheels
-        uses: dawidd6/action-download-artifact@v2.27.0
-        with:
-          workflow: build_wheels.yml
-          workflow_conclusion: success
-          commit: ${{github.event.pull_request.head.sha}}
-          name: wheels_linux_aarch64
-          path: dist
-          search_artifacts: true
-
-      - name: Download source distribution
-        uses: dawidd6/action-download-artifact@v2.27.0
-        with:
-          workflow: build_wheels.yml
-          workflow_conclusion: success
-          commit: ${{github.event.pull_request.head.sha}}
-          name: sdist
-          path: dist
-          search_artifacts: true
+          merge-multiple: true
 
       - name: Publish on PyPI
-        uses: pypa/gh-action-pypi-publish@v1.8.10
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           skip-existing: true
           verbose: true
@@ -94,87 +32,25 @@ jobs:
   publish_on_pypi_test:
     name: Publish on PyPI Test
     if: github.event.release.prerelease == true && contains(github.event.release.tag_name, 'rc')
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     environment:
       name: testpypi
       url: https://test.pypi.org/project/dmri-amico
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
-      - name: Download windows_AMD64 wheels
-        uses: dawidd6/action-download-artifact@v2.27.0
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
         with:
-          workflow: build_wheels.yml
-          workflow_conclusion: success
-          commit: ${{github.event.pull_request.head.sha}}
-          name: wheels_windows_AMD64
+          github-token: ${{ secrets.GH_PAT }}
+          run-id: ${{ secrets.WHEELS_ARTIFACTS_RUN_ID }}
           path: dist
-          search_artifacts: true
-
-      - name: Download windows_x86 wheels
-        uses: dawidd6/action-download-artifact@v2.27.0
-        with:
-          workflow: build_wheels.yml
-          workflow_conclusion: success
-          commit: ${{github.event.pull_request.head.sha}}
-          name: wheels_windows_x86
-          path: dist
-          search_artifacts: true
-
-      - name: Download macos_x86_64 wheels
-        uses: dawidd6/action-download-artifact@v2.27.0
-        with:
-          workflow: build_wheels.yml
-          workflow_conclusion: success
-          commit: ${{github.event.pull_request.head.sha}}
-          name: wheels_macos_x86_64
-          path: dist
-          search_artifacts: true
-
-      - name: Download macos_arm64 wheels
-        uses: dawidd6/action-download-artifact@v2.27.0
-        with:
-          workflow: macos_arm64_wheels.yml
-          workflow_conclusion: success
-          commit: ${{github.event.pull_request.head.sha}}
-          name: wheels_macos_arm64
-          path: dist
-          search_artifacts: true
-
-      - name: Download linux_x86_64 wheels
-        uses: dawidd6/action-download-artifact@v2.27.0
-        with:
-          workflow: build_wheels.yml
-          workflow_conclusion: success
-          commit: ${{github.event.pull_request.head.sha}}
-          name: wheels_linux_x86_64
-          path: dist
-          search_artifacts: true
-
-      - name: Download linux_aarch64 wheels
-        uses: dawidd6/action-download-artifact@v2.27.0
-        with:
-          workflow: build_wheels.yml
-          workflow_conclusion: success
-          commit: ${{github.event.pull_request.head.sha}}
-          name: wheels_linux_aarch64
-          path: dist
-          search_artifacts: true
-
-      - name: Download source distribution
-        uses: dawidd6/action-download-artifact@v2.27.0
-        with:
-          workflow: build_wheels.yml
-          workflow_conclusion: success
-          commit: ${{github.event.pull_request.head.sha}}
-          name: sdist
-          path: dist
-          search_artifacts: true
+          merge-multiple: true
 
       - name: Publish on PyPI Test
-        uses: pypa/gh-action-pypi-publish@v1.8.10
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository_url: https://test.pypi.org/legacy/
+          repository-url: https://test.pypi.org/legacy/
           skip-existing: true
           verbose: true
           print-hash: true

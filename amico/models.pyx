@@ -1,8 +1,6 @@
 # distutils: language = c++
 # cython: language_level = 3
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 from os import environ
 from os.path import join as pjoin
@@ -40,13 +38,13 @@ cdef void _init_multithread_progress(int nthreads):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _update_multithread_progress(int thread_id) nogil:
+cdef void _update_multithread_progress(int thread_id) noexcept nogil:
     global _MULTITHREAD_PROGRESS_VIEW
     _MULTITHREAD_PROGRESS_VIEW[thread_id] += 1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _compute_rmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *y_est_view, double *rmse_view) nogil:
+cdef void _compute_rmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *y_est_view, double *rmse_view) noexcept nogil:
     cdef Py_ssize_t i, j
     for i in range(A_view.shape[0]):
         y_est_view[i] = 0.0
@@ -57,7 +55,7 @@ cdef void _compute_rmse(double [::1, :]A_view, double [::1]y_view, double [::1]x
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _compute_nrmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *y_est_view, double *nrmse_view) nogil:
+cdef void _compute_nrmse(double [::1, :]A_view, double [::1]y_view, double [::1]x_view, double *y_est_view, double *nrmse_view) noexcept nogil:
     cdef double den = 0.0
     cdef Py_ssize_t i, j
     for i in range(A_view.shape[0]):
@@ -242,15 +240,33 @@ class StickZeppelinBall( BaseModel ) :
         self.name       = 'Stick-Zeppelin-Ball'
         self.maps_name  = [ ]
         self.maps_descr = [ ]
-
-        self.d_par       = 1.7E-3                                           # Parallel diffusivity for the Stick [mm^2/s]
-        self.d_perp      = 0                                                # Perpendicular diffusivity for the Stick [mm^2/s]
-        self.d_par_zep   = 1.7E-3                                           # Parallel diffusivity for the Zeppelins [mm^2/s]
-        self.d_perps_zep = np.array([ 1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3])  # Perpendicular diffusivitie(s) [mm^2/s]
-        self.d_isos      = np.array([ 3.0E-3 ])                             # Isotropic diffusivitie(s) [mm^2/s]
+        self.set()
 
 
-    def set( self, d_par, d_perps_zep, d_isos, d_par_zep=None, d_perp=0 ) :
+    def set(
+        self,
+        d_par=1.7E-3,
+        d_perps_zep=np.array([1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]),
+        d_isos=np.array([3.0E-3]),
+        d_par_zep=1.7E-3,
+        d_perp=0
+        ):
+        '''
+        Set the parameters of the Stick-Zeppelin-Ball model.
+
+        Parameters
+        ----------
+        d_par : float
+            Parallel diffusivity for the Stick [mm^2/s]
+        d_perp : float
+            Perpendicular diffusivity for the Stick [mm^2/s]
+        d_par_zep : float
+            Parallel diffusivity for the Zeppelins [mm^2/s]
+        d_perps_zep : list of floats
+            Perpendicular diffusivitie(s) [mm^2/s]
+        d_isos : list of floats
+            Isotropic diffusivitie(s) [mm^2/s]
+        '''
         self.d_par = d_par
         self.d_perp = d_perp
         if d_par_zep is None:
@@ -378,15 +394,30 @@ class CylinderZeppelinBall( BaseModel ) :
         self.name       = 'Cylinder-Zeppelin-Ball'
         self.maps_name  = [ 'v', 'a', 'd' ]
         self.maps_descr = [ 'Intra-cellular volume fraction', 'Mean axonal diameter', 'Axonal density' ]
-
-        self.d_par   = 0.6E-3                                                       # Parallel diffusivity [mm^2/s]
-        self.Rs      = np.concatenate( ([0.01],np.linspace(0.5,8.0,20)) ) * 1E-6    # Radii of the axons [meters]
-        self.d_perps = np.array([ 1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3])              # Perpendicular diffusivitie(s) [mm^2/s]
-        self.d_isos  = np.array( [ 2.0E-3 ] )                                       # Isotropic diffusivitie(s) [mm^2/s]
-        self.isExvivo  = False                                                      # Add dot compartment to dictionary (exvivo data)
+        self.set()
 
 
-    def set( self, d_par, Rs, d_perps, d_isos ) :
+    def set(
+        self,
+        d_par=0.6E-3,
+        Rs=np.concatenate(([0.01], np.linspace(0.5, 8.0, 20))) * 1E-6,
+        d_perps=np.array([1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]),
+        d_isos=np.array([2.0E-3])
+        ):
+        '''
+        Set the parameters of the Cylinder-Zeppelin-Ball model.
+
+        Parameters
+        ----------
+        d_par : float
+            Parallel diffusivity [mm^2/s]
+        Rs : list of floats
+            Radii of the axons [meters]
+        d_perps : list of floats
+            Perpendicular diffusivitie(s) [mm^2/s]
+        d_isos : list of floats
+            Isotropic diffusivitie(s) [mm^2/s]
+        '''
         self.d_par   = d_par
         self.Rs      = np.array(Rs)
         self.d_perps = np.array(d_perps)
@@ -638,19 +669,37 @@ class NODDI( BaseModel ) :
         self.name       = "NODDI"
         self.maps_name  = [ 'NDI', 'ODI', 'FWF' ]
         self.maps_descr = [ 'Neurite Density Index', 'Orientation Dispersion Index', 'Free Water Fraction' ]
-
-        self.dPar      = 1.7E-3
-        self.dIso      = 3.0E-3
-        self.IC_VFs    = np.linspace(0.1,0.99,12)
-        self.IC_ODs    = np.hstack((np.array([0.03, 0.06]),np.linspace(0.09,0.99,10)))
-        self.isExvivo  = False
+        self.set()
 
 
-    def set( self, dPar, dIso, IC_VFs, IC_ODs, isExvivo ):
+    def set(
+        self,
+        dPar=1.7E-33,
+        dIso=3.0E-3,
+        IC_VFs=np.linspace(0.1, 0.99, 12),
+        IC_ODs=np.hstack((np.array([0.03, 0.06]), np.linspace(0.09, 0.99, 10))),
+        isExvivo=False
+        ):
+        '''
+        Set the parameters of the NODDI model.
+
+        Parameters
+        ----------
+        dPar : float
+            Parallel diffusivity [mm^2/s]
+        dIso : float
+            Isotropic diffusivity [mm^2/s]
+        IC_VFs : list of floats
+            Intra-cellular volume fractions
+        IC_ODs : list of floats
+            Intra-cellular orientation dispersions
+        isExvivo : bool
+            Is ex-vivo data
+        '''
         self.dPar      = dPar
         self.dIso      = dIso
-        self.IC_VFs    = np.array( IC_VFs )
-        self.IC_ODs    = np.array( IC_ODs )
+        self.IC_VFs    = np.array( IC_VFs ) if isinstance(IC_VFs, list) else IC_VFs
+        self.IC_ODs    = np.array( IC_ODs ) if isinstance(IC_ODs, list) else IC_ODs
         self.isExvivo  = isExvivo
         if isExvivo:
             self.maps_name.append('dot')
@@ -949,44 +998,64 @@ class FreeWater( BaseModel ) :
     def __init__( self ) :
         self.id         = 'FreeWater'
         self.name       = 'Free-Water'
-        self.type       = 'Human'
+        self.set()
 
+
+    def set(
+        self,
+        d_par=None,
+        d_perps=None,
+        d_isos=None,
+        type='Human'
+        ):
+        '''
+        Set the parameters of the Free-Water model.
+
+        Parameters
+        ----------
+        d_par : float
+            Parallel diffusivity [mm^2/s]
+        d_perps : list of floats
+            Perpendicular diffusivities [mm^2/s]
+        d_isos : list of floats
+            Isotropic diffusivities [mm^2/s]
+        type : str
+            Type of data ('Human' or 'Mouse')
+        '''
+        self.type = type
         if self.type == 'Mouse' :
             self.maps_name  = [ 'FiberVolume', 'FW', 'FW_blood', 'FW_csf' ]
             self.maps_descr = [ 'fiber volume fraction',
                                 'Isotropic free-water volume fraction',
                                 'FW blood', 'FW csf' ]
-
-            # for mouse imaging
-            self.d_par   = 1.0E-3
-            self.d_perps = np.linspace(0.15,0.55,10)*1E-3
-            self.d_isos  = [1.5e-3, 3e-3]
-
+            if d_par is None:
+                self.d_par = 1.0E-3
+            else:
+                self.d_par = d_par
+            if d_perps is None:
+                self.d_perps = np.linspace(0.15, 0.55, 10) * 1E-3
+            else:
+                self.d_perps = d_perps
+            if d_isos is None:
+                self.d_isos = [1.5E-3, 3E-3]
+            else:
+                self.d_isos = d_isos
         else :
             self.maps_name  = [ 'FiberVolume', 'FW' ]
             self.maps_descr = [ 'fiber volume fraction',
                                 'Isotropic free-water volume fraction']
-            self.d_par   = 1.0E-3                       # Parallel diffusivity [mm^2/s]
-            self.d_perps = np.linspace(0.1,1.0,10)*1E-3 # Parallel diffusivities [mm^2/s]
-            self.d_isos  = [ 2.5E-3 ]                   # Isotropic diffusivities [mm^2/s]
-
-
-    def set( self, d_par, d_perps, d_isos, type ) :
-        self.d_par   = d_par
-        self.d_perps = d_perps
-        self.d_isos  = d_isos
-        self.type    = type
-
-        if self.type == 'Mouse' :
-            self.maps_name  = [ 'FiberVolume', 'FW', 'FW_blood', 'FW_csf' ]
-            self.maps_descr = [ 'fiber volume fraction',
-                                'Isotropic free-water volume fraction',
-                                'FW blood', 'FW csf' ]
-
-        else :
-            self.maps_name  = [ 'FiberVolume', 'FW' ]
-            self.maps_descr = [ 'fiber volume fraction',
-                                'Isotropic free-water volume fraction']
+            if d_par is None:
+                self.d_par = 1.0E-3
+            else:
+                self.d_par = d_par
+            if d_perps is None:
+                self.d_perps = np.linspace(0.1, 1.0, 10) * 1E-3
+            else:
+                self.d_perps = d_perps
+            if d_isos is None:
+                self.d_isos = [2.5E-3]
+            else:
+                self.d_isos = d_isos
 
         PRINT('      %s settings for Freewater elimination... ' % self.type)
         PRINT('             -iso  compartments: ', self.d_isos)
@@ -1228,6 +1297,7 @@ class VolumeFractions( BaseModel ) :
         self.name       = 'Volume fractions'
         self.maps_name  = [ ]
         self.maps_descr = [ ]
+        self.set()
 
 
     def set( self ) :
@@ -1291,14 +1361,30 @@ class SANDI( BaseModel ) :
         self.name       = 'SANDI'
         self.maps_name  = [ 'fsoma', 'fneurite', 'fextra', 'Rsoma', 'Din', 'De' ]
         self.maps_descr = [ 'Intra-soma volume fraction', 'Intra-neurite volume fraction', 'Extra-cellular volume fraction', 'Apparent soma radius', 'Neurite axial diffusivity', 'Extra-cellular mean diffusivity' ]
-
-        self.d_is   = 3.0E-3                            # Intra-soma diffusivity [mm^2/s]
-        self.Rs     = np.linspace(1.0,12.0,5) * 1E-6    # Radii of the soma [meters]
-        self.d_in   = np.linspace(0.25,3.0,5) * 1E-3    # Intra-neurite diffusivitie(s) [mm^2/s]
-        self.d_isos = np.linspace(0.25,3.0,5) * 1E-3    # Extra-cellular isotropic mean diffusivitie(s) [mm^2/s]
+        self.set()
 
 
-    def set( self, d_is, Rs, d_in, d_isos ) :
+    def set(
+        self,
+        d_is=3.0E-3,
+        Rs=np.linspace(1.0, 12.0, 5) * 1E-6,
+        d_in=np.linspace(0.25, 3.0, 5) * 1E-3,
+        d_isos=np.linspace(0.25, 3.0, 5) * 1E-3
+        ):
+        '''
+        Set the parameters of the SANDI model.
+
+        Parameters
+        ----------
+        d_is : float
+            Intra-soma diffusivity [mm^2/s]
+        Rs : list of floats
+            Radii of the soma [meters]
+        d_in : list of floats
+            Intra-neurite diffusivities [mm^2/s]
+        d_isos : list of floats
+            Extra-cellular isotropic mean diffusivities [mm^2/s]
+        '''
         self.d_is   = d_is
         self.Rs     = np.array(Rs)
         self.d_in   = np.array(d_in)
