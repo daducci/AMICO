@@ -160,7 +160,7 @@ jobs:
         with:
           github-token: ${{ secrets.GH_PAT }}
           run-id: ${{ secrets.OPENBLAS_LINUX_ARTIFACTS_RUN_ID }}
-          name: OpenBLAS_linux_${{ matrix.config.arch[0] }}
+          name: OpenBLAS_linux_${{ matrix.arch[0] }}
           path: OpenBLAS
 
       - name: Set up the configuration file
