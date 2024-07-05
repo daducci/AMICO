@@ -674,7 +674,7 @@ class NODDI( BaseModel ) :
 
     def set(
         self,
-        dPar=1.7E-33,
+        dPar=1.7E-3,
         dIso=3.0E-3,
         IC_VFs=np.linspace(0.1, 0.99, 12),
         IC_ODs=np.hstack((np.array([0.03, 0.06]), np.linspace(0.09, 0.99, 10))),
