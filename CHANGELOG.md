@@ -1,6 +1,13 @@
 # Change Log
 ### All notable changes to `AMICO` will be documented in this file.
 
+## `v2.0.3`<br>_2024-07-04_
+### 🐛Fixed
+- Wrong diffusivity value in the `set()` method of the `NODDI` model (typo introduced in f070c23)
+
+---
+---
+
 ## `v2.0.2`<br>_2024-07-04_
 ### ✨Added
 - Added `cp312` wheels to github actions
