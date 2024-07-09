@@ -25,12 +25,17 @@ if not isfile('site.cfg'):
       exit(1)
 config = ConfigParser()
 config.read('site.cfg')
+
 try:
-      libraries.extend([config['openblas']['library']])
-      library_dirs.extend([config['openblas']['library_dir']])
-      include_dirs.extend([config['openblas']['include_dir']])
-except KeyError as err:
-      print(f'\033[31mKeyError: cannot find the {err} key in the site.cfg file. See the site.cfg.example file for documentation\033[0m')
+      for lib in ('blas', 'lapack', 'openblas'):
+            if lib in config:
+                  libraries.extend([config[lib]['library']])
+                  library_dirs.extend([config[lib]['library_dir']])
+                  include_dirs.extend([config[lib]['include_dir']])
+      if len(libraries) == 0:
+            raise KeyError()
+except Exception:
+      print(f'\033[31mCannot find BLAS/LAPACK/OpenBLAS paths in the site.cfg file. See the site.cfg.example file for documentation\033[0m')
       exit(1)
 
 if sys.platform.startswith('win32'):
