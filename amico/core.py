@@ -432,7 +432,7 @@ class Evaluation :
             if self.get_config('doMergeB0'):
                 gtab = gradient_table( np.hstack((0,self.scheme.b[self.scheme.dwi_idx])), np.vstack((np.zeros((1,3)),self.scheme.raw[self.scheme.dwi_idx,:3])) )
             else:
-                gtab = gradient_table( self.scheme.b, self.scheme.raw[:,:3] )
+                gtab = gradient_table( bvals=self.scheme.b, bvecs=self.scheme.raw[:,:3] )
             DTI = dti.TensorModel( gtab, fit_method=self.get_config('DTI_fit_method'))
         else :
             if not isfile( pjoin(self.get_config('DATA_path'), peaks_filename) ):
