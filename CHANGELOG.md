@@ -1,6 +1,16 @@
 # Change Log
 ### All notable changes to `AMICO` will be documented in this file.
 
+## `v2.1.0`<br>_2025-01-20_
+### 🛠️Changed
+- Support for `numpy>=2.0.0`
+
+### 🐛Fixed
+- `UserWarning`: pass `bvals` and `bvecs` as keyword args in `dipy.core.gradients.gradient_table`
+
+---
+---
+
 ## `v2.0.3`<br>_2024-07-04_
 ### 🐛Fixed
 - Wrong diffusivity value in the `set()` method of the `NODDI` model (typo introduced in f070c23)
