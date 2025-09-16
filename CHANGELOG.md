@@ -1,6 +1,13 @@
 # Change Log
 ### All notable changes to `AMICO` will be documented in this file.
 
+## `v2.2.0`<br>_2025-09-16_
+### 🐛Fixed
+- Ensure the input mask is binary
+
+---
+---
+
 ## `v2.1.0`<br>_2025-01-20_
 ### 🛠️Changed
 - Support for `numpy>=2.0.0`
