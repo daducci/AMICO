@@ -177,7 +177,7 @@ class Evaluation :
             if not isfile( pjoin(self.get_config('DATA_path'), mask_filename) ):
                 ERROR( 'MASK file not found' )
             self.niiMASK = nibabel.load( pjoin( self.get_config('DATA_path'), mask_filename) )
-            self.niiMASK_img = self.niiMASK.get_fdata().astype(np.uint8)
+            self.niiMASK_img = (self.niiMASK.get_fdata()>0).astype(np.uint8)
             niiMASK_hdr = self.niiMASK.header if nibabel.__version__ >= '2.0.0' else self.niiMASK.get_header()
             PRINT('\t\t- dim    = %d x %d x %d' % self.niiMASK_img.shape[:3])
             PRINT('\t\t- pixdim = %.3f x %.3f x %.3f' % niiMASK_hdr.get_zooms()[:3])
@@ -312,7 +312,7 @@ class Evaluation :
         """
         if self.model is None :
             ERROR( 'Model not set; call "set_model()" method first' )
-        
+
         solver_params = list(inspect.signature(self.model.set_solver).parameters)
         params_new = {}
         for key in params.keys():
@@ -344,7 +344,7 @@ class Evaluation :
             ERROR( 'Model not set; call "set_model()" method first' )
         if not is_valid(ndirs):
             ERROR( 'Unsupported value for ndirs.\nNote: Supported values for ndirs are [1, 500 (default), 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 32761]' )
-        
+
         self.BLAS_nthreads = self.get_config('BLAS_nthreads') if self.get_config('BLAS_nthreads') > 0 else cpu_count() if self.get_config('BLAS_nthreads') == -1 else ERROR('Number of BLAS threads must be positive or -1')
 
         # store some values for later use
@@ -385,7 +385,7 @@ class Evaluation :
             ERROR( 'Model not set; call "set_model()" method first' )
         if self.scheme is None :
             ERROR( 'Scheme not loaded; call "load_data()" first' )
-        
+
         self.BLAS_nthreads = self.get_config('BLAS_nthreads') if self.get_config('BLAS_nthreads') > 0 else cpu_count() if self.get_config('BLAS_nthreads') == -1 else ERROR('Number of BLAS threads must be positive or -1')
 
         tic = time.time()
@@ -418,7 +418,7 @@ class Evaluation :
             ERROR( 'Response functions were not created with the same model' )
         if self.get_config('DTI_fit_method') not in ['OLS', 'LS', 'WLS', 'NLLS', 'RT', 'RESTORE', 'restore']:
             ERROR("DTI fit method must be one of the following:\n'OLS'(default) or 'LS': ordinary least squares\n'WLS': weighted least squares\n'NLLS': non-linear least squares\n'RT' or 'RESTORE' or 'restore': robust tensor\nNOTE: more info at https://dipy.org/documentation/1.6.0./reference/dipy.reconst/#dipy.reconst.dti.TensorModel")
-        
+
         self.nthreads = self.get_config('nthreads') if self.get_config('nthreads') > 0 else cpu_count() if self.get_config('nthreads') == -1 else ERROR('Number of parallel threads must be positive or -1')
         self.BLAS_nthreads = self.get_config('BLAS_nthreads') if self.get_config('BLAS_nthreads') > 0 else cpu_count() if self.get_config('BLAS_nthreads') == -1 else ERROR('Number of BLAS threads must be positive or -1')
 
