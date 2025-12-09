@@ -177,7 +177,7 @@ class Evaluation :
             if not isfile( pjoin(self.get_config('DATA_path'), mask_filename) ):
                 ERROR( 'MASK file not found' )
             self.niiMASK = nibabel.load( pjoin( self.get_config('DATA_path'), mask_filename) )
-            self.niiMASK_img = self.niiMASK.get_fdata().astype(np.uint8)
+            self.niiMASK_img = (self.niiMASK.get_fdata()>0).astype(np.uint8)
             niiMASK_hdr = self.niiMASK.header if nibabel.__version__ >= '2.0.0' else self.niiMASK.get_header()
             PRINT('\t\t- dim    = %d x %d x %d' % self.niiMASK_img.shape[:3])
             PRINT('\t\t- pixdim = %.3f x %.3f x %.3f' % niiMASK_hdr.get_zooms()[:3])
