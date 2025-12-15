@@ -1,6 +1,13 @@
 # Change Log
 ### All notable changes to `AMICO` will be documented in this file.
 
+## [Unreleased]
+### 🐛Fixed
+- Removed `isExvivo` parameter from CylinderZeppelinBall model
+
+---
+---
+
 ## `v2.1.1`<br>_2025-08-13_
 ### 🐛Fixed
 - `UserWarning`: `pkg_resources` is deprecated as an API.

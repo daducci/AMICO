@@ -432,7 +432,6 @@ class CylinderZeppelinBall( BaseModel ) :
         params['Rs'] = self.Rs
         params['d_perps'] = self.d_perps
         params['d_isos'] = self.d_isos
-        params['isExvivo'] = self.isExvivo
         return params
 
 
@@ -546,16 +545,12 @@ class CylinderZeppelinBall( BaseModel ) :
     def _fit(self, thread_id, y, dirs, hash_table, kernels):
         # configs
         cdef int thread_id_c = thread_id
-        cdef bint is_exvivo = 1 if self.isExvivo else 0
         cdef bint compute_rmse = 1 if self.configs['compute_rmse'] else 0
         cdef bint compute_nrmse = 1 if self.configs['compute_nrmse'] else 0
         cdef int n_rs = len(self.Rs)
         cdef int n_perp = len(self.d_perps)
         cdef int n_iso = len(self.d_isos)
         cdef int n_atoms = n_rs + n_perp + n_iso
-        # NOTE not implemented
-        if is_exvivo:
-            n_atoms += 1
 
         # solver params
         cdef double lambda1 = self.solver_params['lambda1']
