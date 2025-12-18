@@ -10,7 +10,7 @@ jobs:
             - [aarch64, manylinux2014_aarch64, ARMV8, arm64]
     name: ${{ matrix.arch[0] }}
     runs-on: ubuntu-latest
-    timeout-minutes: 600 # NOTE: need this to compile the arm64 version
+    timeout-minutes: 1000 # NOTE: need this to compile the arm64 version
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3.0.0
