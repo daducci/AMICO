@@ -53,59 +53,59 @@ jobs:
           [
             {
               py: cp36,
-              arch: [x86_64, macosx_x86_64, 12.0, macos-14]
+              arch: [x86_64, macosx_x86_64, 12.0, macos-latest]
             },
             {
               py: cp37,
-              arch: [x86_64, macosx_x86_64, 12.0, macos-14]
+              arch: [x86_64, macosx_x86_64, 12.0, macos-latest]
             },
             {
               py: cp38,
-              arch: [x86_64, macosx_x86_64, 12.0, macos-14]
+              arch: [x86_64, macosx_x86_64, 12.0, macos-latest]
             },
             {
               py: cp39,
-              arch: [x86_64, macosx_x86_64, 12.0, macos-14]
+              arch: [x86_64, macosx_x86_64, 12.0, macos-latest]
             },
             {
               py: cp310,
-              arch: [x86_64, macosx_x86_64, 12.0, macos-14]
+              arch: [x86_64, macosx_x86_64, 12.0, macos-latest]
             },
             {
               py: cp311,
-              arch: [x86_64, macosx_x86_64, 12.0, macos-14]
+              arch: [x86_64, macosx_x86_64, 12.0, macos-latest]
             },
             {
               py: cp312,
-              arch: [x86_64, macosx_x86_64, 12.0, macos-14]
+              arch: [x86_64, macosx_x86_64, 12.0, macos-latest]
             },
             {
               py: cp313,
-              arch: [x86_64, macosx_x86_64, 12.0, macos-14]
+              arch: [x86_64, macosx_x86_64, 12.0, macos-latest]
             },
             {
               py: cp38,
-              arch: [arm64, macosx_arm64, 12.0, macos-14]
+              arch: [arm64, macosx_arm64, 12.0, macos-latest]
             },
             {
               py: cp39,
-              arch: [arm64, macosx_arm64, 12.0, macos-14]
+              arch: [arm64, macosx_arm64, 12.0, macos-latest]
             },
             {
               py: cp310,
-              arch: [arm64, macosx_arm64, 12.0, macos-14]
+              arch: [arm64, macosx_arm64, 12.0, macos-latest]
             },
             {
               py: cp311,
-              arch: [arm64, macosx_arm64, 12.0, macos-14]
+              arch: [arm64, macosx_arm64, 12.0, macos-latest]
             },
             {
               py: cp312,
-              arch: [arm64, macosx_arm64, 12.0, macos-14]
+              arch: [arm64, macosx_arm64, 12.0, macos-latest]
             },
             {
               py: cp313,
-              arch: [arm64, macosx_arm64, 12.0, macos-14]
+              arch: [arm64, macosx_arm64, 12.0, macos-latest]
             }
           ]
     name: ${{ matrix.config.py }}-${{ matrix.config.arch[1] }}
