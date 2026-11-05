@@ -6,8 +6,8 @@ jobs:
     strategy:
       matrix:
         arch:
-          - [x86_64, SANDYBRIDGE, 12.0, macos-14]
-          - [arm64, ARMV8, 12.0, macos-14]
+          - [x86_64, SANDYBRIDGE, 12.0, macos-latest]
+          - [arm64, ARMV8, 12.0, macos-latest]
     name: ${{ matrix.arch[0] }}
     runs-on: ${{ matrix.arch[3] }}
     steps:
