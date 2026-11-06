@@ -203,6 +203,8 @@ class BaseModel(ABC) :
         """
         # Each chunk indexes one of the nthreads progress counters.
         n = evaluation.y.shape[0]
+        if n == 0:
+            ERROR('Mask contains no voxels to fit')
         c = (n + evaluation.nthreads - 1) // evaluation.nthreads
         self.chunks = [(i, min(i + c, n)) for i in range(0, n, c)]
 
