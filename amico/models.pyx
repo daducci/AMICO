@@ -201,14 +201,12 @@ class BaseModel(ABC) :
             'y_corrected': Corrected DWI (only FreeWater model) (optional)
             'estimates_mod': Modulated maps (only NODDI model) (optional)
         """
-        # build chunks
+        # Each chunk indexes one of the nthreads progress counters.
         n = evaluation.y.shape[0]
-        c = n // evaluation.nthreads
-        self.chunks = []
-        for i, j in zip(range(0, n, c), range(c, n+1, c)):
-            self.chunks.append((i, j))
-        if self.chunks[-1][1] != n:
-            self.chunks[-1] = (self.chunks[-1][0], n)
+        if n == 0:
+            ERROR('Mask contains no voxels to fit')
+        c = (n + evaluation.nthreads - 1) // evaluation.nthreads
+        self.chunks = [(i, min(i + c, n)) for i in range(0, n, c)]
 
         # common configs
         self.configs = {

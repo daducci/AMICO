@@ -424,6 +424,8 @@ class Evaluation :
 
         self.set_config('fit_time', None)
         totVoxels = np.count_nonzero(self.niiMASK_img)
+        if totVoxels == 0:
+            ERROR('Mask contains no voxels to fit')
         # LOG( f'\n-> Fitting "{self.model.name}" model to {totVoxels} voxels (using {self.nthreads} thread{"s" if self.nthreads > 1 else ""}):' )
 
         # setup fitting directions
