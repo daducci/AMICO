@@ -3,7 +3,7 @@
 
 ## `v2.2.0`<br>_2024-11-11_
 ### ✨Added
-- Added new supported values for `ndirs` parameter
+- Additional values for `ndirs` parameter
 
 ---
 ---
