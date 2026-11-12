@@ -22,7 +22,7 @@ def valid_dirs():
     -------
     List of the supported number of directions
     """
-    return np.arange(start=500, stop=10500, step=500).tolist() + [1, 32761]
+    return np.arange(start=500, stop=10500, step=500).tolist() + [1, 16, 32, 64, 128, 256, 32761]
 
 
 def is_valid( ndirs ):

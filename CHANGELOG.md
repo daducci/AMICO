@@ -1,6 +1,13 @@
 # Change Log
 ### All notable changes to `AMICO` will be documented in this file.
 
+## `v2.2.0`<br>_2024-11-11_
+### ✨Added
+- Additional values for `ndirs` parameter
+
+---
+---
+
 ## `v2.1.2`<br>_2026-11-06_
 ### 🐛Fixed
 - Bound fitting chunks to the number of threads to prevent crashes with small masks.
